@@ -1,56 +1,98 @@
-# Welcome to your Expo app 👋
+# GeoLearn
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Application de révision de géographie (Expo SDK 57, expo-router).
 
-## Get started
+## Principe
 
-1. Install dependencies
+Deux onglets, pas plus :
 
-   ```bash
-   npm install
-   ```
+- **Apprendre** — on choisit un mode (Drapeau · Capitale · Pays) puis une zone
+  (Monde, Afrique, Amérique, Asie, Europe, Océanie), et on enchaîne 10 questions.
+- **Profil** — meilleurs scores par zone et par mode, taux de réussite, meilleure
+  série, et la liste des pays ratés à revoir.
 
-2. Start the app
+Chaque zone a sa couleur et son fond : l'écran de jeu porte le fond de la zone
+en cours, donc on sait toujours où on est.
 
-   ```bash
-   npx expo start
-   ```
+## Les trois modes
 
-In the output, you'll find options to open the app in a
+| Mode | Question | Réponse attendue |
+| --- | --- | --- |
+| Drapeau | un drapeau s'affiche | le nom du pays |
+| Capitale | un pays (2 fois sur 3) ou une capitale (1 fois sur 3) | l'autre moitié de la paire |
+| Pays | une carte du continent, le pays cherché surligné | le nom du pays |
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+Les réponses se tapent au clavier. La comparaison est **tolérante** : insensible
+à la casse et aux accents, elle ignore les articles, accepte les variantes
+(« USA » pour États-Unis, « Myanmar » pour Birmanie, « La Paz » pour la Bolivie)
+et pardonne une à deux fautes de frappe selon la longueur du mot.
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Mettre tes propres photos de fond
 
-## Get a fresh project
+Les six zones s'affichent pour l'instant avec un dégradé de la palette. Pour
+passer aux photos :
 
-When you're ready, run:
+1. Dépose tes images dans `assets/images/categories/` :
+   `monde.jpg`, `afrique.jpg`, `amerique.jpg`, `asie.jpg`, `europe.jpg`, `oceanie.jpg`
+2. Dé-commente la ligne correspondante dans `PHOTOS`, en haut de
+   [src/constants/categories.ts](src/constants/categories.ts).
 
-```bash
-npm run reset-project
+Le dégradé reste dessiné sous la photo : il sert de fond pendant le chargement,
+et de secours si une image manque. Rien d'autre à changer.
+
+## Données
+
+`src/data/countries.json` contient les 193 États membres de l'ONU plus le
+Vatican, avec nom et capitale en français, code ISO, continent, et les réponses
+alternatives acceptées. Le fichier est **généré** :
+
+```sh
+npm run generate-countries
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Le script part du paquet `world-countries` et applique les corrections
+françaises (Pékin, Le Caire, Oulan-Bator…) listées en clair dans
+[scripts/generate-countries.mjs](scripts/generate-countries.mjs). C'est là qu'il
+faut ajouter un alias ou corriger une capitale.
 
-### Other setup steps
+### Le fond de carte
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+Les frontières viennent de **Natural Earth v4.1.0**, redistribué en TopoJSON par
+le paquet [`world-atlas`](https://github.com/topojson/world-atlas) (domaine
+public), projeté à la volée avec `d3-geo`. Tout est embarqué : aucune requête
+réseau.
 
-## Learn more
+Deux résolutions sont chargées et choisies selon l'échelle : le **1:50m** dès
+qu'on zoome (frontières fidèles), le **1:110m** en vue continentale (dix fois
+plus léger, et visuellement identique à cette échelle). Sans cette bascule, une
+vue de l'Amérique atteignait 1,4 Mo de tracés SVG, affichés en double pendant le
+fondu.
 
-To learn more about developing your project with Expo, look at the following resources:
+Il n'existe pas de jeu de frontières « officiel » universel — plusieurs tracés
+sont contestés et tout jeu de données prend position. Natural Earth adopte les
+tracés de fait et traite en entités distinctes le Sahara occidental, la
+Palestine, Taïwan, ainsi que le Kosovo, le Somaliland, Chypre du Nord et le
+glacier de Siachen (ces quatre-là sans code ISO). Ils sont donc **dessinés sur
+la carte sans jamais être une réponse attendue**. La référence la plus proche
+d'un statut officiel est l'*UN Clear Map* du
+[UN Geospatial](https://geoportal.un.org), qui hachure explicitement les zones
+disputées — mais sa licence n'est pas libre et demande une autorisation.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+**Les 194 pays sont jouables dans les trois modes, sans exception.** Sur la
+carte, celui qui mesure moins de 16 px reçoit un cercle de repérage — une
+vingtaine au zoom (Monaco, Vatican, Malte, Maldives…) et environ la moitié en
+vue continentale. Tuvalu, absent même du fond 1:50m, est repéré à partir de ses
+coordonnées : l'anneau est alors sa seule représentation.
 
-## Join the community
+Les drapeaux sont chargés depuis flagcdn.com et mis en cache sur disque par
+`expo-image`. Sans réseau à la toute première vue, l'emoji drapeau prend le
+relais.
 
-Join our community of developers creating universal apps.
+## Développement
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```sh
+npm start        # serveur de développement
+npm run android  # ou npm run ios / npm run web
+npm run lint
+npx tsc --noEmit
+```

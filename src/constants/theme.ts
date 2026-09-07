@@ -1,26 +1,57 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * Direction artistique GeoLearn : vert, bleu, jaune, marron clair.
+ * L'app assume un rendu clair unique (les fonds photo/dégradés portent la couleur),
+ * ce qui garantit un contraste stable quel que soit le réglage système.
  */
 
 import '@/global.css';
 
 import { Platform } from 'react-native';
 
+export const Palette = {
+  /** Verts — nature, bonnes réponses */
+  green: '#2F855A',
+  greenDark: '#1E5C42',
+  greenLight: '#9AE6B4',
+
+  /** Bleus — océan, navigation */
+  blue: '#3D6FA6',
+  blueDark: '#21405F',
+  blueLight: '#BEE3F8',
+
+  /** Jaunes — soleil, accent, score */
+  yellow: '#E9B44C',
+  yellowDark: '#C97B24',
+  yellowLight: '#FAECC8',
+
+  /** Marrons clairs — terre, papier, cartes */
+  brown: '#B0714A',
+  brownDark: '#7A4A2B',
+  brownLight: '#E8D9C5',
+
+  /** Neutres chauds */
+  sand: '#FBF6EE',
+  card: '#FFFFFF',
+  ink: '#3A2E22',
+  inkSoft: '#7C6A56',
+  border: '#E3D5C1',
+  danger: '#C0392B',
+} as const;
+
 export const Colors = {
   light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
+    text: Palette.ink,
+    background: Palette.sand,
+    backgroundElement: Palette.card,
+    backgroundSelected: Palette.yellowLight,
+    textSecondary: Palette.inkSoft,
   },
   dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
+    text: Palette.ink,
+    background: Palette.sand,
+    backgroundElement: Palette.card,
+    backgroundSelected: Palette.yellowLight,
+    textSecondary: Palette.inkSoft,
   },
 } as const;
 
@@ -28,13 +59,9 @@ export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
     sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
     serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
     rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
     mono: 'ui-monospace',
   },
   default: {
@@ -59,6 +86,29 @@ export const Spacing = {
   four: 24,
   five: 32,
   six: 64,
+} as const;
+
+export const Radius = {
+  small: 10,
+  medium: 18,
+  large: 28,
+  pill: 999,
+} as const;
+
+/** Ombre douce et chaude, homogène sur toutes les cartes. */
+export const Shadow = {
+  card: Platform.select({
+    ios: {
+      shadowColor: Palette.brownDark,
+      shadowOpacity: 0.18,
+      shadowRadius: 14,
+      shadowOffset: { width: 0, height: 6 },
+    },
+    android: { elevation: 5 },
+    default: {
+      boxShadow: `0 6px 14px ${Palette.brownDark}2E`,
+    },
+  }),
 } as const;
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;

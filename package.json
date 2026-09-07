@@ -4,15 +4,19 @@
   "version": "1.0.0",
   "dependencies": {
     "@expo/ui": "~57.0.16",
+    "d3-geo": "^3.1.1",
     "expo": "~57.0.20",
     "expo-constants": "~57.0.17",
     "expo-device": "~57.0.1",
     "expo-font": "~57.0.3",
     "expo-glass-effect": "~57.0.1",
+    "expo-haptics": "~57.0.2",
     "expo-image": "~57.0.4",
+    "expo-linear-gradient": "~57.0.1",
     "expo-linking": "~57.0.9",
     "expo-router": "~57.0.19",
     "expo-splash-screen": "~57.0.8",
+    "expo-sqlite": "~57.0.2",
     "expo-status-bar": "~57.0.1",
     "expo-symbols": "~57.0.2",
     "expo-system-ui": "~57.0.3",
@@ -24,12 +28,20 @@
     "react-native-reanimated": "4.5.1",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",
+    "react-native-svg": "15.15.4",
     "react-native-web": "~0.21.0",
-    "react-native-worklets": "0.10.1"
+    "react-native-worklets": "0.10.1",
+    "topojson-client": "^3.1.0",
+    "world-atlas": "^2.0.2"
   },
   "devDependencies": {
+    "@types/d3-geo": "^3.1.1",
     "@types/react": "~19.2.2",
-    "typescript": "~6.0.3"
+    "@types/topojson-client": "^3.1.5",
+    "eslint": "^9.0.0",
+    "eslint-config-expo": "~57.0.2",
+    "typescript": "~6.0.3",
+    "world-countries": "^5.1.0"
   },
   "scripts": {
     "start": "expo start",
@@ -37,7 +49,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "generate-countries": "node ./scripts/generate-countries.mjs"
   },
   "private": true
 }
