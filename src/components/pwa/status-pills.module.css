@@ -1,0 +1,54 @@
+.wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  padding-top: calc(var(--space-2) + env(safe-area-inset-top, 0px));
+  pointer-events: none;
+}
+
+.pill {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: var(--content-max);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-pill);
+  border: 1px solid;
+  box-shadow: var(--shadow-card);
+  font-size: 12px;
+  font-weight: 700;
+  animation: fade-in-up 240ms ease both;
+}
+
+.offline {
+  background-color: var(--brown-light);
+  border-color: var(--brown);
+  color: var(--brown-dark);
+}
+
+.update {
+  background-color: var(--card);
+  border-color: var(--green);
+  color: var(--ink);
+}
+
+.action {
+  padding: var(--space-1) 10px;
+  border-radius: var(--radius-pill);
+  background-color: var(--green);
+  color: var(--card);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.action:hover {
+  background-color: var(--green-dark);
+}

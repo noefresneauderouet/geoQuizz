@@ -1,48 +1,42 @@
-import { LinearGradient } from 'expo-linear-gradient';
-import { Image } from 'expo-image';
-import type { ReactNode } from 'react';
-import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import type { CSSProperties, ReactNode } from 'react';
 
 import type { Category } from '@/constants/categories';
+
+import styles from './category-background.module.css';
 
 type Props = {
   category: Category;
   children?: ReactNode;
-  style?: StyleProp<ViewStyle>;
+  className?: string;
   /** Renforce le voile quand du texte doit rester lisible par-dessus. */
   scrimBoost?: number;
 };
 
 /**
  * Fond d'une catégorie : sa photo si elle a été déposée dans
- * assets/images/categories/, sinon son dégradé. Le dégradé reste dessiné
- * sous la photo, ce qui sert aussi de placeholder pendant le chargement.
+ * public/categories/, sinon son dégradé. Le dégradé reste dessiné sous la
+ * photo, ce qui sert aussi de fond pendant le chargement, et de secours si
+ * l'image manque.
+ *
+ * Composant serveur : il ne fait que produire du balisage, donc il part dans
+ * le HTML statique et ne coûte rien au bundle client.
  */
-export function CategoryBackground({ category, children, style, scrimBoost = 0 }: Props) {
+export function CategoryBackground({ category, children, className, scrimBoost = 0 }: Props) {
+  const layers = {
+    '--gradient': `linear-gradient(135deg, ${category.gradient.join(', ')})`,
+    '--scrim': category.scrim,
+    '--scrim-opacity': String(Math.min(1, 1 + scrimBoost)),
+  } as CSSProperties;
+
   return (
-    <View style={[styles.root, style]}>
-      <LinearGradient
-        colors={category.gradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
+    <div className={className ? `${styles.root} ${className}` : styles.root} style={layers}>
+      <div className={styles.gradient} />
       {category.photo ? (
-        <Image
-          source={category.photo}
-          style={StyleSheet.absoluteFill}
-          contentFit="cover"
-          transition={300}
-        />
+        // eslint-disable-next-line @next/next/no-img-element
+        <img className={styles.photo} src={category.photo} alt="" loading="lazy" />
       ) : null}
-      <View style={[StyleSheet.absoluteFill, { backgroundColor: category.scrim, opacity: 1 + scrimBoost }]} />
+      <div className={styles.scrim} />
       {children}
-    </View>
+    </div>
   );
 }
-
-const styles = StyleSheet.create({
-  root: {
-    overflow: 'hidden',
-  },
-});

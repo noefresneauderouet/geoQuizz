@@ -1,12 +1,15 @@
 /**
  * Direction artistique GeoLearn : vert, bleu, jaune, marron clair.
- * L'app assume un rendu clair unique (les fonds photo/dégradés portent la couleur),
- * ce qui garantit un contraste stable quel que soit le réglage système.
+ *
+ * L'app assume un rendu clair unique — les fonds de catégorie portent la
+ * couleur — ce qui garantit un contraste stable quel que soit le réglage
+ * système.
+ *
+ * Cette palette est la **seule** source de vérité. Le CSS ne la recopie pas :
+ * `paletteVariables()` en dérive les variables `--green`, `--sand`… que le
+ * layout racine écrit dans le document (voir src/app/layout.tsx). Modifier une
+ * couleur ici la change partout, feuilles de style comprises.
  */
-
-import '@/global.css';
-
-import { Platform } from 'react-native';
 
 export const Palette = {
   /** Verts — nature, bonnes réponses */
@@ -38,78 +41,23 @@ export const Palette = {
   danger: '#C0392B',
 } as const;
 
-export const Colors = {
-  light: {
-    text: Palette.ink,
-    background: Palette.sand,
-    backgroundElement: Palette.card,
-    backgroundSelected: Palette.yellowLight,
-    textSecondary: Palette.inkSoft,
-  },
-  dark: {
-    text: Palette.ink,
-    background: Palette.sand,
-    backgroundElement: Palette.card,
-    backgroundSelected: Palette.yellowLight,
-    textSecondary: Palette.inkSoft,
-  },
-} as const;
+/** `greenLight` -> `--green-light` */
+const toVariableName = (key: string) => `--${key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`;
 
-export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
+/**
+ * Le bloc `:root` correspondant à la palette, prêt à être injecté.
+ *
+ * Rendu à la construction par un composant serveur : il part dans le HTML
+ * statique, donc les couleurs s'appliquent dès la première image, sans
+ * attendre le JavaScript.
+ */
+export function paletteVariables(): string {
+  const lines = Object.entries(Palette).map(([key, value]) => `  ${toVariableName(key)}: ${value};`);
+  return `:root {\n${lines.join('\n')}\n}`;
+}
 
-export const Fonts = Platform.select({
-  ios: {
-    sans: 'system-ui',
-    serif: 'ui-serif',
-    rounded: 'ui-rounded',
-    mono: 'ui-monospace',
-  },
-  default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
-  },
-  web: {
-    sans: 'var(--font-display)',
-    serif: 'var(--font-serif)',
-    rounded: 'var(--font-rounded)',
-    mono: 'var(--font-mono)',
-  },
-});
+/** Couleur de la barre d'outils du navigateur et du manifeste. */
+export const THEME_COLOR = Palette.green;
 
-export const Spacing = {
-  half: 2,
-  one: 4,
-  two: 8,
-  three: 16,
-  four: 24,
-  five: 32,
-  six: 64,
-} as const;
-
-export const Radius = {
-  small: 10,
-  medium: 18,
-  large: 28,
-  pill: 999,
-} as const;
-
-/** Ombre douce et chaude, homogène sur toutes les cartes. */
-export const Shadow = {
-  card: Platform.select({
-    ios: {
-      shadowColor: Palette.brownDark,
-      shadowOpacity: 0.18,
-      shadowRadius: 14,
-      shadowOffset: { width: 0, height: 6 },
-    },
-    android: { elevation: 5 },
-    default: {
-      boxShadow: `0 6px 14px ${Palette.brownDark}2E`,
-    },
-  }),
-} as const;
-
-export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
-export const MaxContentWidth = 800;
+/** Fond de l'app, repris par le manifeste pour l'écran de lancement. */
+export const BACKGROUND_COLOR = Palette.sand;

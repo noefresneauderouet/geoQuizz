@@ -1,5 +1,3 @@
-import type { ImageSourcePropType } from 'react-native';
-
 import { Palette } from '@/constants/theme';
 
 export type CategoryId = 'monde' | 'afrique' | 'amerique' | 'asie' | 'europe' | 'oceanie';
@@ -18,27 +16,29 @@ export type Category = {
   scrim: string;
   /** Teinte de la carte du monde en mode « Pays ». */
   map: { land: string; highlight: string; stroke: string };
-  /** Photo de fond optionnelle : assets/images/categories/<id>.jpg */
-  photo: ImageSourcePropType | null;
+  /** Photo de fond optionnelle, servie depuis public/categories/. */
+  photo: string | null;
 };
 
 /**
  * Photos de fond.
  *
- * Dépose simplement tes images ici :
- *   assets/images/categories/monde.jpg
- *   assets/images/categories/afrique.jpg   (etc.)
+ * Dépose simplement tes images dans public/categories/ :
+ *   public/categories/monde.jpg
+ *   public/categories/afrique.jpg   (etc.)
  *
- * puis dé-commente la ligne correspondante ci-dessous. Tant qu'une ligne reste
- * commentée, la catégorie affiche son dégradé — aucun autre code à toucher.
+ * puis dé-commente la ligne correspondante ci-dessous. Tant qu'une ligne
+ * reste commentée, la catégorie affiche son dégradé — aucun autre code à
+ * toucher. Pense à relancer la construction : le service worker précache la
+ * liste exacte des fichiers produits.
  */
-const PHOTOS: Record<CategoryId, ImageSourcePropType | null> = {
-  monde: null, // require('@/assets/images/categories/monde.jpg'),
-  afrique: null, // require('@/assets/images/categories/afrique.jpg'),
-  amerique: null, // require('@/assets/images/categories/amerique.jpg'),
-  asie: null, // require('@/assets/images/categories/asie.jpg'),
-  europe: null, // require('@/assets/images/categories/europe.jpg'),
-  oceanie: null, // require('@/assets/images/categories/oceanie.jpg'),
+const PHOTOS: Record<CategoryId, string | null> = {
+  monde: null, // '/categories/monde.jpg',
+  afrique: null, // '/categories/afrique.jpg',
+  amerique: null, // '/categories/amerique.jpg',
+  asie: null, // '/categories/asie.jpg',
+  europe: null, // '/categories/europe.jpg',
+  oceanie: null, // '/categories/oceanie.jpg',
 };
 
 export const CATEGORIES: readonly Category[] = [
@@ -121,15 +121,29 @@ export type ModeId = 'drapeau' | 'capitale' | 'pays';
 export type Mode = {
   id: ModeId;
   label: string;
+  /** Pluriel écrit en toutes lettres : « drapeaux », pas « drapeau » + s. */
+  plural: string;
   emoji: string;
   /** Consigne affichée en haut de l'écran de jeu. */
   prompt: string;
 };
 
 export const MODES: readonly Mode[] = [
-  { id: 'drapeau', label: 'Drapeau', emoji: '🏳️', prompt: 'À quel pays appartient ce drapeau ?' },
-  { id: 'capitale', label: 'Capitale', emoji: '📍', prompt: 'Quelle est la capitale ?' },
-  { id: 'pays', label: 'Pays', emoji: '🗺️', prompt: 'Quel est le pays surligné ?' },
+  {
+    id: 'drapeau',
+    label: 'Drapeau',
+    plural: 'drapeaux',
+    emoji: '🏳️',
+    prompt: 'À quel pays appartient ce drapeau ?',
+  },
+  {
+    id: 'capitale',
+    label: 'Capitale',
+    plural: 'capitales',
+    emoji: '📍',
+    prompt: 'Quelle est la capitale ?',
+  },
+  { id: 'pays', label: 'Pays', plural: 'pays', emoji: '🗺️', prompt: 'Quel est le pays surligné ?' },
 ] as const;
 
 export function getMode(id: string | undefined): Mode {

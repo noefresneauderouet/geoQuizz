@@ -1,74 +1,33 @@
-import { StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
-
-import { Palette, Radius, Shadow, Spacing } from '@/constants/theme';
+import styles from './feedback-banner.module.css';
 
 type Props = {
   correct: boolean;
   /** Vrai quand la réponse a été rattrapée par la tolérance orthographique. */
   approximate: boolean;
   answer: string;
-  /** Contexte utile : « capitale du Pérou », « Pérou » … */
+  /** Contexte utile : « capitale du Pérou », « Pérou · capitale : Lima »… */
   detail?: string;
 };
 
+/**
+ * La correction.
+ *
+ * `role="status"` la fait annoncer par les lecteurs d'écran sans voler le
+ * focus : la couleur et l'icône ne suffiraient pas à transmettre le résultat.
+ */
 export function FeedbackBanner({ correct, approximate, answer, detail }: Props) {
   const title = correct ? (approximate ? 'Presque ! On te l’accorde' : 'Bravo !') : 'Raté';
 
   return (
-    <Animated.View
-      entering={FadeInDown.duration(220)}
-      style={[styles.banner, correct ? styles.ok : styles.ko]}
-      accessibilityLiveRegion="polite">
-      <Text style={styles.icon}>{correct ? '✅' : '❌'}</Text>
-      <View style={styles.texts}>
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.answer}>{answer}</Text>
-        {detail ? <Text style={styles.detail}>{detail}</Text> : null}
-      </View>
-    </Animated.View>
+    <div className={`${styles.banner} ${correct ? styles.ok : styles.ko}`} role="status">
+      <span className={styles.icon} aria-hidden="true">
+        {correct ? '✅' : '❌'}
+      </span>
+      <div>
+        <p className={styles.title}>{title}</p>
+        <p className={styles.answer}>{answer}</p>
+        {detail ? <p className={styles.detail}>{detail}</p> : null}
+      </div>
+    </div>
   );
 }
-
-const styles = StyleSheet.create({
-  banner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.three,
-    padding: Spacing.three,
-    borderRadius: Radius.medium,
-    borderWidth: 2,
-    ...Shadow.card,
-  },
-  ok: {
-    backgroundColor: Palette.greenLight,
-    borderColor: Palette.green,
-  },
-  ko: {
-    backgroundColor: '#F7D9D4',
-    borderColor: Palette.danger,
-  },
-  icon: {
-    fontSize: 24,
-  },
-  texts: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 13,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-    color: Palette.ink,
-  },
-  answer: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: Palette.ink,
-  },
-  detail: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Palette.inkSoft,
-  },
-});

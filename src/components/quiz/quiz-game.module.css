@@ -1,0 +1,267 @@
+/*
+ * L'écran de jeu occupe toute la fenêtre, sans la barre d'onglets : on en
+ * sort par la croix. `100dvh` suit la hauteur réellement visible, donc
+ * l'apparition de la barre d'adresse mobile ne coupe plus le pied de page.
+ */
+.screen {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.frame {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: var(--content-max);
+  margin-inline: auto;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  min-height: 0;
+}
+
+.centered {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  max-width: var(--content-max);
+  margin-inline: auto;
+  padding: var(--space-3);
+}
+
+/* ------------------------------ En-tête ---------------------------------- */
+
+.topBar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+}
+
+.close {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill);
+  background-color: rgb(255 255 255 / 25%);
+  color: var(--card);
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.close:hover {
+  background-color: rgb(255 255 255 / 40%);
+}
+
+.topLabels {
+  flex: 1;
+  min-width: 0;
+}
+
+.topTitle {
+  color: var(--card);
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.topSub {
+  color: rgb(255 255 255 / 85%);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.scorePill {
+  min-width: 40px;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-pill);
+  background-color: var(--yellow);
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.progressTrack {
+  height: 6px;
+  margin: 0 var(--space-3);
+  border-radius: var(--radius-pill);
+  background-color: rgb(255 255 255 / 30%);
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background-color: var(--yellow);
+  border-radius: var(--radius-pill);
+  transition: width 240ms ease;
+}
+
+/* ------------------------------ Question --------------------------------- */
+
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-l);
+  background-color: var(--card);
+  box-shadow: var(--shadow-card);
+  animation: fade-in 260ms ease both;
+}
+
+.prompt {
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--ink);
+  text-align: center;
+}
+
+.mapBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.zoomButton {
+  align-self: center;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-pill);
+  background-color: var(--yellow-light);
+  border: 1px solid var(--yellow);
+  color: var(--brown-dark);
+  font-weight: 700;
+}
+
+.zoomButton:hover {
+  background-color: var(--yellow);
+}
+
+.countryChip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-3);
+  background-color: var(--sand);
+  border-radius: var(--radius-m);
+}
+
+.chipIcon {
+  font-size: 44px;
+  line-height: 1;
+}
+
+.countryName {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--ink);
+  min-width: 0;
+}
+
+/* ------------------------------- Pied ------------------------------------ */
+
+.footer {
+  padding: 0 var(--space-3) var(--space-3);
+}
+
+.nextButton {
+  display: block;
+  width: 100%;
+  border-radius: var(--radius-m);
+  padding: 14px;
+  text-align: center;
+  color: var(--card);
+  font-size: 17px;
+  font-weight: 800;
+  box-shadow: var(--shadow-card);
+  transition: opacity 120ms ease;
+}
+
+.nextButton:hover {
+  opacity: 0.9;
+}
+
+.ghost {
+  padding: var(--space-2);
+  color: var(--ink-soft);
+  font-weight: 700;
+}
+
+.ghost:hover {
+  color: var(--ink);
+}
+
+.emptyText {
+  color: var(--card);
+  font-size: 17px;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* ------------------------------ Résultat --------------------------------- */
+
+.summaryCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-4);
+  border-radius: var(--radius-l);
+  background-color: var(--card);
+  box-shadow: var(--shadow-card);
+  animation: fade-in 260ms ease both;
+}
+
+.summaryButton {
+  align-self: stretch;
+  margin-top: var(--space-2);
+}
+
+.summaryMedal {
+  font-size: 56px;
+  line-height: 1;
+}
+
+.summaryTitle {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.summaryScore {
+  font-size: 52px;
+  font-weight: 800;
+  color: var(--green);
+  line-height: 1;
+}
+
+.summaryScoreTotal {
+  font-size: 26px;
+  color: var(--ink-soft);
+}
+
+.summaryMeta {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  text-align: center;
+}

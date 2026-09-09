@@ -1,3 +1,5 @@
+'use client';
+
 import { useSyncExternalStore } from 'react';
 
 import type { CategoryId, ModeId } from '@/constants/categories';
@@ -95,6 +97,16 @@ export function resetProgress() {
   commit(EMPTY_STATS);
 }
 
+/**
+ * Instantané servi pendant le rendu statique **et** pendant l'hydratation.
+ *
+ * Il doit rester constant : si l'hydratation lisait déjà localStorage, le
+ * premier rendu client afficherait des scores que le HTML construit à la
+ * compilation ne contient pas, et React signalerait un écart. Les vraies
+ * valeurs arrivent juste après, au premier abonnement.
+ */
+const getServerSnapshot = (): Stats => EMPTY_STATS;
+
 export function useStats(): Stats {
-  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }

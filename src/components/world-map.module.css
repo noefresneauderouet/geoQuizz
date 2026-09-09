@@ -1,0 +1,13 @@
+.container {
+  position: relative;
+  border-radius: var(--radius-m);
+  overflow: hidden;
+  background-color: var(--blue-light);
+  border: 2px solid var(--brown-light);
+}
+
+.layer {
+  position: absolute;
+  inset: 0;
+  transition: opacity 420ms ease;
+}

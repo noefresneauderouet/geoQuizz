@@ -1,15 +1,16 @@
+'use client';
+
 import { geoArea, geoCentroid, geoMercator, geoPath } from 'd3-geo';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
-import Svg, { Circle, Path, Rect } from 'react-native-svg';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { feature } from 'topojson-client';
 import detailedAtlas from 'world-atlas/countries-50m.json';
 import coarseAtlas from 'world-atlas/countries-110m.json';
 
 import type { Category, CategoryId } from '@/constants/categories';
-import { Palette, Radius } from '@/constants/theme';
+import { Palette } from '@/constants/theme';
 import type { Country } from '@/lib/countries';
+
+import styles from './world-map.module.css';
 
 /** Une forme du fond de carte, prête à projeter. */
 type Shape = { id: string; geometry: GeoJSON.Geometry };
@@ -289,17 +290,30 @@ type Props = {
 };
 
 export function WorldMap({ country, category, zoomed, scope, height = 260 }: Props) {
+  const container = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<Size | null>(null);
 
-  const onLayout = useCallback((e: LayoutChangeEvent) => {
-    const { width, height: measured } = e.nativeEvent.layout;
-    // onLayout se déclenche à chaque rotation d'écran : on ne reprojette que
-    // si la taille a réellement changé.
-    setSize((prev) =>
-      prev && Math.abs(prev.width - width) < 1 && Math.abs(prev.height - measured) < 1
-        ? prev
-        : { width, height: measured }
-    );
+  /*
+   * La projection a besoin des dimensions réelles du cadre, que seul le
+   * navigateur connaît. Un ResizeObserver les suit — y compris au changement
+   * d'orientation ou quand le clavier virtuel redimensionne la fenêtre.
+   */
+  useEffect(() => {
+    const element = container.current;
+    if (!element) return;
+
+    const observer = new ResizeObserver(([entry]) => {
+      const { width, height: measured } = entry.contentRect;
+      if (width === 0 || measured === 0) return;
+      setSize((prev) =>
+        prev && Math.abs(prev.width - width) < 1 && Math.abs(prev.height - measured) < 1
+          ? prev
+          : { width, height: measured }
+      );
+    });
+
+    observer.observe(element);
+    return () => observer.disconnect();
   }, []);
 
   const wide = useMemo(() => {
@@ -350,36 +364,46 @@ export function WorldMap({ country, category, zoomed, scope, height = 260 }: Pro
     );
   }, [country, size]);
 
-  const progress = useSharedValue(0);
-  useEffect(() => {
-    progress.value = withTiming(zoomed && close ? 1 : 0, { duration: 420 });
-  }, [zoomed, close, progress]);
-
-  const wideStyle = useAnimatedStyle(() => ({ opacity: 1 - progress.value }));
-  const closeStyle = useAnimatedStyle(() => ({ opacity: progress.value }));
+  const showClose = zoomed && close !== null;
 
   return (
-    <View style={[styles.container, { height }]} onLayout={onLayout}>
+    <div ref={container} className={styles.container} style={{ height }}>
       {size && wide ? (
-        <Animated.View style={[StyleSheet.absoluteFill, wideStyle]}>
-          <MapLayer frame={wide} category={category} size={size} />
-        </Animated.View>
+        <MapLayer frame={wide} category={category} size={size} hidden={showClose} />
       ) : null}
       {size && close ? (
-        <Animated.View style={[StyleSheet.absoluteFill, closeStyle]} pointerEvents="none">
-          <MapLayer frame={close} category={category} size={size} />
-        </Animated.View>
+        <MapLayer frame={close} category={category} size={size} hidden={!showClose} />
       ) : null}
-    </View>
+    </div>
   );
 }
 
-function MapLayer({ frame, category, size }: { frame: Frame; category: Category; size: Size }) {
+/**
+ * Une des deux vues. Les deux sont montées en permanence et se croisent par
+ * l'opacité : reprojeter à chaque bascule aurait fait sauter l'image, la
+ * projection d'un continent coûtant plusieurs dizaines de millisecondes.
+ */
+function MapLayer({
+  frame,
+  category,
+  size,
+  hidden,
+}: {
+  frame: Frame;
+  category: Category;
+  size: Size;
+  hidden: boolean;
+}) {
   return (
-    <Svg width={size.width} height={size.height}>
-      <Rect x={0} y={0} width={size.width} height={size.height} fill={Palette.blueLight} />
+    <svg
+      className={styles.layer}
+      width={size.width}
+      height={size.height}
+      style={{ opacity: hidden ? 0 : 1 }}
+      aria-hidden="true">
+      <rect x={0} y={0} width={size.width} height={size.height} fill={Palette.blueLight} />
       {frame.land.map((d, i) => (
-        <Path
+        <path
           key={i}
           d={d}
           fill={category.map.land}
@@ -389,7 +413,7 @@ function MapLayer({ frame, category, size }: { frame: Frame; category: Category;
         />
       ))}
       {frame.highlight ? (
-        <Path
+        <path
           d={frame.highlight}
           fill={category.map.highlight}
           stroke={Palette.ink}
@@ -398,7 +422,7 @@ function MapLayer({ frame, category, size }: { frame: Frame; category: Category;
       ) : null}
       {frame.marker ? (
         <>
-          <Circle
+          <circle
             cx={frame.marker.x}
             cy={frame.marker.y}
             r={MARKER_RADIUS_PX}
@@ -407,7 +431,7 @@ function MapLayer({ frame, category, size }: { frame: Frame; category: Category;
             strokeWidth={4}
             strokeOpacity={0.8}
           />
-          <Circle
+          <circle
             cx={frame.marker.x}
             cy={frame.marker.y}
             r={MARKER_RADIUS_PX}
@@ -417,16 +441,6 @@ function MapLayer({ frame, category, size }: { frame: Frame; category: Category;
           />
         </>
       ) : null}
-    </Svg>
+    </svg>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    borderRadius: Radius.medium,
-    overflow: 'hidden',
-    backgroundColor: Palette.blueLight,
-    borderWidth: 2,
-    borderColor: Palette.brownLight,
-  },
-});

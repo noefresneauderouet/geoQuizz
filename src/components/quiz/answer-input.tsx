@@ -1,101 +1,63 @@
-import { forwardRef } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+'use client';
 
-import { Palette, Radius, Shadow, Spacing } from '@/constants/theme';
+import type { CSSProperties, Ref } from 'react';
+
+import styles from './answer-input.module.css';
 
 type Props = {
   value: string;
-  onChangeText: (text: string) => void;
+  onChange: (text: string) => void;
   onSubmit: () => void;
   /** Étiquette du champ : « Pays » ou « Capitale ». */
   label: string;
   accent: string;
   /** Verrouillé pendant l'affichage de la correction. */
   locked: boolean;
+  ref?: Ref<HTMLInputElement>;
 };
 
-export const AnswerInput = forwardRef<TextInput, Props>(function AnswerInput(
-  { value, onChangeText, onSubmit, label, accent, locked },
-  ref
-) {
+/**
+ * Champ de réponse.
+ *
+ * C'est un vrai `<form>` : la touche Entrée valide sans code, et les claviers
+ * mobiles affichent « OK » plutôt qu'un retour à la ligne. `autoComplete` et
+ * la correction automatique sont coupés — le navigateur proposerait les
+ * réponses précédentes, ce qui reviendrait à souffler.
+ */
+export function AnswerInput({ value, onChange, onSubmit, label, accent, locked, ref }: Props) {
   const canSubmit = value.trim().length > 0 && !locked;
 
   return (
-    <View style={styles.wrapper}>
-      <View style={[styles.field, { borderColor: locked ? Palette.border : accent }]}>
-        <Text style={[styles.label, { color: accent }]}>{label}</Text>
-        <TextInput
+    <form
+      className={styles.wrapper}
+      style={{ '--accent': accent } as CSSProperties}
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (canSubmit) onSubmit();
+      }}>
+      <div className={locked ? `${styles.field} ${styles.locked}` : styles.field}>
+        <label className={styles.label} htmlFor="answer">
+          {label}
+        </label>
+        <input
+          id="answer"
           ref={ref}
+          className={styles.input}
           value={value}
-          onChangeText={onChangeText}
-          onSubmitEditing={onSubmit}
-          editable={!locked}
+          onChange={(event) => onChange(event.target.value)}
+          disabled={locked}
           placeholder="Écris ta réponse…"
-          placeholderTextColor={Palette.inkSoft}
-          autoCorrect={false}
+          autoComplete="off"
+          autoCorrect="off"
           autoCapitalize="words"
-          returnKeyType="done"
-          style={styles.input}
-          accessibilityLabel={`Réponse : ${label}`}
+          spellCheck={false}
+          enterKeyHint="done"
         />
-      </View>
+      </div>
 
-      <Pressable
-        onPress={onSubmit}
-        disabled={!canSubmit}
-        accessibilityRole="button"
-        style={({ pressed }) => [
-          styles.button,
-          { backgroundColor: canSubmit ? accent : Palette.border },
-          pressed && canSubmit && styles.buttonPressed,
-        ]}>
-        <Text style={[styles.buttonText, !canSubmit && styles.buttonTextDisabled]}>Valider</Text>
-      </Pressable>
-    </View>
+      <button type="submit" className={styles.button} disabled={!canSubmit}>
+        Valider
+      </button>
+    </form>
   );
-});
-
-const styles = StyleSheet.create({
-  wrapper: {
-    gap: Spacing.two,
-  },
-  field: {
-    backgroundColor: Palette.card,
-    borderRadius: Radius.medium,
-    borderWidth: 2,
-    paddingHorizontal: Spacing.three,
-    paddingTop: Spacing.two,
-    paddingBottom: Spacing.two,
-    ...Shadow.card,
-  },
-  label: {
-    fontSize: 11,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  input: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: Palette.ink,
-    paddingVertical: Spacing.one,
-  },
-  button: {
-    borderRadius: Radius.medium,
-    paddingVertical: Spacing.three - 2,
-    alignItems: 'center',
-    ...Shadow.card,
-  },
-  buttonPressed: {
-    opacity: 0.85,
-    transform: [{ scale: 0.99 }],
-  },
-  buttonText: {
-    color: Palette.card,
-    fontSize: 17,
-    fontWeight: '800',
-  },
-  buttonTextDisabled: {
-    color: Palette.inkSoft,
-  },
-});
+}

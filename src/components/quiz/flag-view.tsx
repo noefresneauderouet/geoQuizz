@@ -1,60 +1,41 @@
-import { Image } from 'expo-image';
-import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+'use client';
 
-import { Palette, Radius, Shadow } from '@/constants/theme';
+import { useState } from 'react';
+
 import { flagEmoji, flagUrl } from '@/lib/countries';
 
-type Props = { code: string; height?: number };
+import styles from './flag-view.module.css';
+
+type Props = { code: string };
 
 /**
- * Drapeau du pays. L'image est mise en cache sur disque par expo-image :
- * une fois vue, elle reste disponible hors-ligne. Si le réseau manque à la
- * première vue, on retombe sur l'emoji drapeau, toujours lisible.
+ * Drapeau du pays.
+ *
+ * L'image est la seule ressource distante de l'application. Le service worker
+ * en garde une copie dès la première vue, donc un pays déjà croisé reste
+ * jouable hors ligne ; sinon on retombe sur l'emoji drapeau, toujours
+ * lisible. `key` sur le code remet l'état à zéro d'une question à l'autre :
+ * sans lui, un échec de chargement condamnerait tous les drapeaux suivants.
  */
-export function FlagView({ code, height = 150 }: Props) {
+export function FlagView({ code }: Props) {
   const [failed, setFailed] = useState(false);
 
-  if (failed) {
-    return (
-      <View style={[styles.frame, { height }]}>
-        <Text style={[styles.emoji, { fontSize: height * 0.6 }]}>{flagEmoji(code)}</Text>
-      </View>
-    );
-  }
-
   return (
-    <View style={[styles.frame, { height }]}>
-      <Image
-        source={{ uri: flagUrl(code, 640) }}
-        style={styles.image}
-        contentFit="contain"
-        transition={200}
-        cachePolicy="disk"
-        onError={() => setFailed(true)}
-        accessibilityLabel="Drapeau à identifier"
-      />
-    </View>
+    <div className={styles.frame}>
+      {failed ? (
+        <span className={styles.emoji} role="img" aria-label="Drapeau à identifier">
+          {flagEmoji(code)}
+        </span>
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          key={code}
+          className={styles.image}
+          src={flagUrl(code, 640)}
+          alt="Drapeau à identifier"
+          onError={() => setFailed(true)}
+        />
+      )}
+    </div>
   );
 }
-
-const styles = StyleSheet.create({
-  frame: {
-    width: '100%',
-    borderRadius: Radius.medium,
-    backgroundColor: Palette.card,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 12,
-    borderWidth: 2,
-    borderColor: Palette.brownLight,
-    ...Shadow.card,
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-  },
-  emoji: {
-    textAlign: 'center',
-  },
-});

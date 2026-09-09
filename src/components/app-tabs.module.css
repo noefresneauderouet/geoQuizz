@@ -1,0 +1,53 @@
+.bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  display: flex;
+  justify-content: center;
+  padding: var(--space-3);
+  /* Au-dessus de la barre d'accueil iOS plutôt qu'à cheval dessus. */
+  padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+  pointer-events: none;
+}
+
+.inner {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  max-width: var(--content-max);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-pill);
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-card);
+}
+
+.brand {
+  margin-right: auto;
+  font-weight: 800;
+  font-size: 16px;
+  color: var(--green);
+}
+
+.tab {
+  padding: 6px var(--space-3);
+  border-radius: var(--radius-pill);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--ink-soft);
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.tab:hover {
+  background-color: var(--yellow-light);
+}
+
+.tabActive,
+.tabActive:hover {
+  background-color: var(--green);
+  color: var(--card);
+}

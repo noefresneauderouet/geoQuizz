@@ -1,0 +1,47 @@
+.track {
+  display: flex;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-card);
+}
+
+.segment {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: 10px var(--space-2);
+  border-radius: var(--radius-pill);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.segment:hover:not(.active) {
+  background-color: var(--yellow-light);
+}
+
+.active {
+  background-color: var(--accent);
+  color: var(--card);
+  box-shadow: var(--shadow-card);
+}
+
+.label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Sur écran étroit, l'emoji suffit à distinguer les trois modes. */
+@media (max-width: 360px) {
+  .label {
+    display: none;
+  }
+}

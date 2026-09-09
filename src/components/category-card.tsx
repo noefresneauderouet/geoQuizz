@@ -1,8 +1,9 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Link from 'next/link';
 
 import { CategoryBackground } from '@/components/category-background';
-import type { Category } from '@/constants/categories';
-import { Palette, Radius, Shadow, Spacing } from '@/constants/theme';
+import type { Category, ModeId } from '@/constants/categories';
+
+import styles from './category-card.module.css';
 
 type Props = {
   category: Category;
@@ -10,120 +11,51 @@ type Props = {
   /** Meilleur score sur ce couple catégorie/mode, ou null si jamais jouée. */
   best: number | null;
   total: number;
-  onPress: () => void;
+  mode: ModeId;
   /** La carte « Monde » occupe toute la largeur et sert d'entrée principale. */
   featured?: boolean;
 };
 
+/**
+ * Une zone de jeu.
+ *
+ * C'est un lien, pas un bouton : la partie a une adresse
+ * (/quiz?category=europe&mode=drapeau), donc elle s'ouvre dans un onglet,
+ * se met en favori, et se retrouve dans l'historique.
+ */
 export function CategoryCard({
   category,
   countryCount,
   best,
   total,
-  onPress,
+  mode,
   featured = false,
 }: Props) {
   return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`${category.label}, ${countryCount} pays`}
-      accessibilityHint={category.tagline}
-      style={({ pressed }) => [
-        styles.pressable,
-        featured ? styles.featured : styles.tile,
-        pressed && styles.pressed,
-      ]}>
-      <CategoryBackground category={category} style={StyleSheet.absoluteFill as never} />
-      <View style={[styles.content, featured && styles.contentFeatured]}>
-        <View style={styles.topRow}>
-          <Text style={[styles.emoji, featured && styles.emojiFeatured]}>{category.emoji}</Text>
-          {best !== null ? (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>
+    <Link
+      href={`/quiz?category=${category.id}&mode=${mode}`}
+      className={`${styles.card} ${featured ? styles.featured : styles.tile}`}
+      aria-label={`${category.label}, ${countryCount} pays — ${category.tagline}`}>
+      <CategoryBackground category={category} className={styles.background}>
+        <div className={styles.content}>
+          <div className={styles.topRow}>
+            <span className={styles.emoji} aria-hidden="true">
+              {category.emoji}
+            </span>
+            {best !== null ? (
+              <span className={styles.badge}>
                 ★ {best}/{total}
-              </Text>
-            </View>
-          ) : null}
-        </View>
+              </span>
+            ) : null}
+          </div>
 
-        <View style={styles.bottom}>
-          <Text style={[styles.label, featured && styles.labelFeatured]} numberOfLines={1}>
-            {category.label}
-          </Text>
-          <Text style={styles.meta} numberOfLines={featured ? 1 : 2}>
-            {featured ? category.tagline : `${countryCount} pays`}
-          </Text>
-          {featured ? <Text style={styles.meta}>{countryCount} pays</Text> : null}
-        </View>
-      </View>
-    </Pressable>
+          <div className={styles.bottom}>
+            <p className={styles.label}>{category.label}</p>
+            {featured ? <p className={styles.meta}>{category.tagline}</p> : null}
+            <p className={styles.meta}>{countryCount} pays</p>
+          </div>
+        </div>
+      </CategoryBackground>
+    </Link>
   );
 }
-
-const styles = StyleSheet.create({
-  pressable: {
-    borderRadius: Radius.large,
-    overflow: 'hidden',
-    ...Shadow.card,
-  },
-  featured: {
-    height: 150,
-  },
-  tile: {
-    flex: 1,
-    minWidth: 0,
-    height: 124,
-  },
-  pressed: {
-    transform: [{ scale: 0.97 }],
-    opacity: 0.92,
-  },
-  content: {
-    flex: 1,
-    padding: Spacing.three,
-    justifyContent: 'space-between',
-  },
-  contentFeatured: {
-    padding: Spacing.four - 4,
-  },
-  topRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-  },
-  emoji: {
-    fontSize: 26,
-  },
-  emojiFeatured: {
-    fontSize: 38,
-  },
-  badge: {
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    borderRadius: Radius.pill,
-    paddingHorizontal: Spacing.two,
-    paddingVertical: Spacing.half + 1,
-  },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: Palette.ink,
-  },
-  bottom: {
-    gap: 1,
-  },
-  label: {
-    color: Palette.card,
-    fontSize: 20,
-    fontWeight: '800',
-    letterSpacing: 0.2,
-  },
-  labelFeatured: {
-    fontSize: 30,
-  },
-  meta: {
-    color: 'rgba(255,255,255,0.88)',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-});

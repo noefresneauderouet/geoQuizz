@@ -38,7 +38,7 @@ export function flagEmoji(code: string): string {
   );
 }
 
-/** Image du drapeau (mise en cache sur disque par expo-image). */
+/** Image du drapeau ; le service worker en garde une copie (scripts/service-worker.js). */
 export function flagUrl(code: string, width: 160 | 320 | 640 = 320): string {
   return `https://flagcdn.com/w${width}/${code.toLowerCase()}.png`;
 }

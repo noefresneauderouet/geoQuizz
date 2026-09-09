@@ -1,6 +1,8 @@
 # GeoLearn
 
-Application de révision de géographie (Expo SDK 57, expo-router).
+Application **web installable** de révision de géographie : une PWA construite
+avec **Next.js 16** (App Router, export statique). Le web est la seule cible —
+il n'y a pas de version iOS ni Android.
 
 ## Principe
 
@@ -32,7 +34,7 @@ et pardonne une à deux fautes de frappe selon la longueur du mot.
 Les six zones s'affichent pour l'instant avec un dégradé de la palette. Pour
 passer aux photos :
 
-1. Dépose tes images dans `assets/images/categories/` :
+1. Dépose tes images dans `public/categories/` :
    `monde.jpg`, `afrique.jpg`, `amerique.jpg`, `asie.jpg`, `europe.jpg`, `oceanie.jpg`
 2. Dé-commente la ligne correspondante dans `PHOTOS`, en haut de
    [src/constants/categories.ts](src/constants/categories.ts).
@@ -84,15 +86,106 @@ vingtaine au zoom (Monaco, Vatican, Malte, Maldives…) et environ la moitié en
 vue continentale. Tuvalu, absent même du fond 1:50m, est repéré à partir de ses
 coordonnées : l'anneau est alors sa seule représentation.
 
-Les drapeaux sont chargés depuis flagcdn.com et mis en cache sur disque par
-`expo-image`. Sans réseau à la toute première vue, l'emoji drapeau prend le
-relais.
+Les drapeaux sont chargés depuis flagcdn.com et gardés en cache par le service
+worker. Sans réseau à la toute première vue, l'emoji drapeau prend le relais.
+
+## L'installer
+
+Sur **Chrome / Edge** (ordinateur et Android), une icône d'installation apparaît
+dans la barre d'adresse, et l'app propose elle-même la bannière « Installer
+GeoLearn ». Sur **Safari iOS**, il n'existe aucune API : le geste est
+_Partager › Sur l'écran d'accueil_, et c'est ce que la bannière explique.
+
+Refusée une fois, la bannière ne revient plus.
+
+Une fois installée, GeoLearn s'ouvre dans sa propre fenêtre, sans barre
+d'adresse, et **fonctionne entièrement hors ligne** : les 194 pays, leurs
+capitales et les deux fonds de carte sont embarqués dans le bundle, précaché au
+premier lancement.
+
+Seuls les **drapeaux** viennent du réseau (flagcdn.com). Ils sont mis en cache
+au fur et à mesure des parties : un pays déjà croisé reste jouable hors ligne,
+un pays jamais vu retombe sur son emoji drapeau. Les précharger aurait ajouté
+plusieurs mégaoctets au premier téléchargement pour des images qu'on ne verra
+peut-être jamais.
+
+### Mises à jour
+
+Une nouvelle version s'installe en arrière-plan mais **n'écrase rien** : elle
+attend qu'on appuie sur « Mettre à jour », dans le bandeau en haut de l'écran.
+Sans cela, un déploiement rechargerait la page au milieu d'une question.
 
 ## Développement
 
 ```sh
-npm start        # serveur de développement
-npm run android  # ou npm run ios / npm run web
+npm run dev        # http://localhost:3000
 npm run lint
-npx tsc --noEmit
+npm run typecheck
 ```
+
+## Construire et déployer
+
+```sh
+npm run build    # export statique + service worker -> out/
+npm test         # exerce out/sw.js hors navigateur
+npm run serve    # sert out/ sur http://localhost:8080
+npm run preview  # build + serve
+```
+
+`npm run build` enchaîne deux étapes :
+
+1. `next build` produit `out/` — l'app est configurée en `output: 'export'`,
+   donc il n'y a **aucun serveur Node à faire tourner** ;
+2. [scripts/build-sw.mjs](scripts/build-sw.mjs) assemble `out/sw.js` à partir
+   de [scripts/service-worker.js](scripts/service-worker.js), en y injectant la
+   liste des fichiers produits et une empreinte de leur contenu.
+
+L'empreinte étant calculée sur le contenu, reconstruire sans rien changer ne
+déclenche aucune mise à jour chez les utilisateurs.
+
+`out/` se dépose tel quel sur n'importe quel hébergeur statique. Deux réglages
+comptent, que [scripts/serve.mjs](scripts/serve.mjs) reproduit en local :
+
+- `/profil` doit servir `profil.html` (URL sans extension) ;
+- `sw.js` et les pages HTML ne doivent **pas** être mis en cache par le
+  navigateur (`Cache-Control: no-cache`), sinon une nouvelle version ne serait
+  jamais vue. Tout ce qui est sous `/_next/static/` porte au contraire une
+  empreinte dans son nom et peut être figé pour un an.
+
+Le service worker doit être servi en **HTTPS ou sur localhost** : ouvrir
+`out/index.html` depuis le disque ne permet ni l'installation ni le hors-ligne.
+
+## Les icônes
+
+Elles ne sont pas dessinées à la main : [scripts/generate-icons.mjs](scripts/generate-icons.mjs)
+projette le fond de carte de l'app en orthographique et le rend dans la palette
+du thème, du favicon 32 px à l'icône 512 px, `maskable` comprise.
+
+```sh
+npm run generate-icons   # -> public/icons/
+```
+
+Changer une couleur dans [src/constants/theme.ts](src/constants/theme.ts) puis
+relancer suffit à régénérer une famille cohérente.
+
+## Ce qui est rendu à la compilation, et ce qui ne l'est pas
+
+L'accueil et le profil sortent de la construction **avec leur contenu** : les
+six zones, le sélecteur de mode, le tableau des scores sont dans le HTML, donc
+visibles avant même que le JavaScript ne s'exécute. Les meilleurs scores, eux,
+vivent dans le stockage local : le HTML les montre à zéro et les vraies valeurs
+apparaissent à l'hydratation. C'est voulu — c'est aussi pourquoi
+[src/lib/progress.ts](src/lib/progress.ts) fournit un instantané serveur
+constant, sans quoi React signalerait un écart.
+
+L'écran de jeu fait exception. Il lit la zone et le mode dans l'URL, qui
+n'existe qu'à la visite, et tire ses dix questions au hasard : le figer à la
+compilation donnerait la même partie à tout le monde. Il est donc rendu côté
+client, derrière une frontière `Suspense` — c'est le « Préparation de la
+partie… » que contient [out/quiz.html](src/app/quiz/page.tsx).
+
+## La barre d'onglets pendant une partie
+
+Elle disparaît. Chaque route se démonte quand on la quitte, donc changer
+d'onglet au milieu d'une manche l'effacerait. Un quiz est un écran plein, dont
+on sort par sa propre croix.

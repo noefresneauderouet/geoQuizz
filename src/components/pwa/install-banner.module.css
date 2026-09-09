@@ -1,0 +1,97 @@
+.wrapper {
+  position: fixed;
+  left: 0;
+  right: 0;
+  /* Juste au-dessus de la barre d'onglets, jamais dessous. */
+  bottom: var(--bottom-inset);
+  z-index: 50;
+  display: flex;
+  justify-content: center;
+  padding: 0 var(--space-3) var(--space-2);
+  pointer-events: none;
+}
+
+.card {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  max-width: var(--content-max);
+  padding: var(--space-3);
+  border-radius: var(--radius-m);
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-card);
+  animation: fade-in-down 320ms ease both;
+}
+
+.icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-s);
+  flex-shrink: 0;
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.subtitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.primary {
+  padding: 10px var(--space-3);
+  border-radius: var(--radius-pill);
+  background-color: var(--green);
+  color: var(--card);
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.primary:hover {
+  background-color: var(--green-dark);
+}
+
+.secondary {
+  padding: 10px var(--space-2);
+  color: var(--ink-soft);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.secondary:hover {
+  color: var(--ink);
+}
+
+/* Sous 520 px, la carte se replie en colonne : les deux boutons côte à côte
+   écrasaient le texte au point de le réduire à un mot par ligne. */
+@media (max-width: 520px) {
+  .card {
+    flex-wrap: wrap;
+  }
+
+  .actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}

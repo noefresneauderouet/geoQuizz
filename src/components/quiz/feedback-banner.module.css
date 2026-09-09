@@ -1,0 +1,45 @@
+.banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-m);
+  border: 2px solid;
+  box-shadow: var(--shadow-card);
+  animation: fade-in-down 220ms ease both;
+}
+
+.ok {
+  background-color: var(--green-light);
+  border-color: var(--green);
+}
+
+.ko {
+  background-color: #f7d9d4;
+  border-color: var(--danger);
+}
+
+.icon {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.title {
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--ink);
+}
+
+.answer {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.detail {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}

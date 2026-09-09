@@ -1,0 +1,163 @@
+/*
+ * Fondations de GeoLearn.
+ *
+ * Les couleurs n'apparaissent pas ici : elles sont dérivées de
+ * src/constants/theme.ts et écrites dans le document par le layout racine, de
+ * façon qu'il n'existe qu'une seule définition de la palette. Ce fichier ne
+ * porte que le reste — espacements, rayons, ombre, et les quelques
+ * comportements qu'une application installée doit avoir.
+ */
+
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 32px;
+
+  --radius-s: 10px;
+  --radius-m: 18px;
+  --radius-l: 28px;
+  --radius-pill: 999px;
+
+  --shadow-card: 0 6px 14px rgb(122 74 43 / 18%);
+
+  --content-max: 800px;
+
+  /* Hauteur de la barre d'onglets, qui flotte au-dessus du contenu. */
+  --tabbar: 72px;
+  /* Place à réserver en bas d'un écran : la barre, plus la zone système. */
+  --bottom-inset: calc(var(--tabbar) + env(safe-area-inset-bottom, 0px));
+
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
+    'Apple Color Emoji', 'Segoe UI Emoji';
+
+  color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  /* Le contenu s'étend sous les encoches : le HTML déclare viewport-fit=cover. */
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100%;
+  background-color: var(--sand);
+  color: var(--ink);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+
+  /* En application installée, le rebond de fin de page et le « tirer pour
+     rafraîchir » d'Android trahissent la page web. */
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+h1,
+h2,
+h3,
+p,
+figure {
+  margin: 0;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img {
+  max-width: 100%;
+}
+
+:focus-visible {
+  outline: 3px solid var(--yellow-dark);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Gabarits partagés                                                   */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Colonne centrée commune aux écrans Apprendre et Profil.
+ *
+ * La marge basse tient compte de la barre d'onglets, qui est en
+ * `position: fixed` : sans elle, les dernières lignes passeraient dessous.
+ */
+.screen {
+  width: 100%;
+  max-width: var(--content-max);
+  margin-inline: auto;
+  padding: var(--space-3);
+  padding-top: max(var(--space-3), env(safe-area-inset-top, 0px));
+  padding-bottom: calc(var(--bottom-inset) + var(--space-5));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.sectionTitle {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--brown);
+  margin-top: var(--space-1);
+  margin-left: var(--space-1);
+}
+
+/* ------------------------------------------------------------------ */
+/* Animations                                                          */
+/* ------------------------------------------------------------------ */
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes fade-in-down {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+}
+
+/*
+ * Un réglage système « animations réduites » n'est pas une préférence
+ * esthétique : c'est une demande d'accessibilité. On coupe tout d'un bloc
+ * plutôt que de le reprendre animation par animation.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

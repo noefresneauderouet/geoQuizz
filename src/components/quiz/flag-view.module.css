@@ -1,0 +1,22 @@
+.frame {
+  height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  border-radius: var(--radius-m);
+  background-color: var(--card);
+  border: 2px solid var(--brown-light);
+  box-shadow: var(--shadow-card);
+}
+
+.image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.emoji {
+  font-size: 90px;
+  line-height: 1;
+}

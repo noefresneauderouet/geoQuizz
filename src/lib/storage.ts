@@ -1,13 +1,17 @@
-import Storage from 'expo-sqlite/kv-store';
-
 /**
- * Stockage clé/valeur synchrone. Sur mobile c'est expo-sqlite/kv-store ;
- * la variante .web.ts utilise localStorage, ce qui évite d'embarquer le
- * module WASM de SQLite dans le bundle web.
+ * Stockage clé/valeur synchrone, adossé à localStorage.
+ *
+ * La progression tient en quelques centaines d'octets : ni IndexedDB ni
+ * SQLite/WASM ne se justifient, et localStorage a le mérite d'être
+ * synchrone — le store de src/lib/progress.ts lit son instantané sans
+ * passer par une promesse.
+ *
+ * Le quota et le mode privé sont les deux cas d'échec ; ils sont avalés,
+ * l'app reste jouable sans conserver les scores.
  */
 export function getItem(key: string): string | null {
   try {
-    return Storage.getItemSync(key);
+    return globalThis.localStorage?.getItem(key) ?? null;
   } catch {
     return null;
   }
@@ -15,8 +19,8 @@ export function getItem(key: string): string | null {
 
 export function setItem(key: string, value: string): void {
   try {
-    Storage.setItemSync(key, value);
+    globalThis.localStorage?.setItem(key, value);
   } catch {
-    // stockage indisponible : la session reste jouable, sans persistance
+    // mode privé ou stockage plein
   }
 }
