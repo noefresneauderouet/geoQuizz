@@ -33,12 +33,12 @@ export type Category = {
  * liste exacte des fichiers produits.
  */
 const PHOTOS: Record<CategoryId, string | null> = {
-  monde: null, // '/categories/monde.jpg',
-  afrique: null, // '/categories/afrique.jpg',
-  amerique: null, // '/categories/amerique.jpg',
-  asie: null, // '/categories/asie.jpg',
-  europe: null, // '/categories/europe.jpg',
-  oceanie: null, // '/categories/oceanie.jpg',
+  monde: '/categories/monde.jpg',
+  afrique: '/categories/afrique.jpg',
+  amerique: '/categories/amerique.jpg',
+  asie: '/categories/asie.jpg',
+  europe: '/categories/europe.jpg',
+  oceanie: '/categories/oceanie.jpg',
 };
 
 export const CATEGORIES: readonly Category[] = [
