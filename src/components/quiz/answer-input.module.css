@@ -10,10 +10,54 @@
   border: 2px solid var(--accent);
   padding: var(--space-2) var(--space-3);
   box-shadow: var(--shadow-card);
+  transition: border-color 160ms ease, background-color 160ms ease;
 }
 
-.locked {
-  border-color: var(--border);
+/* Réponse trouvée : le vert des bonnes réponses remplace l'accent de la zone. */
+.solved {
+  border-color: var(--green);
+  background-color: var(--green-light);
+}
+
+.solved .label {
+  color: var(--green-dark);
+}
+
+.shakeA {
+  animation: shake-a 320ms ease;
+}
+
+.shakeB {
+  animation: shake-b 320ms ease;
+}
+
+@keyframes shake-a {
+  20%,
+  60% {
+    transform: translateX(-6px);
+  }
+  40%,
+  80% {
+    transform: translateX(6px);
+  }
+}
+
+@keyframes shake-b {
+  20%,
+  60% {
+    transform: translateX(-6px);
+  }
+  40%,
+  80% {
+    transform: translateX(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shakeA,
+  .shakeB {
+    animation: none;
+  }
 }
 
 .label {
@@ -44,26 +88,55 @@
   font-weight: 500;
 }
 
-.button {
+/* Réservé même vide : l'apparition du message ne fait pas sauter les boutons. */
+.hint {
+  min-height: 1.3em;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--card);
+  text-align: center;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 35%);
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: var(--space-2);
+}
+
+.button,
+.skip {
   border-radius: var(--radius-m);
   padding: 14px;
   text-align: center;
-  background-color: var(--accent);
-  color: var(--card);
   font-size: 17px;
   font-weight: 800;
-  box-shadow: var(--shadow-card);
   transition: opacity 120ms ease, transform 120ms ease;
 }
 
-.button:active:not(:disabled) {
+.button {
+  background-color: var(--accent);
+  color: var(--card);
+  box-shadow: var(--shadow-card);
+}
+
+.skip {
+  background-color: var(--card);
+  color: var(--ink);
+  border: 2px solid var(--border);
+}
+
+.button:active:not(:disabled),
+.skip:active:not(:disabled) {
   opacity: 0.85;
   transform: scale(0.99);
 }
 
-.button:disabled {
+.button:disabled,
+.skip:disabled {
   background-color: var(--border);
   color: var(--ink-soft);
+  border-color: var(--border);
   cursor: default;
   box-shadow: none;
 }

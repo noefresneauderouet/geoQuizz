@@ -39,7 +39,7 @@
 .topBar {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
   padding: var(--space-2) var(--space-3);
 }
 
@@ -264,4 +264,111 @@
   font-weight: 600;
   color: var(--ink-soft);
   text-align: center;
+}
+
+/* Le temps de la manche : discret tant qu'il ne compte pas, vert dès que le
+   sans-faute le rend comparable. */
+.summaryTime {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  background-color: var(--sand);
+  color: var(--brown-dark);
+  font-size: 15px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.summaryTimePerfect {
+  background-color: var(--green-light);
+  color: var(--green-dark);
+}
+
+.summaryTimeDetail {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.summaryTimePerfect .summaryTimeDetail {
+  color: inherit;
+}
+
+/* ------------------------- Passer, revenir, s'arrêter --------------------- */
+
+.skippedBadge {
+  align-self: center;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
+  background-color: var(--yellow-light);
+  border: 1px solid var(--yellow);
+  color: var(--brown-dark);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.giveUp {
+  align-self: center;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-pill);
+  background-color: rgb(255 255 255 / 25%);
+  color: var(--card);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.giveUp:hover {
+  background-color: rgb(255 255 255 / 40%);
+}
+
+/* Deuxième appui attendu : le bouton passe au blanc plein pour qu'on voie
+   qu'il a changé de sens. */
+.giveUpConfirm,
+.giveUpConfirm:hover {
+  background-color: var(--card);
+  color: var(--danger);
+  font-weight: 800;
+}
+
+.missed {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.missedTitle {
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--brown);
+  text-align: center;
+}
+
+.missedList {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.missedChip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background-color: var(--sand);
+  border: 1px solid var(--yellow);
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
 }

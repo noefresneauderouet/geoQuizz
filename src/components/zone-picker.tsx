@@ -3,11 +3,12 @@
 import { useState } from 'react';
 
 import { CategoryCard } from '@/components/category-card';
+import { CountSelector } from '@/components/count-selector';
 import { ModeSelector } from '@/components/mode-selector';
 import { CATEGORIES, MODES, type CategoryId, type ModeId } from '@/constants/categories';
 import { countriesOf } from '@/lib/countries';
-import { useStats } from '@/lib/progress';
-import { QUESTIONS_PER_ROUND } from '@/lib/quiz';
+import { scoreKey, useStats } from '@/lib/progress';
+import { DEFAULT_QUESTION_COUNT, type QuestionCount } from '@/lib/quiz';
 
 import styles from './zone-picker.module.css';
 
@@ -23,10 +24,15 @@ const [MONDE, ...CONTINENTS] = CATEGORIES;
  */
 export function ZonePicker() {
   const [mode, setMode] = useState<ModeId>('drapeau');
+  const [count, setCount] = useState<QuestionCount>(DEFAULT_QUESTION_COUNT);
   const stats = useStats();
 
   const activeMode = MODES.find((m) => m.id === mode) ?? MODES[0];
-  const bestOf = (categoryId: CategoryId) => stats.best[`${categoryId}:${mode}`] ?? null;
+  // Une zone plus petite que la longueur choisie se joue en entier : c'est
+  // cette longueur réelle qui porte le record.
+  const lengthOf = (categoryId: CategoryId) => Math.min(count, countriesOf(categoryId).length);
+  const bestOf = (categoryId: CategoryId) =>
+    stats.best[scoreKey(categoryId, mode, lengthOf(categoryId))] ?? null;
 
   return (
     <>
@@ -38,6 +44,7 @@ export function ZonePicker() {
       </header>
 
       <ModeSelector value={mode} onChange={setMode} accent={MONDE.accent} />
+      <CountSelector value={count} onChange={setCount} accent={MONDE.accent} />
 
       <h2 className="sectionTitle">Choisis ta zone</h2>
 
@@ -46,8 +53,9 @@ export function ZonePicker() {
         category={MONDE}
         countryCount={countriesOf(MONDE.id).length}
         best={bestOf(MONDE.id)}
-        total={QUESTIONS_PER_ROUND}
+        total={lengthOf(MONDE.id)}
         mode={mode}
+        count={count}
       />
 
       {/* Les continents vont deux par deux ; une grille garde la même largeur
@@ -59,15 +67,13 @@ export function ZonePicker() {
             category={category}
             countryCount={countriesOf(category.id).length}
             best={bestOf(category.id)}
-            total={QUESTIONS_PER_ROUND}
+            total={lengthOf(category.id)}
             mode={mode}
+            count={count}
           />
         ))}
       </div>
 
-      <p className={styles.footnote}>
-        {QUESTIONS_PER_ROUND} questions par partie · les fautes de frappe sont pardonnées
-      </p>
     </>
   );
 }

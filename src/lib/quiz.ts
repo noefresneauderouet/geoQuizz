@@ -9,7 +9,15 @@ export type Question = {
   reversed: boolean;
 };
 
-export const QUESTIONS_PER_ROUND = 10;
+/** Longueurs de partie proposées à l'accueil. */
+export const QUESTION_COUNTS = [10, 15, 20] as const;
+export type QuestionCount = (typeof QUESTION_COUNTS)[number];
+export const DEFAULT_QUESTION_COUNT: QuestionCount = 10;
+
+/** Lit la longueur dans l'URL ; toute valeur inconnue retombe sur 10. */
+export function getQuestionCount(value: string | null | undefined): QuestionCount {
+  return QUESTION_COUNTS.find((count) => String(count) === value) ?? DEFAULT_QUESTION_COUNT;
+}
 
 function shuffle<T>(items: readonly T[]): T[] {
   const copy = [...items];
@@ -20,11 +28,16 @@ function shuffle<T>(items: readonly T[]): T[] {
   return copy;
 }
 
-export function buildRound(category: CategoryId, mode: ModeId): Question[] {
+/**
+ * Tire une manche. Une zone plus petite que la longueur demandée — l'Océanie
+ * compte 14 pays — est jouée en entier : la manche est alors plus courte, et
+ * c'est sa longueur réelle qui sert de clé aux records (voir progress.ts).
+ */
+export function buildRound(category: CategoryId, mode: ModeId, count: number): Question[] {
   // Tous les pays sont jouables dans tous les modes, y compris sur la carte :
   // ceux qui sont trop petits pour se voir reçoivent un cercle de repérage.
   return shuffle(countriesOf(category))
-    .slice(0, QUESTIONS_PER_ROUND)
+    .slice(0, count)
     .map((country) => ({
       country,
       mode,
@@ -57,6 +70,19 @@ function acceptedAnswers(q: Question): string[] {
     : [q.country.name, ...q.country.nameAliases];
 }
 
+/** Vérification complète, fautes de frappe tolérées : la touche Entrée. */
 export function checkAnswer(q: Question, input: string): MatchResult {
   return matchAnswer(input, acceptedAnswers(q));
+}
+
+/**
+ * Vérification à chaque frappe : seule la réponse exacte — casse, accents et
+ * articles mis à part — est acceptée d'elle-même.
+ *
+ * La tolérance aux fautes reste réservée à Entrée. Appliquée en direct, elle
+ * validerait des mots encore en cours d'écriture, dès qu'ils passent à une
+ * lettre de la bonne réponse.
+ */
+export function isSolvedWhileTyping(q: Question, input: string): boolean {
+  return matchAnswer(input, acceptedAnswers(q)).exact;
 }

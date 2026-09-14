@@ -13,10 +13,18 @@
   margin-top: 2px;
 }
 
+/* Quatre chiffres : deux par deux sur un téléphone, en ligne dès qu'il y a la
+   place. Quatre colonnes sous 360 px rendraient « 4,2 s » illisible. */
 .statRow {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: var(--space-2);
+}
+
+@media (min-width: 480px) {
+  .statRow {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 
 .stat {
@@ -34,6 +42,7 @@
 .statValue {
   font-size: 26px;
   font-weight: 800;
+  font-variant-numeric: tabular-nums;
 }
 
 .statLabel {
@@ -41,6 +50,16 @@
   font-weight: 600;
   color: var(--ink-soft);
   text-align: center;
+}
+
+/* Aligné sur le titre de section qu'il prolonge. */
+.hint {
+  margin-left: var(--space-1);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  line-height: 1.4;
+  margin-top: calc(-1 * var(--space-2));
 }
 
 /* Le tableau défile seul plutôt que d'élargir la page : quatre colonnes ne
@@ -98,6 +117,26 @@
 .perfect {
   color: var(--green);
   font-weight: 800;
+}
+
+/* Une ligne par longueur de partie : « 15 q  0:42 ». */
+.cellLine {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 6px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.cellLine + .cellLine {
+  margin-top: 2px;
+}
+
+.cellLength {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ink-soft);
 }
 
 .empty {

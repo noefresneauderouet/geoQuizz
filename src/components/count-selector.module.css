@@ -1,0 +1,47 @@
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.caption {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--brown);
+  margin-left: var(--space-1);
+}
+
+/* Plus discret que le sélecteur de mode : c'est un réglage, pas le choix
+   principal de l'écran. */
+.track {
+  display: flex;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-card);
+}
+
+.option {
+  min-width: 52px;
+  padding: 6px var(--space-3);
+  border-radius: var(--radius-pill);
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.option:hover:not(.active) {
+  background-color: var(--yellow-light);
+}
+
+.active {
+  background-color: var(--accent);
+  color: var(--card);
+}

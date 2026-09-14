@@ -2,6 +2,7 @@ import Link from 'next/link';
 
 import { CategoryBackground } from '@/components/category-background';
 import type { Category, ModeId } from '@/constants/categories';
+import type { QuestionCount } from '@/lib/quiz';
 
 import styles from './category-card.module.css';
 
@@ -12,6 +13,7 @@ type Props = {
   best: number | null;
   total: number;
   mode: ModeId;
+  count: QuestionCount;
   /** La carte « Monde » occupe toute la largeur et sert d'entrée principale. */
   featured?: boolean;
 };
@@ -20,7 +22,7 @@ type Props = {
  * Une zone de jeu.
  *
  * C'est un lien, pas un bouton : la partie a une adresse
- * (/quiz?category=europe&mode=drapeau), donc elle s'ouvre dans un onglet,
+ * (/quiz?category=europe&mode=drapeau&count=15), donc elle s'ouvre dans un onglet,
  * se met en favori, et se retrouve dans l'historique.
  */
 export function CategoryCard({
@@ -29,11 +31,12 @@ export function CategoryCard({
   best,
   total,
   mode,
+  count,
   featured = false,
 }: Props) {
   return (
     <Link
-      href={`/quiz?category=${category.id}&mode=${mode}`}
+      href={`/quiz?category=${category.id}&mode=${mode}&count=${count}`}
       className={`${styles.card} ${featured ? styles.featured : styles.tile}`}
       aria-label={`${category.label}, ${countryCount} pays — ${category.tagline}`}>
       <CategoryBackground category={category} className={styles.background}>
@@ -42,11 +45,6 @@ export function CategoryCard({
             <span className={styles.emoji} aria-hidden="true">
               {category.emoji}
             </span>
-            {best !== null ? (
-              <span className={styles.badge}>
-                ★ {best}/{total}
-              </span>
-            ) : null}
           </div>
 
           <div className={styles.bottom}>
