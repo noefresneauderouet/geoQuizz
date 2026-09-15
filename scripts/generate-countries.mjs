@@ -30,7 +30,7 @@ const REGION_TO_CONTINENT = {
 const CAPITALS_FR = {
   // Afrique
   DZ: 'Alger', EG: 'Le Caire', ET: 'Addis-Abeba', SO: 'Mogadiscio',
-  SZ: 'Mbabane', LY: 'Tripoli',
+  SZ: 'Mbabane', LY: 'Tripoli', SS: 'djouba',
   // Amériques
   CU: 'La Havane', MX: 'Mexico', GT: 'Guatemala', PA: 'Panama',
   US: 'Washington', TT: "Port-d'Espagne", GD: 'Saint-Georges',
@@ -50,7 +50,7 @@ const CAPITALS_FR = {
   SM: 'Saint-Marin', UA: 'Kiev', VA: 'Cité du Vatican',
   AD: 'Andorre-la-Vieille', MT: 'La Valette',
   // Océanie
-  KI: 'Tarawa-Sud', VU: 'Port-Vila',
+  KI: 'Tarawa', VU: 'Port-Vila',
 };
 
 /** Autres capitales acceptées (sièges de gouvernement, anciens noms, graphies). */
@@ -106,7 +106,7 @@ const NAME_ALIASES = {
   IR: ['Perse'],
   NZ: ['Nouvelle Zelande'],
   CI: ['Cote Ivoire', 'Ivory Coast'],
-  TL: ['Timor-Leste'],
+  TL: ['Timor-Leste','timor'],
   BY: ['Bélarus', 'Belarus'],
 };
 

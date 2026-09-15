@@ -5,8 +5,6 @@ import { matchAnswer, type MatchResult } from '@/lib/normalize';
 export type Question = {
   country: Country;
   mode: ModeId;
-  /** En mode capitale, on demande une fois sur trois le pays à partir de la capitale. */
-  reversed: boolean;
 };
 
 /** Longueurs de partie proposées à l'accueil. */
@@ -38,34 +36,28 @@ export function buildRound(category: CategoryId, mode: ModeId, count: number): Q
   // ceux qui sont trop petits pour se voir reçoivent un cercle de repérage.
   return shuffle(countriesOf(category))
     .slice(0, count)
-    .map((country) => ({
-      country,
-      mode,
-      reversed: mode === 'capitale' && Math.random() < 0.34,
-    }));
+    .map((country) => ({ country, mode }));
 }
 
 /** La consigne exacte de la question courante. */
 export function questionPrompt(q: Question): string {
   if (q.mode === 'drapeau') return 'À quel pays appartient ce drapeau ?';
   if (q.mode === 'pays') return 'Quel est le pays surligné ?';
-  return q.reversed
-    ? `${q.country.capital} est la capitale de quel pays ?`
-    : `Quelle est la capitale de ce pays ?`;
+  return 'Quelle est la capitale de ce pays ?';
 }
 
 /** Ce qu'on attend dans le champ de saisie. */
 export function answerLabel(q: Question): string {
-  return q.mode === 'capitale' && !q.reversed ? 'Capitale' : 'Pays';
+  return q.mode === 'capitale' ? 'Capitale' : 'Pays';
 }
 
 /** La bonne réponse, telle qu'on l'affiche à l'utilisateur. */
 export function expectedAnswer(q: Question): string {
-  return q.mode === 'capitale' && !q.reversed ? q.country.capital : q.country.name;
+  return q.mode === 'capitale' ? q.country.capital : q.country.name;
 }
 
 function acceptedAnswers(q: Question): string[] {
-  return q.mode === 'capitale' && !q.reversed
+  return q.mode === 'capitale'
     ? [q.country.capital, ...q.country.capitalAliases]
     : [q.country.name, ...q.country.nameAliases];
 }

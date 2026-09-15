@@ -1,18 +1,44 @@
 /**
  * Comparaison tolérante des réponses tapées : insensible à la casse, aux accents,
- * à la ponctuation, aux articles, et à une ou deux fautes de frappe.
+ * à la ponctuation, aux espaces, aux articles, au mot « îles », à l'abréviation
+ * « St », et à une ou deux fautes de frappe.
  */
 
-/** « Côte d'Ivoire » -> « cote ivoire » */
-export function normalize(input: string): string {
+/** Accents, casse et ponctuation : « Côte d'Ivoire » -> « cote d ivoire ». */
+function simplify(input: string): string {
   return input
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '') // accents
     .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, ' ') // apostrophes, tirets, points
-    .replace(/\b(le|la|les|l|du|de|des|d|the|of|el)\b/g, ' ') // articles
-    .replace(/\s+/g, ' ')
-    .trim();
+    .replace(/[^a-z0-9\s]/g, ' '); // apostrophes, tirets, points
+}
+
+/**
+ * Colle les mots : « coree du nord » -> « coreedunord ». « Saint » devient
+ * « st » des deux côtés, pour que « St Vincent » vaille « Saint-Vincent ».
+ */
+function compact(text: string): string {
+  return text.replace(/\s+/g, '').replace(/saint/g, 'st');
+}
+
+/** « Côte d'Ivoire » -> « coteivoire », « Îles Marshall » -> « marshall » */
+export function normalize(input: string): string {
+  return compact(
+    simplify(input)
+      .replace(/\b(le|la|les|l|du|de|des|d|the|of|el)\b/g, ' ') // articles
+      .replace(/\b(iles?)\b/g, ' '), // « Îles Marshall » se trouve avec « Marshall »
+  );
+}
+
+/**
+ * Les formes comparées d'un texte : sans les articles, et avec.
+ *
+ * Les articles ne se repèrent qu'entre deux espaces. Tapés collés
+ * — « coreedunord » —, ils restent dans la saisie : on garde donc aussi la
+ * forme qui les conserve, pour que « coreedunord » vaille « Corée du Nord ».
+ */
+function forms(input: string): string[] {
+  return [...new Set([normalize(input), compact(simplify(input))])].filter(Boolean);
 }
 
 /** Distance de Levenshtein bornée : renvoie > max dès qu'on dépasse le seuil. */
@@ -50,19 +76,18 @@ export type MatchResult = { correct: boolean; exact: boolean };
  * ce qui permet d'afficher « presque ! voici l'orthographe exacte ».
  */
 export function matchAnswer(input: string, accepted: readonly string[]): MatchResult {
-  const guess = normalize(input);
-  if (!guess) return { correct: false, exact: false };
+  const guesses = forms(input);
+  if (!normalize(input)) return { correct: false, exact: false };
 
-  for (const candidate of accepted) {
-    const target = normalize(candidate);
-    if (!target) continue;
-    if (guess === target) return { correct: true, exact: true };
+  const targets = accepted.flatMap(forms);
+
+  if (targets.some((target) => guesses.includes(target))) {
+    return { correct: true, exact: true };
   }
 
-  for (const candidate of accepted) {
-    const target = normalize(candidate);
-    if (!target) continue;
-    if (levenshtein(guess, target, allowedTypos(target.length)) <= allowedTypos(target.length)) {
+  for (const target of targets) {
+    const max = allowedTypos(target.length);
+    if (guesses.some((guess) => levenshtein(guess, target, max) <= max)) {
       return { correct: true, exact: false };
     }
   }

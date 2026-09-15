@@ -27,7 +27,7 @@ type Props = {
  *
  * La réponse exacte est reconnue pendant la frappe, sans rien valider ;
  * Entrée ne sert qu'à faire accepter une réponse avec une faute de frappe.
- * Une tentative infructueuse ne coûte rien : le champ tremble, c'est tout.
+ * Une tentative infructueuse ne coûte rien : le champ tremble, sans aucun message.
  *
  * Pendant la célébration, le champ passe en lecture seule plutôt qu'en
  * désactivé : un champ désactivé perd le focus, et le clavier mobile se
@@ -83,10 +83,6 @@ export function AnswerInput({
           autoFocus
         />
       </div>
-
-      <p className={styles.hint} role="status">
-        {nudge > 0 && !solved ? 'Pas encore — continue, ou passe et reviens-y plus tard.' : ''}
-      </p>
 
       <div className={styles.actions}>
         <button

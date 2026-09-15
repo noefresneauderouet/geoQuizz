@@ -79,7 +79,7 @@ type Action =
   | { type: 'restart'; round: Question[]; now: number };
 
 /** Temps d'affichage d'une réponse trouvée ; plus long quand l'orthographe était approximative. */
-const SOLVED_PAUSE_MS = { exact: 700, approximate: 1600 };
+const SOLVED_PAUSE_MS = { exact: 400, approximate: 1600 };
 
 function newGame(round: Question[], now: number): Game {
   return {
@@ -350,11 +350,9 @@ export function QuizGame() {
             {question.mode === 'capitale' ? (
               <p className={styles.countryChip}>
                 <span className={styles.chipIcon} aria-hidden="true">
-                  {question.reversed ? '📍' : flagEmoji(question.country.code)}
+                  {flagEmoji(question.country.code)}
                 </span>
-                <span className={styles.countryName}>
-                  {question.reversed ? question.country.capital : question.country.name}
-                </span>
+                <span className={styles.countryName}>{question.country.name}</span>
               </p>
             ) : null}
           </section>
@@ -365,7 +363,7 @@ export function QuizGame() {
               approximate={game.solved.approximate}
               answer={expectedAnswer(question)}
               detail={
-                question.mode === 'capitale' && !question.reversed
+                question.mode === 'capitale'
                   ? `capitale de ${question.country.name}`
                   : `${question.country.name} · capitale : ${question.country.capital}`
               }
