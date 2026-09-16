@@ -4,7 +4,7 @@ import { AppTabs } from '@/components/app-tabs';
 import { InstallBanner } from '@/components/pwa/install-banner';
 import { StatusPills } from '@/components/pwa/status-pills';
 import { BACKGROUND_COLOR, paletteVariables, THEME_COLOR } from '@/constants/theme';
-
+import { Analytics } from "@vercel/analytics/next"
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -72,6 +72,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {children}
 
         {/* Couches flottantes, communes à tous les écrans. */}
+        <Analytics/>
         <StatusPills />
         <InstallBanner />
         <AppTabs />

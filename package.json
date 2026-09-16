@@ -14,6 +14,7 @@
     "generate-icons": "node ./scripts/generate-icons.mjs"
   },
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
     "d3-geo": "^3.1.1",
     "next": "16.3.4",
     "react": "19.3.0",
