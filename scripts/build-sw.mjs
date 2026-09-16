@@ -2,8 +2,9 @@
  * Assemble out/sw.js.
  *
  * Le modèle scripts/service-worker.js décrit les stratégies ; ce script
- * fournit les deux valeurs qu'il ne peut pas connaître : la liste exacte des
- * fichiers produits par l'export, et une empreinte de version.
+ * fournit les valeurs qu'il ne peut pas connaître : la liste exacte des
+ * fichiers produits par l'export, celle des drapeaux, et une empreinte de
+ * version.
  *
  * L'empreinte est un condensé du *contenu* de la coquille, pas un horodatage :
  * reconstruire sans rien changer ne provoque donc aucune mise à jour, et les
@@ -20,6 +21,14 @@ import { fileURLToPath } from 'node:url';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = join(ROOT, 'out');
 const TEMPLATE = join(ROOT, 'scripts', 'service-worker.js');
+const COUNTRIES = join(ROOT, 'src', 'data', 'countries.json');
+
+/*
+ * Largeur des drapeaux précachés. Elle doit être celle que demande FlagView
+ * (`flagUrl(code, 640)`) : une autre largeur est une autre URL, et le
+ * précache ne servirait à rien. `npm test` vérifie la correspondance.
+ */
+const FLAG_WIDTH = 640;
 
 /*
  * Ce qui reste hors de la coquille.
@@ -72,11 +81,18 @@ const buildId = digest.digest('hex').slice(0, 12);
    `new Request(url)` côté worker. */
 const urls = files.map(({ rel }) => `/${encodeURI(rel)}`);
 
+/* Même forme que `flagUrl` dans src/lib/countries.ts. */
+const flagUrls = JSON.parse(readFileSync(COUNTRIES, 'utf8')).map(
+  ({ code }) => `https://flagcdn.com/w${FLAG_WIDTH}/${code.toLowerCase()}.png`
+);
+
 const source = readFileSync(TEMPLATE, 'utf8')
   .replace("'__BUILD_ID__'", JSON.stringify(buildId))
-  .replace('__PRECACHE_URLS__', JSON.stringify(urls, null, 2));
+  .replace('__PRECACHE_URLS__', JSON.stringify(urls, null, 2))
+  .replace('__FLAG_URLS__', JSON.stringify(flagUrls, null, 2));
 
 writeFileSync(join(OUT, 'sw.js'), source);
 
 console.log(`sw.js écrit — version ${buildId}`);
 console.log(`  ${files.length} fichiers précachés, ${(bytes / 1024 / 1024).toFixed(2)} Mo`);
+console.log(`  ${flagUrls.length} drapeaux précachés depuis flagcdn.com`);

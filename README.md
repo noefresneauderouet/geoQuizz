@@ -86,8 +86,9 @@ vingtaine au zoom (Monaco, Vatican, Malte, Maldives…) et environ la moitié en
 vue continentale. Tuvalu, absent même du fond 1:50m, est repéré à partir de ses
 coordonnées : l'anneau est alors sa seule représentation.
 
-Les drapeaux sont chargés depuis flagcdn.com et gardés en cache par le service
-worker. Sans réseau à la toute première vue, l'emoji drapeau prend le relais.
+Les drapeaux viennent de flagcdn.com. Le service worker les télécharge tous à
+son installation. Si l'un d'eux n'a pas pu l'être, l'emoji drapeau prend le
+relais.
 
 ## L'installer
 
@@ -103,11 +104,12 @@ d'adresse, et **fonctionne entièrement hors ligne** : les 194 pays, leurs
 capitales et les deux fonds de carte sont embarqués dans le bundle, précaché au
 premier lancement.
 
-Seuls les **drapeaux** viennent du réseau (flagcdn.com). Ils sont mis en cache
-au fur et à mesure des parties : un pays déjà croisé reste jouable hors ligne,
-un pays jamais vu retombe sur son emoji drapeau. Les précharger aurait ajouté
-plusieurs mégaoctets au premier téléchargement pour des images qu'on ne verra
-peut-être jamais.
+Seuls les **drapeaux** viennent du réseau (flagcdn.com). Les 194 sont
+téléchargés dès l'installation du service worker, y compris ceux qu'on ne
+croisera peut-être jamais, soit environ 0,6 Mo en plus. Une mise à jour ne
+retélécharge que ceux qui manquent. Si flagcdn est injoignable à ce moment-là,
+l'installation aboutit quand même : chaque drapeau manquant est récupéré à sa
+première vue en ligne, et l'emoji le remplace d'ici là.
 
 ### Mises à jour
 

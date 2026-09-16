@@ -109,6 +109,8 @@ const caches = {
 
 /** Le réseau : out/ pour l'origine du site, une image en dur pour flagcdn. */
 let online = true;
+/** flagcdn seul en panne, le site restant joignable. */
+let flagcdnDown = false;
 let flagFetches = 0;
 
 async function network(request) {
@@ -117,6 +119,7 @@ async function network(request) {
   const url = new URL(keyOf(request));
 
   if (url.origin === 'https://flagcdn.com') {
+    if (flagcdnDown) throw new TypeError('Failed to fetch');
     flagFetches += 1;
     return respond('PNG-drapeau', { status: 200, headers: { 'Content-Type': 'image/png' } }, 'cors');
   }
@@ -197,6 +200,42 @@ check('l’installation précache toute la coquille', async () => {
   assert.ok(keys.length >= 15, `seulement ${keys.length} entrées précachées`);
   assert.ok(await cache.match('/index.html'), 'index.html absent du précache');
   assert.ok(await cache.match('/manifest.webmanifest'), 'manifest absent du précache');
+});
+
+check('l’installation précache le drapeau de chaque pays, à la largeur affichée', async () => {
+  /* La largeur est relue dans FlagView : si elle change sans que le build
+     suive, le précache rangerait des URL que l'app ne demande jamais. */
+  const view = readFileSync(join(ROOT, 'src', 'components', 'quiz', 'flag-view.tsx'), 'utf8');
+  const width = view.match(/flagUrl\(code, (\d+)\)/)?.[1];
+  assert.ok(width, 'appel `flagUrl(code, <largeur>)` introuvable dans flag-view.tsx');
+
+  const countries = JSON.parse(readFileSync(join(ROOT, 'src', 'data', 'countries.json'), 'utf8'));
+  const flags = await caches.open('geolearn-flags-v1');
+  const missing = [];
+  for (const { code } of countries) {
+    const url = `https://flagcdn.com/w${width}/${code.toLowerCase()}.png`;
+    if (!(await flags.match(url))) missing.push(code);
+  }
+  assert.deepEqual(missing, [], `drapeaux absents du précache : ${missing.join(', ')}`);
+  assert.equal((await flags.keys()).length, countries.length, 'entrées en trop dans le cache des drapeaux');
+});
+
+check('une nouvelle installation ne retélécharge pas les drapeaux déjà en cache', async () => {
+  flagFetches = 0;
+  await lifecycle('install');
+  assert.equal(flagFetches, 0, `${flagFetches} drapeaux retéléchargés`);
+});
+
+check('flagcdn injoignable, l’installation aboutit quand même', async () => {
+  await caches.delete('geolearn-flags-v1');
+  flagcdnDown = true;
+  try {
+    await lifecycle('install');
+  } finally {
+    flagcdnDown = false;
+  }
+  const flags = await caches.open('geolearn-flags-v1');
+  assert.equal((await flags.keys()).length, 0);
 });
 
 check('l’activation supprime les coquilles des versions précédentes', async () => {
@@ -287,7 +326,7 @@ check('hors ligne, un drapeau déjà vu s’affiche encore', async () => {
   assert.equal(await response.text(), 'PNG-drapeau');
 });
 
-check('hors ligne, un drapeau jamais vu échoue proprement', async () => {
+check('hors ligne, un drapeau absent du cache échoue proprement', async () => {
   online = false;
   const response = await through('https://flagcdn.com/w640/jp.png', { mode: 'no-cors' });
   online = true;

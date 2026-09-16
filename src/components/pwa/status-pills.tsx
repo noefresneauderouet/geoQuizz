@@ -12,8 +12,8 @@ import styles from './status-pills.module.css';
  * a besoin d'en connaître l'état.
  *
  * « Hors ligne » est informatif et non bloquant : les questions sortent de
- * données embarquées, seules les images de drapeaux viennent du réseau. Le
- * dire évite qu'on prenne un emoji de secours pour un bug.
+ * données embarquées, et les drapeaux sont téléchargés à l'installation du
+ * service worker. Le dire rassure : l'app reste utilisable.
  */
 export function StatusPills() {
   const online = useOnline();
@@ -25,7 +25,7 @@ export function StatusPills() {
     <div className={styles.wrapper}>
       {!online ? (
         <p className={`${styles.pill} ${styles.offline}`} role="status">
-          Hors ligne · les drapeaux déjà vus restent affichés
+          Hors ligne · tout reste jouable
         </p>
       ) : null}
 

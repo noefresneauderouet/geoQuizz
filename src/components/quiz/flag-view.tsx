@@ -12,10 +12,11 @@ type Props = { code: string };
  * Drapeau du pays.
  *
  * L'image est la seule ressource distante de l'application. Le service worker
- * en garde une copie dès la première vue, donc un pays déjà croisé reste
- * jouable hors ligne ; sinon on retombe sur l'emoji drapeau, toujours
- * lisible. `key` sur le code remet l'état à zéro d'une question à l'autre :
- * sans lui, un échec de chargement condamnerait tous les drapeaux suivants.
+ * télécharge tous les drapeaux dès son installation, à cette largeur de 640
+ * px (voir scripts/build-sw.mjs) : ils restent affichés hors ligne. Si l'un
+ * d'eux manque, on retombe sur l'emoji drapeau, toujours lisible. `key` sur
+ * le code remet l'état à zéro d'une question à l'autre : sans lui, un échec
+ * de chargement condamnerait tous les drapeaux suivants.
  */
 export function FlagView({ code }: Props) {
   const [failed, setFailed] = useState(false);

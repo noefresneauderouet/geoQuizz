@@ -6,22 +6,26 @@
  * des fichiers produits et l'empreinte de la version, puis écrit le résultat
  * dans out/sw.js. Voir scripts/build-sw.mjs.
  *
- * Deux caches, deux régimes :
+ * Tout est téléchargé à l'installation, dans deux caches :
  *
- *   - la coquille (HTML, JS, CSS, icônes, données) est *précachée* en entier
- *     à l'installation. GeoLearn embarque déjà ses 194 pays et ses fonds de
- *     carte : une fois la coquille en place, l'application est entièrement
- *     jouable sans réseau, ce qui est tout l'intérêt de l'installer ;
+ *   - la coquille (HTML, JS, CSS, icônes, données) change à chaque version.
+ *     Elle est précachée en entier, et l'installation échoue s'il en manque
+ *     un fichier : une coquille incomplète ne sert à rien ;
  *
- *   - les drapeaux (flagcdn.com) arrivent au fil des parties, en
- *     stale-while-revalidate. Les précharger aurait alourdi le premier
- *     téléchargement de plusieurs mégaoctets pour des images que l'on ne
- *     verra peut-être jamais.
+ *   - les drapeaux (flagcdn.com), les 194, même ceux qu'une partie ne
+ *     montrera peut-être jamais — environ 0,6 Mo en 640 px. Ils traversent
+ *     les versions : une mise à jour ne télécharge que ceux qui manquent.
+ *     Leur précache ne fait pas échouer l'installation : un drapeau raté est
+ *     repris à sa première vue, et d'ici là l'emoji le remplace. Ensuite, ils
+ *     sont servis en stale-while-revalidate.
+ *
+ * Une fois installée, l'application est donc entièrement jouable sans réseau.
  */
 
 /* Remplacés à la construction. */
 const BUILD_ID = '__BUILD_ID__';
 const PRECACHE_URLS = __PRECACHE_URLS__;
+const FLAG_URLS = __FLAG_URLS__;
 
 const SHELL_CACHE = `geolearn-shell-${BUILD_ID}`;
 const FLAG_CACHE = 'geolearn-flags-v1';
@@ -35,19 +39,29 @@ const FLAG_MAX_ENTRIES = 400;
 /* ------------------------------------------------------------------ */
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    (async () => {
-      const cache = await caches.open(SHELL_CACHE);
-      /*
-       * `cache: 'reload'` court-circuite le cache HTTP du navigateur.
-       * Sans lui, un fichier au nom stable — index.html en tête — peut être
-       * repris depuis une réponse périmée, et la « nouvelle » version
-       * installée serait l'ancienne.
-       */
-      await cache.addAll(PRECACHE_URLS.map((url) => new Request(url, { cache: 'reload' })));
-    })()
-  );
+  event.waitUntil(Promise.all([precacheShell(), precacheFlags()]));
 });
+
+async function precacheShell() {
+  const cache = await caches.open(SHELL_CACHE);
+  /*
+   * `cache: 'reload'` court-circuite le cache HTTP du navigateur.
+   * Sans lui, un fichier au nom stable — index.html en tête — peut être
+   * repris depuis une réponse périmée, et la « nouvelle » version
+   * installée serait l'ancienne.
+   */
+  await cache.addAll(PRECACHE_URLS.map((url) => new Request(url, { cache: 'reload' })));
+}
+
+/** Un téléchargement raté n'interrompt pas l'installation : `fetchFlag` absorbe les échecs un à un. */
+async function precacheFlags() {
+  const cache = await caches.open(FLAG_CACHE);
+  await Promise.all(
+    FLAG_URLS.map(async (url) => {
+      if (!(await cache.match(url))) await fetchFlag(cache, url);
+    })
+  );
+}
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
@@ -153,20 +167,9 @@ async function serveFlag(request) {
   const cache = await caches.open(FLAG_CACHE);
   const cached = await cache.match(request);
 
-  /*
-   * La requête d'origine vient d'une balise <img> : elle est en mode
-   * `no-cors` et sa réponse serait *opaque*. Une réponse opaque se met en
-   * cache, mais les navigateurs la comptent dans le quota pour une taille
-   * forfaitaire de plusieurs mégaoctets — 194 drapeaux suffiraient à saturer
-   * le stockage. flagcdn renvoyant `Access-Control-Allow-Origin: *`, on
-   * refait la requête en CORS et on stocke une réponse de taille réelle.
-   */
-  const refresh = fetch(request.url, { mode: 'cors', credentials: 'omit' })
+  const refresh = fetchFlag(cache, request)
     .then(async (response) => {
-      if (response.ok && response.type === 'cors') {
-        await cache.put(request, response.clone());
-        await trimFlags(cache);
-      }
+      if (response) await trimFlags(cache);
       return response;
     })
     .catch(() => null);
@@ -176,6 +179,28 @@ async function serveFlag(request) {
   const fresh = await refresh;
   /* Ni cache ni réseau : l'échec fait basculer FlagView sur l'emoji. */
   return fresh ?? new Response('', { status: 504, statusText: 'Hors ligne' });
+}
+
+/**
+ * Télécharge un drapeau et le range sous `key` ; `null` si le réseau ou le
+ * stockage fait défaut.
+ *
+ * La requête d'une balise <img> est en mode `no-cors` et sa réponse serait
+ * *opaque*. Une réponse opaque se met en cache, mais les navigateurs la
+ * comptent dans le quota pour une taille forfaitaire de plusieurs mégaoctets
+ * — 194 drapeaux suffiraient à saturer le stockage. flagcdn renvoyant
+ * `Access-Control-Allow-Origin: *`, on fait la requête en CORS et on stocke
+ * une réponse de taille réelle.
+ */
+async function fetchFlag(cache, key) {
+  const url = typeof key === 'string' ? key : key.url;
+  try {
+    const response = await fetch(url, { mode: 'cors', credentials: 'omit' });
+    if (response.ok && response.type === 'cors') await cache.put(key, response.clone());
+    return response;
+  } catch {
+    return null;
+  }
 }
 
 /** Les clés d'un cache sont rendues dans l'ordre d'insertion : on retire les plus anciennes. */
