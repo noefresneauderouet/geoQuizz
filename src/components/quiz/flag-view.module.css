@@ -1,5 +1,6 @@
+/* `--flag-height` vient de la carte de question quand la place manque (voir quiz-game.module.css). */
 .frame {
-  height: 150px;
+  height: var(--flag-height, 150px);
   display: flex;
   align-items: center;
   justify-content: center;

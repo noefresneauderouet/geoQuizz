@@ -9,6 +9,26 @@
   flex-direction: column;
 }
 
+/*
+ * Partie en cours : l'écran est épinglé sur la zone visible, que
+ * src/lib/viewport.ts tient à jour. Sans cela, le clavier mobile recouvrait
+ * le bas de l'écran, et le navigateur remontait la page pour montrer le champ
+ * — emportant le drapeau hors du cadre. Désormais l'écran rétrécit au-dessus
+ * du clavier, et seule la zone de la question défile. Sans les variables, il
+ * occupe la fenêtre entière.
+ *
+ * Le résultat garde `.screen` seul : il peut dépasser la fenêtre, et la page
+ * défile alors normalement. Le sélecteur double l'emporte sur le
+ * `position: relative` du fond de catégorie.
+ */
+.screen.playing {
+  position: fixed;
+  inset-inline: 0;
+  top: var(--visible-top, 0px);
+  height: var(--visible-height, 100dvh);
+  min-height: 0;
+}
+
 .frame {
   flex: 1;
   display: flex;
@@ -17,7 +37,7 @@
   max-width: var(--content-max);
   margin-inline: auto;
   padding-top: env(safe-area-inset-top, 0px);
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-bottom: var(--visible-bottom-inset, env(safe-area-inset-bottom, 0px));
   min-height: 0;
 }
 
@@ -106,6 +126,7 @@
 
 /* ------------------------------ Question --------------------------------- */
 
+/* Conteneur de taille : la question se règle sur la hauteur qu'il laisse. */
 .scroll {
   flex: 1;
   min-height: 0;
@@ -114,6 +135,7 @@
   flex-direction: column;
   gap: var(--space-3);
   padding: var(--space-3);
+  container-type: size;
 }
 
 .card {
@@ -174,6 +196,30 @@
   font-weight: 800;
   color: var(--ink);
   min-width: 0;
+}
+
+/*
+ * Zone de la question basse — clavier ouvert, téléphone à l'horizontale :
+ * la consigne s'efface (le mode est rappelé en haut, le champ dit quoi
+ * écrire) et l'image prend la hauteur qui reste, au lieu de passer sous le
+ * champ. Les variables sont lues par flag-view et world-map. 32 px, ce sont
+ * les marges de la carte (`cqh` exclut déjà celles de la zone) ; la carte du
+ * monde y ajoute son bouton de zoom. Au-dessus de 320 px, tout tient à la
+ * taille normale.
+ */
+@container (max-height: 320px) {
+  .card {
+    --flag-height: clamp(64px, 100cqh - 32px, 150px);
+    --map-height: clamp(120px, 100cqh - 80px, 460px);
+  }
+
+  .prompt {
+    display: none;
+  }
+
+  .countryChip {
+    padding-block: var(--space-2);
+  }
 }
 
 @media (min-width: 900px) and (min-height: 800px) {

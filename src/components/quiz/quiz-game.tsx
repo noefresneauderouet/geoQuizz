@@ -39,6 +39,7 @@ import {
   startWatch,
   type Stopwatch,
 } from '@/lib/timer';
+import { followVisibleViewport } from '@/lib/viewport';
 
 import styles from './quiz-game.module.css';
 
@@ -234,6 +235,9 @@ export function QuizGame() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game.solved]);
 
+  // Clavier ouvert, l'écran de jeu se loge au-dessus de lui (voir `.playing`).
+  useEffect(() => followVisibleViewport(), []);
+
   const replay = () => {
     setEndRequestedAt(null);
     dispatch({ type: 'restart', round: buildRound(category.id, mode.id, count), now: Date.now() });
@@ -287,7 +291,7 @@ export function QuizGame() {
   };
 
   return (
-    <CategoryBackground category={category} className={styles.screen}>
+    <CategoryBackground category={category} className={`${styles.screen} ${styles.playing}`}>
       <div className={styles.frame}>
         <header className={styles.topBar}>
           <Link href="/" className={styles.close} aria-label="Quitter la partie">
