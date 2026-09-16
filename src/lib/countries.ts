@@ -5,7 +5,7 @@ import type { CategoryId } from '@/constants/categories';
 export type Country = {
   /** ISO 3166-1 alpha-2, sert aussi à charger le drapeau. */
   code: string;
-  /** ISO 3166-1 numérique, sert de clé dans la carte world-atlas. */
+  /** ISO 3166-1 numérique, sert de clé dans le fond de carte. */
   numeric: string;
   name: string;
   nameAliases: string[];

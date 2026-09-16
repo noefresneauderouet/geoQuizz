@@ -90,3 +90,43 @@
   font-size: 13px;
   font-weight: 600;
 }
+
+/* Grand écran : la colonne s'élargit, les cartes grandissent avec elle. */
+@media (min-width: 1024px) {
+  .featured {
+    height: 240px;
+  }
+
+  .tile {
+    height: 200px;
+  }
+
+  .content,
+  .featured .content {
+    padding: var(--space-4);
+  }
+
+  .emoji {
+    font-size: 38px;
+  }
+
+  .featured .emoji {
+    font-size: 52px;
+  }
+
+  .badge {
+    font-size: 14px;
+  }
+
+  .label {
+    font-size: 28px;
+  }
+
+  .featured .label {
+    font-size: 42px;
+  }
+
+  .meta {
+    font-size: 16px;
+  }
+}

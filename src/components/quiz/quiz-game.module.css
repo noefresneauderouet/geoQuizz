@@ -176,6 +176,34 @@
   min-width: 0;
 }
 
+@media (min-width: 900px) and (min-height: 800px) {
+  .close {
+    width: 44px;
+    height: 44px;
+    font-size: 20px;
+  }
+
+  .topTitle {
+    font-size: 20px;
+  }
+
+  .topSub {
+    font-size: 15px;
+  }
+
+  .scorePill {
+    font-size: 19px;
+  }
+
+  .card {
+    padding: var(--space-4);
+  }
+
+  .prompt {
+    font-size: 26px;
+  }
+}
+
 /* ------------------------------- Pied ------------------------------------ */
 
 .footer {
@@ -371,4 +399,11 @@
   font-size: 13px;
   font-weight: 700;
   color: var(--ink);
+}
+
+/* Après la définition de `.giveUp`, sinon elle reprendrait le dessus. */
+@media (min-width: 900px) and (min-height: 800px) {
+  .giveUp {
+    font-size: 16px;
+  }
 }

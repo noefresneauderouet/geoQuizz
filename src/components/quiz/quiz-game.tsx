@@ -336,7 +336,6 @@ export function QuizGame() {
                   category={category}
                   zoomed={game.zoomed}
                   scope={category.id === 'monde' ? 'monde' : 'continent'}
-                  height={280}
                 />
                 <button
                   type="button"

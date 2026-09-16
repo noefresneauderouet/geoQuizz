@@ -43,3 +43,21 @@
   font-weight: 600;
   color: var(--ink-soft);
 }
+
+@media (min-width: 900px) and (min-height: 800px) {
+  .icon {
+    font-size: 30px;
+  }
+
+  .title {
+    font-size: 14px;
+  }
+
+  .answer {
+    font-size: 26px;
+  }
+
+  .detail {
+    font-size: 15px;
+  }
+}

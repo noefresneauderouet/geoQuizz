@@ -2,9 +2,10 @@
 
 import { geoArea, geoCentroid, geoMercator, geoPath } from 'd3-geo';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { feature } from 'topojson-client';
-import detailedAtlas from 'world-atlas/countries-50m.json';
-import coarseAtlas from 'world-atlas/countries-110m.json';
+import { merge } from 'topojson-client';
+import type { GeometryCollection, MultiPolygon, Polygon, Topology } from 'topojson-specification';
+import coarseAtlas from 'visionscarto-world-atlas/world/110m.json';
+import detailedAtlas from 'visionscarto-world-atlas/world/50m.json';
 
 import type { Category, CategoryId } from '@/constants/categories';
 import { Palette } from '@/constants/theme';
@@ -28,10 +29,30 @@ type Window = [[number, number], [number, number]];
 const ANTARCTICA = '010';
 
 /**
+ * Territoires que Natural Earth détache et qu'on recolle.
+ *
+ * Chaque forme est tracée avec son contour : une entité séparée, c'est une
+ * frontière dessinée. Le Somaliland coupait donc la Somalie en deux, Chypre du
+ * Nord coupait Chypre, et le glacier de Siachen posait un trait au milieu du
+ * Cachemire — des frontières qu'aucun atlas français ne trace. Les recoller à
+ * l'État qui les administre répare du même coup la réponse : la Somalie
+ * surlignée n'était que son tiers sud.
+ *
+ * Le Kosovo, lui, reste distinct : la France le reconnaît, et la Serbie du
+ * fond de carte l'exclut déjà.
+ */
+const REATTACHED: Record<string, string> = {
+  '-3': '706', // Somaliland → Somalie
+  '-1': '196', // Chypre du Nord → Chypre
+  KAS: '356', // glacier de Siachen → Inde
+  IOA: '036', // territoires australiens de l'océan Indien → Australie
+};
+
+/**
  * Marge autour du pays en vue zoomée : il occupe la part centrale
  * `1 - 2 × ZOOM_PADDING` du cadre, soit un peu moins d'un tiers.
  */
-const ZOOM_PADDING = 0.35;
+const ZOOM_PADDING = 0.40;
 
 /**
  * Plafond de zoom, en degrés de longitude visibles.
@@ -54,35 +75,59 @@ const MARKER_BELOW_PX = 16;
 const MARKER_RADIUS_PX = 15;
 
 /**
+ * Marge de la vue d'ensemble, négative à dessein.
+ *
+ * La fenêtre du continent déborde donc le cadre de 12 % de chaque côté au lieu
+ * de s'y inscrire. S'y inscrire imposait le plus contraignant des deux axes :
+ * une fenêtre d'atlas plus haute que large laissait deux bandes de bleu sur
+ * les côtés, et le pays cherché se réduisait à quelques pixels au milieu. Ce
+ * qui déborde, ce sont les coins du continent — jamais le pays, que le cadrage
+ * ramène toujours dans le cadre.
+ */
+const OVERVIEW_PADDING = -0.50;
+
+/**
+ * Garde entre le pays cherché et le bord latéral du cadre. Assez large pour
+ * l'anneau de repérage (15 px de rayon, 4 px de trait) : c'est le pays qu'on
+ * regarde, il ne doit jamais être coupé par le bord.
+ */
+const EDGE_MARGIN_PX = 24;
+
+/**
+ * Dernières terres au nord et au sud, Antarctique exclu : le Groenland et le
+ * cap Horn. Elles bornent le recentrage vertical — au-delà, il ne monterait
+ * plus que du bleu dans le cadre.
+ */
+const LAND_NORTH = 84;
+const LAND_SOUTH = -56;
+
+/**
  * Une forme par code ISO.
  *
  * Natural Earth livre parfois plusieurs entités sous le même code : l'Australie
  * est séparée de ses îles Ashmore-et-Cartier. Les prendre telles quelles ferait
  * zoomer sur un récif de 2 km, alors on les fusionne par pays.
+ *
+ * La fusion passe par `merge`, qui travaille sur la topologie et dissout les
+ * arcs partagés. Recoller deux formes en concaténant leurs coordonnées aurait
+ * laissé leur frontière commune tracée au milieu du pays.
  */
 function buildShapes(source: unknown): Shape[] {
-  const features = (
-    feature(
-      source as never,
-      (source as { objects: { countries: never } }).objects.countries
-    ) as unknown as GeoJSON.FeatureCollection
-  ).features.filter((f) => String(f.id) !== ANTARCTICA);
+  const topology = source as Topology;
+  const parts = new Map<string, (Polygon | MultiPolygon)[]>();
 
-  const byId = new Map<string, GeoJSON.Position[][][]>();
-  for (const f of features) {
-    const id = String(f.id);
-    const polygons =
-      f.geometry.type === 'Polygon'
-        ? [f.geometry.coordinates]
-        : (f.geometry as GeoJSON.MultiPolygon).coordinates;
-    const existing = byId.get(id);
-    if (existing) existing.push(...polygons);
-    else byId.set(id, [...polygons]);
+  for (const geometry of (topology.objects.countries as GeometryCollection).geometries) {
+    const code = String(geometry.id);
+    if (code === ANTARCTICA) continue;
+    const id = REATTACHED[code] ?? code;
+    const group = parts.get(id);
+    if (group) group.push(geometry as Polygon | MultiPolygon);
+    else parts.set(id, [geometry as Polygon | MultiPolygon]);
   }
 
-  return [...byId].map(([id, coordinates]) => ({
+  return [...parts].map(([id, geometries]) => ({
     id,
-    geometry: { type: 'MultiPolygon', coordinates } as GeoJSON.Geometry,
+    geometry: merge(topology, geometries) as GeoJSON.Geometry,
   }));
 }
 
@@ -101,6 +146,7 @@ const DETAILED_BY_ID = new Map(DETAILED.map((s) => [s.id, s]));
 
 /** Au-delà de cette échelle, le 110m devient visiblement anguleux. */
 const DETAIL_ABOVE_SCALE = 300;
+
 
 const ALL_LAND: GeoJSON.GeoJsonObject = {
   type: 'FeatureCollection',
@@ -194,17 +240,67 @@ function mainland(geometry: GeoJSON.Geometry): GeoJSON.Geometry {
 }
 
 /**
+ * Décalage horizontal ramenant l'intervalle [min, max] dans un cadre de
+ * `extent` pixels, avec `margin` de garde. Une forme trop large pour le cadre
+ * est centrée : la Russie ne tient dans aucune vue, autant la montrer par le
+ * milieu.
+ */
+function slideX(min: number, max: number, extent: number, margin: number): number {
+  if (max - min > extent - 2 * margin) return extent / 2 - (min + max) / 2;
+  if (min < margin) return margin - min;
+  if (max > extent - margin) return extent - margin - max;
+  return 0;
+}
+
+/**
+ * Décalage vertical amenant l'intervalle [top, bottom] à mi-hauteur du cadre.
+ *
+ * Sans lui, les pays s'entassaient dans le bas de la vue d'ensemble : Mercator
+ * étire les hautes latitudes, donc le nord d'une fenêtre d'atlas mange la
+ * moitié des pixels — la Grèce se retrouvait à 89 % de la hauteur, Chypre à
+ * 93 %. `north` et `south` bornent le mouvement à la bande des terres : la
+ * mappemonde, plus courte que le cadre sur un écran haut, ne bouge pas du tout
+ * plutôt que de laisser monter une bande de bleu.
+ */
+function centerY(top: number, bottom: number, extent: number, north: number, south: number): number {
+  if (south - north <= extent) return 0;
+  return Math.min(Math.max(extent / 2 - (top + bottom) / 2, extent - south), -north);
+}
+
+/**
+ * Bornes du zoom sur un pays, en échelle de projection : du globe entier au
+ * plafond de MIN_VISIBLE_SPAN_DEG.
+ */
+function zoomBounds(width: number): [number, number] {
+  return [width / (2 * Math.PI), width / (MIN_VISIBLE_SPAN_DEG * DEG_TO_RAD)];
+}
+
+/** Réglages propres à l'une des deux vues. */
+type Framing = {
+  /** Borne le zoom des deux côtés ; le cadrage recentre alors sur `center`. */
+  scaleBounds?: [min: number, max: number];
+  /**
+   * Autorise le fond 50m quand l'échelle le justifie.
+   *
+   * Seule la vue zoomée le demande : c'est là qu'on lit la forme d'un pays. La
+   * vue d'ensemble s'en passe quelle que soit son échelle — ce qu'elle dessine
+   * autour du pays n'est que du contexte, et le pays cherché, lui, vient
+   * toujours du 50m. Elle couvre un continent entier : le 50m y coûterait
+   * 30 ms de projection et 200 ko de tracés à chaque question.
+   */
+  detail?: boolean;
+};
+
+/**
  * Projette toutes les terres dans une boîte de width × height.
  *
  * `focus` est ce qui doit tenir dans le cadre : la fenêtre du continent en vue
  * d'ensemble, la partie continentale du pays en vue zoomée. `padRatio` laisse
- * de la marge, donc les pays voisins restent visibles autour du zoom.
+ * de la marge autour ; négatif, il fait au contraire déborder `focus` du cadre.
  * `center` fait pivoter le globe pour amener la zone au centre, ce qui met
  * l'antiméridien hors champ (indispensable pour l'Océanie et les Fidji).
- * `scaleBounds`, s'il est fourni, borne le zoom des deux côtés : le cadrage
- * cesse alors de remplir l'écran avec le pays et le recentre sur `center`.
  * `fallback` est la position officielle du pays, utilisée pour poser l'anneau
- * quand le fond de carte ne contient aucune forme pour lui (Tuvalu).
+ * quand le fond de carte ne contient aucune forme pour lui.
  */
 function project(
   focus: GeoJSON.GeoJsonObject,
@@ -213,8 +309,9 @@ function project(
   padRatio: number,
   center: [number, number],
   fallback: [number, number],
-  scaleBounds?: [min: number, max: number]
+  { scaleBounds, detail = false }: Framing = {}
 ): Frame {
+  const targetShape = DETAILED_BY_ID.get(target);
   const projection = geoMercator().rotate([-center[0], 0]);
   projection.fitExtent(
     [
@@ -237,6 +334,27 @@ function project(
       }
     }
   }
+  // Le cadrage précédent centre la zone, pas le pays. On pose donc le pays à
+  // mi-hauteur, et on le ramène dans le cadre horizontalement s'il touchait le
+  // bord — Chypre, l'Islande. La vue découvre alors les terres voisines, ce qui
+  // vaut mieux que de rogner le pays cherché.
+  const anchor = projection(fallback);
+  const bounds = targetShape
+    ? geoPath(projection).bounds(mainland(targetShape.geometry) as never)
+    : anchor
+      ? ([anchor, anchor] as [[number, number], [number, number]])
+      : null;
+  if (bounds && Number.isFinite(bounds[0][0])) {
+    const [[x0, y0], [x1, y1]] = bounds;
+    const [tx, ty] = projection.translate();
+    const north = projection([center[0], LAND_NORTH])?.[1] ?? 0;
+    const south = projection([center[0], LAND_SOUTH])?.[1] ?? height;
+    projection.translate([
+      tx + slideX(x0, x1, width, EDGE_MARGIN_PX),
+      ty + centerY(y0, y1, height, north, south),
+    ]);
+  }
+
   // Sans clip, un zoom fort produit des tracés démesurés hors du cadre.
   // Avec, d3 renvoie null pour les pays entièrement invisibles.
   projection.clipExtent([
@@ -246,18 +364,17 @@ function project(
   const path = geoPath(projection);
 
   const land: string[] = [];
-  for (const shape of projection.scale() > DETAIL_ABOVE_SCALE ? DETAILED : COARSE) {
+  for (const shape of detail && projection.scale() > DETAIL_ABOVE_SCALE ? DETAILED : COARSE) {
     if (shape.id === target) continue;
     const d = path(shape.geometry as never);
     if (d) land.push(d);
   }
 
-  // Le pays cherché vient toujours du fond détaillé : sept petits États
-  // (Cap-Vert, Comores, Maurice…) sont absents du 110m et resteraient
+  // Le pays cherché vient toujours du fond détaillé : vingt-neuf petits États
+  // (Malte, Singapour, Cap-Vert…) sont absents du 110m et resteraient
   // invisibles en vue d'ensemble.
   let highlight = '';
   let marker: Frame['marker'] = null;
-  const targetShape = DETAILED_BY_ID.get(target);
 
   if (targetShape) {
     highlight = path(targetShape.geometry as never) ?? '';
@@ -286,10 +403,9 @@ type Props = {
   zoomed: boolean;
   /** « monde » cadre sur la planète entière, sinon sur le continent du pays. */
   scope: 'continent' | 'monde';
-  height?: number;
 };
 
-export function WorldMap({ country, category, zoomed, scope, height = 260 }: Props) {
+export function WorldMap({ country, category, zoomed, scope }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<Size | null>(null);
 
@@ -320,11 +436,18 @@ export function WorldMap({ country, category, zoomed, scope, height = 260 }: Pro
     if (!size) return null;
     const position = lonLat(country);
     if (scope === 'monde') {
-      return project(ALL_LAND, country.numeric, size, 0.02, [0, 0], position);
+      return project(ALL_LAND, country.numeric, size, OVERVIEW_PADDING, [0, 0], position);
     }
     const window = WINDOWS[country.continent];
     const centerLon = (window[0][0] + window[1][0]) / 2;
-    return project(windowFeature(window), country.numeric, size, 0.02, [centerLon, 0], position);
+    return project(
+      windowFeature(window),
+      country.numeric,
+      size,
+      OVERVIEW_PADDING,
+      [centerLon, 0],
+      position
+    );
   }, [country, scope, size]);
 
   const close = useMemo(() => {
@@ -332,8 +455,10 @@ export function WorldMap({ country, category, zoomed, scope, height = 260 }: Pro
     const position = lonLat(country);
     const target = DETAILED_BY_ID.get(country.numeric);
 
-    // Tuvalu n'a aucune forme, même en 1:50m : on cadre sur ses coordonnées
-    // et l'anneau fait tout le travail.
+    // Un pays absent du fond de carte : on cadre sur ses coordonnées et
+    // l'anneau fait tout le travail. Les 194 en ont une depuis le passage au
+    // fond Visionscarto — le précédent ignorait Tuvalu —, mais la garde reste :
+    // le fond de carte n'est pas gravé dans le marbre.
     if (!target) {
       return project(
         pointWindow(position),
@@ -342,7 +467,7 @@ export function WorldMap({ country, category, zoomed, scope, height = 260 }: Pro
         ZOOM_PADDING,
         position,
         position,
-        [size.width / (2 * Math.PI), size.width / (MIN_VISIBLE_SPAN_DEG * DEG_TO_RAD)]
+        { scaleBounds: zoomBounds(size.width), detail: true }
       );
     }
 
@@ -360,14 +485,14 @@ export function WorldMap({ country, category, zoomed, scope, height = 260 }: Pro
       ZOOM_PADDING,
       geoCentroid(core as never) as [number, number],
       position,
-      [size.width / (2 * Math.PI), size.width / (MIN_VISIBLE_SPAN_DEG * DEG_TO_RAD)]
+      { scaleBounds: zoomBounds(size.width), detail: true }
     );
   }, [country, size]);
 
   const showClose = zoomed && close !== null;
 
   return (
-    <div ref={container} className={styles.container} style={{ height }}>
+    <div ref={container} className={styles.container}>
       {size && wide ? (
         <MapLayer frame={wide} category={category} size={size} hidden={showClose} />
       ) : null}

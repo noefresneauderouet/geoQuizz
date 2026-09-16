@@ -20,3 +20,20 @@
   font-size: 90px;
   line-height: 1;
 }
+
+/*
+ * Grand écran : le drapeau suit la hauteur de la fenêtre. 38 % laissent
+ * tenir la consigne, le bandeau de réponse et le champ sans faire défiler ;
+ * la condition de hauteur écarte les portables à écran bas, où ce ne serait
+ * plus vrai.
+ */
+@media (min-width: 900px) and (min-height: 800px) {
+  .frame {
+    height: clamp(200px, 38dvh, 460px);
+    padding: var(--space-3);
+  }
+
+  .emoji {
+    font-size: 200px;
+  }
+}

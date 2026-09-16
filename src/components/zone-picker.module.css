@@ -19,6 +19,20 @@
   gap: var(--space-3);
 }
 
+@media (min-width: 1024px) {
+  .brand {
+    font-size: 44px;
+  }
+
+  .subtitle {
+    font-size: 18px;
+  }
+
+  .grid {
+    gap: var(--space-4);
+  }
+}
+
 .footnote {
   text-align: center;
   font-size: 12px;

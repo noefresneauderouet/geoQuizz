@@ -130,7 +130,9 @@ function roundedRectDistance(x, y, size, radius) {
 /* ------------------------------------------------------------------ */
 
 const land = (() => {
-  const atlas = JSON.parse(readFileSync(require.resolve('world-atlas/land-110m.json'), 'utf8'));
+  const atlas = JSON.parse(
+    readFileSync(require.resolve('visionscarto-world-atlas/world/110m.json'), 'utf8')
+  );
   return feature(atlas, atlas.objects.land);
 })();
 

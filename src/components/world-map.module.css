@@ -1,5 +1,8 @@
 .container {
   position: relative;
+  /* C'est l'image de la question : la carte prend ce que la hauteur d'écran
+     peut lui donner, sans repousser le champ de réponse hors de vue. */
+  height: clamp(280px, 44dvh, 460px);
   border-radius: var(--radius-m);
   overflow: hidden;
   background-color: var(--blue-light);

@@ -15,8 +15,9 @@ import { feature } from 'topojson-client';
 
 const require = createRequire(import.meta.url);
 const world = require('world-countries');
-// Même fond de carte que src/components/world-map.tsx : Natural Earth 1:50m.
-const atlas = require('world-atlas/countries-50m.json');
+// Même fond de carte que src/components/world-map.tsx : Natural Earth 1:50m,
+// dans la version Visionscarto (frontières conformes aux vues de l'ONU).
+const atlas = require('visionscarto-world-atlas/world/50m.json');
 
 const REGION_TO_CONTINENT = {
   Africa: 'afrique',
@@ -55,6 +56,7 @@ const CAPITALS_FR = {
 
 /** Autres capitales acceptées (sièges de gouvernement, anciens noms, graphies). */
 const CAPITAL_ALIASES = {
+  GQ: ['La Paz'],
   BO: ['La Paz'],
   ZA: ['Le Cap', 'Bloemfontein', 'Cape Town'],
   CI: ['Abidjan'],

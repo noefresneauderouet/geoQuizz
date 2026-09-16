@@ -35,6 +35,13 @@
   color-scheme: light;
 }
 
+/* Sur un écran d'ordinateur, 800 px laissaient l'essentiel de la fenêtre vide. */
+@media (min-width: 1024px) {
+  :root {
+    --content-max: 1040px;
+  }
+}
+
 *,
 *::before,
 *::after {

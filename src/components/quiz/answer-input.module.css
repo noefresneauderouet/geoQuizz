@@ -130,3 +130,24 @@
   cursor: default;
   box-shadow: none;
 }
+
+/* Même seuil que le drapeau : les deux grandissent ensemble. */
+@media (min-width: 900px) and (min-height: 800px) {
+  .field {
+    padding: 12px var(--space-4);
+  }
+
+  .label {
+    font-size: 13px;
+  }
+
+  .input {
+    font-size: 28px;
+  }
+
+  .button,
+  .skip {
+    padding: 18px;
+    font-size: 20px;
+  }
+}
