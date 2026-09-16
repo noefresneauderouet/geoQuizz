@@ -55,16 +55,18 @@ const REATTACHED: Record<string, string> = {
 const ZOOM_PADDING = 0.40;
 
 /**
- * Plafond de zoom, en degrés de longitude visibles.
+ * Pays étalon du plafond de zoom : l'Équateur.
  *
- * Sans lui, cadrer chaque pays sur la même part de l'écran zoome d'autant plus
- * fort que le pays est petit : la Sierra Leone ou l'Arménie se retrouvaient
- * entourées de 13° de contexte, le Luxembourg de 4° — plus rien de
- * reconnaissable autour. Le pays occupe donc une part variable du cadre, et
- * c'est voulu : c'est ce qui rend sa région identifiable.
+ * Sans plafond, cadrer chaque pays sur la même part de l'écran zoome d'autant
+ * plus fort que le pays est petit : le Luxembourg se retrouvait entouré de 4°
+ * de contexte, plus rien de reconnaissable autour. Aucun pays n'est donc zoomé
+ * plus fort que l'Équateur cadré de la même façon : tous les pays plus petits
+ * partagent exactement son échelle, seuls les plus grands dézooment pour
+ * tenir. L'étalon est recalculé pour chaque taille de cadre — un plafond en
+ * degrés fixes zoomait les petits pays bien plus que l'Équateur sur un écran
+ * large.
  */
-const MIN_VISIBLE_SPAN_DEG = 22;
-const DEG_TO_RAD = Math.PI / 180;
+const ZOOM_REFERENCE = '218';
 
 /**
  * Un pays plus petit que ce seuil (en pixels) reçoit un cercle de repérage.
@@ -268,11 +270,24 @@ function centerY(top: number, bottom: number, extent: number, north: number, sou
 }
 
 /**
- * Bornes du zoom sur un pays, en échelle de projection : du globe entier au
- * plafond de MIN_VISIBLE_SPAN_DEG.
+ * Bornes du zoom sur un pays, en échelle de projection : du globe entier à
+ * l'échelle de l'Équateur (ZOOM_REFERENCE) cadré dans le même cadre.
  */
-function zoomBounds(width: number): [number, number] {
-  return [width / (2 * Math.PI), width / (MIN_VISIBLE_SPAN_DEG * DEG_TO_RAD)];
+function zoomBounds({ width, height }: Size): [number, number] {
+  const min = width / (2 * Math.PI);
+  const reference = DETAILED_BY_ID.get(ZOOM_REFERENCE);
+  if (!reference) return [min, width / (22 * (Math.PI / 180))];
+  const core = mainland(reference.geometry);
+  const projection = geoMercator()
+    .rotate([-geoCentroid(core as never)[0], 0])
+    .fitExtent(
+      [
+        [width * ZOOM_PADDING, height * ZOOM_PADDING],
+        [width * (1 - ZOOM_PADDING), height * (1 - ZOOM_PADDING)],
+      ],
+      core as never
+    );
+  return [min, Math.max(min, projection.scale())];
 }
 
 /** Réglages propres à l'une des deux vues. */
@@ -454,6 +469,7 @@ export function WorldMap({ country, category, zoomed, scope }: Props) {
     if (!size) return null;
     const position = lonLat(country);
     const target = DETAILED_BY_ID.get(country.numeric);
+    const scaleBounds = zoomBounds(size);
 
     // Un pays absent du fond de carte : on cadre sur ses coordonnées et
     // l'anneau fait tout le travail. Les 194 en ont une depuis le passage au
@@ -467,7 +483,7 @@ export function WorldMap({ country, category, zoomed, scope }: Props) {
         ZOOM_PADDING,
         position,
         position,
-        { scaleBounds: zoomBounds(size.width), detail: true }
+        { scaleBounds, detail: true }
       );
     }
 
@@ -485,7 +501,7 @@ export function WorldMap({ country, category, zoomed, scope }: Props) {
       ZOOM_PADDING,
       geoCentroid(core as never) as [number, number],
       position,
-      { scaleBounds: zoomBounds(size.width), detail: true }
+      { scaleBounds, detail: true }
     );
   }, [country, size]);
 
