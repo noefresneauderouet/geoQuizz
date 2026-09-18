@@ -10,7 +10,7 @@
  */
 
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { runInNewContext } from 'node:vm';
@@ -19,6 +19,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = join(ROOT, 'out');
 const ORIGIN = 'https://geolearn.test';
 const FLAG = 'https://flagcdn.com/w640/fr.png';
+const BACKGROUND_CACHE = 'geolearn-backgrounds-v1';
 
 if (!existsSync(join(OUT, 'sw.js'))) {
   console.error('out/sw.js est absent — lancez `npm run build` d’abord.');
@@ -220,6 +221,19 @@ check('l’installation précache le drapeau de chaque pays, à la largeur affic
   assert.equal((await flags.keys()).length, countries.length, 'entrées en trop dans le cache des drapeaux');
 });
 
+check('l’installation précache chaque photo de fond, hors de la coquille', async () => {
+  const photos = readdirSync(join(OUT, 'categories')).map((name) => `/categories/${name}`);
+  assert.ok(photos.length > 0, 'aucune photo dans out/categories');
+
+  const backgrounds = await caches.open(BACKGROUND_CACHE);
+  const missing = [];
+  for (const url of photos) if (!(await backgrounds.match(url))) missing.push(url);
+  assert.deepEqual(missing, [], `photos absentes du précache : ${missing.join(', ')}`);
+
+  const shell = await caches.open((await caches.keys()).find((n) => n.startsWith('geolearn-shell-')));
+  assert.equal(await shell.match(photos[0]), undefined, 'les photos ne doivent plus être dans la coquille');
+});
+
 check('une nouvelle installation ne retélécharge pas les drapeaux déjà en cache', async () => {
   flagFetches = 0;
   await lifecycle('install');
@@ -249,6 +263,7 @@ check('l’activation supprime les coquilles des versions précédentes', async 
   const names = await caches.keys();
   assert.ok(!names.includes('geolearn-shell-ancienne'), 'ancienne coquille non supprimée');
   assert.ok(names.includes('geolearn-flags-v1'), 'le cache des drapeaux doit survivre');
+  assert.ok(names.includes(BACKGROUND_CACHE), 'le cache des photos doit survivre');
   assert.equal(claimed, true, 'clients.claim() non appelé');
 
   await caches.delete('geolearn-flags-v1');
@@ -268,6 +283,13 @@ check('« /profil » sert profil.html', async () => {
 check('« /quiz » avec paramètres sert quiz.html', async () => {
   const response = await through('/quiz?category=monde&mode=drapeau', { mode: 'navigate' });
   assert.match(await response.text(), /Partie en cours — GeoLearn/);
+});
+
+check('« /salle » avec paramètres sert salle.html', async () => {
+  const response = await through('/salle?code=K7PQX&category=europe&mode=drapeau&count=10', {
+    mode: 'navigate',
+  });
+  assert.match(await response.text(), /Défier des amis — GeoLearn/);
 });
 
 check('hors ligne, une route inconnue rend la page « introuvable »', async () => {
@@ -300,6 +322,24 @@ check('hors ligne, le bundle JavaScript vient du cache', async () => {
      longueur minimale, mais casserait l'app. */
   const served = Buffer.from(await response.arrayBuffer());
   assert.deepEqual(served, readFileSync(join(OUT, bundle)), 'le bundle servi diffère du fichier');
+});
+
+check('hors ligne, une photo de fond vient du cache', async () => {
+  const name = readdirSync(join(OUT, 'categories'))[0];
+  online = false;
+  const response = await through(`/categories/${name}`);
+  online = true;
+
+  assert.equal(response.status, 200, 'la photo devrait sortir du cache');
+  const served = Buffer.from(await response.arrayBuffer());
+  assert.deepEqual(served, readFileSync(join(OUT, 'categories', name)), 'la photo servie diffère du fichier');
+});
+
+check('hors ligne, une photo absente du cache échoue proprement', async () => {
+  online = false;
+  const response = await through('/categories/inconnue.jpg');
+  online = true;
+  assert.equal(response.status, 504, 'l’échec doit être une réponse, pas un rejet');
 });
 
 check('un drapeau est mis en cache à la première vue, puis resservi', async () => {

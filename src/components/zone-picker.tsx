@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 
 import { CategoryCard } from '@/components/category-card';
@@ -45,6 +46,11 @@ export function ZonePicker() {
 
       <ModeSelector value={mode} onChange={setMode} accent={MONDE.accent} />
       <CountSelector value={count} onChange={setCount} accent={MONDE.accent} />
+
+      {/* Reprend le mode et la longueur choisis ; la zone se choisit ensuite. */}
+      <Link href={`/salle?mode=${mode}&count=${count}`} className={styles.challenge}>
+        <span aria-hidden="true">👥</span> Défier des amis
+      </Link>
 
       <h2 className="sectionTitle">Choisis ta zone</h2>
 

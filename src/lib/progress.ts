@@ -113,7 +113,20 @@ export type RoundResult = {
   solved: string[];
 };
 
-export function recordRound(result: RoundResult) {
+/**
+ * Ce que la manche vient de changer aux records, pour l'écran de fin.
+ * `previousBestMs` est le record tel qu'il était avant la manche (absent si
+ * cette zone n'a jamais été terminée en entier) ; `newRecord` dit s'il vient
+ * d'être battu — une première manche complète ne bat personne.
+ */
+export type RoundOutcome = {
+  previousBestMs?: number;
+  newRecord: boolean;
+};
+
+export const NO_OUTCOME: RoundOutcome = { newRecord: false };
+
+export function recordRound(result: RoundResult): RoundOutcome {
   const prev = getSnapshot();
   const key = scoreKey(result.category, result.mode, result.total);
 
@@ -141,6 +154,11 @@ export function recordRound(result: RoundResult) {
     bestStreak: Math.max(prev.bestStreak, result.bestStreak),
     toReview: [...toReview],
   });
+
+  return {
+    previousBestMs: prevTime,
+    newRecord: perfect && prevTime !== undefined && result.durationMs < prevTime,
+  };
 }
 
 export function resetProgress() {

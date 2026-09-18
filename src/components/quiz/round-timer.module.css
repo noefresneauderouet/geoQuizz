@@ -14,6 +14,24 @@
   font-weight: 700;
 }
 
+/* Les dix dernières secondes d'une partie limitée. */
+.urgent {
+  background-color: var(--danger);
+  animation: urgent-pulse 1s ease-in-out infinite;
+}
+
+@keyframes urgent-pulse {
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .urgent {
+    animation: none;
+  }
+}
+
 .value {
   /* Les chiffres gardent la même largeur : la pastille ne tressaute pas à
      chaque seconde. */

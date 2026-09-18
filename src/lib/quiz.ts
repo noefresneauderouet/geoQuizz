@@ -1,6 +1,7 @@
 import type { CategoryId, ModeId } from '@/constants/categories';
 import { countriesOf, type Country } from '@/lib/countries';
 import { matchAnswer, type MatchResult } from '@/lib/normalize';
+import type { Random } from '@/lib/random';
 
 export type Question = {
   country: Country;
@@ -17,10 +18,10 @@ export function getQuestionCount(value: string | null | undefined): QuestionCoun
   return QUESTION_COUNTS.find((count) => String(count) === value) ?? DEFAULT_QUESTION_COUNT;
 }
 
-function shuffle<T>(items: readonly T[]): T[] {
+function shuffle<T>(items: readonly T[], random: Random): T[] {
   const copy = [...items];
   for (let i = copy.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(random() * (i + 1));
     [copy[i], copy[j]] = [copy[j], copy[i]];
   }
   return copy;
@@ -30,11 +31,19 @@ function shuffle<T>(items: readonly T[]): T[] {
  * Tire une manche. Une zone plus petite que la longueur demandée — l'Océanie
  * compte 14 pays — est jouée en entier : la manche est alors plus courte, et
  * c'est sa longueur réelle qui sert de clé aux records (voir progress.ts).
+ *
+ * `random` n'est fourni qu'à plusieurs : une même graine (src/lib/random.ts)
+ * donne alors la même manche sur chaque appareil.
  */
-export function buildRound(category: CategoryId, mode: ModeId, count: number): Question[] {
+export function buildRound(
+  category: CategoryId,
+  mode: ModeId,
+  count: number,
+  random: Random = Math.random,
+): Question[] {
   // Tous les pays sont jouables dans tous les modes, y compris sur la carte :
   // ceux qui sont trop petits pour se voir reçoivent un cercle de repérage.
-  return shuffle(countriesOf(category))
+  return shuffle(countriesOf(category), random)
     .slice(0, count)
     .map((country) => ({ country, mode }));
 }

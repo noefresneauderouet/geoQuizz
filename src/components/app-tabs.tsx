@@ -20,7 +20,8 @@ const TABS = [
  */
 export function AppTabs() {
   const pathname = usePathname();
-  if (pathname.startsWith('/quiz')) return null;
+  // Même chose dans une salle à plusieurs : quitter l'écran, c'est quitter la salle.
+  if (pathname.startsWith('/quiz') || pathname.startsWith('/salle')) return null;
 
   return (
     <nav className={styles.bar} aria-label="Navigation principale">

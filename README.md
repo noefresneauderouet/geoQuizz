@@ -29,6 +29,34 @@ Les réponses se tapent au clavier. La comparaison est **tolérante** : insensib
 (« USA » pour États-Unis, « Myanmar » pour Birmanie, « La Paz » pour la Bolivie)
 et pardonne une à deux fautes de frappe selon la longueur du mot.
 
+## Défier des amis
+
+Depuis l'accueil, **Défier des amis** crée une salle et donne un lien à
+partager. Ceux qui l'ouvrent choisissent un pseudo et arrivent en salle
+d'attente ; l'hôte lance, et tout le monde reçoit le même quiz. La partie
+s'arrête dès que le premier a tout trouvé : on est classé au nombre de
+questions trouvées, puis au temps mis pour y arriver.
+
+À la création, l'hôte peut aussi fixer une limite de temps (1, 2, 3 ou
+5 minutes). La partie s'arrête alors pour tout le monde à l'échéance, si
+personne n'a tout trouvé avant ; le classement suit la même règle.
+
+Il faut internet, et un projet [Supabase](https://supabase.com) (gratuit) :
+
+1. Crée le projet, puis relève dans *Project Settings → API* l'URL du projet
+   (`https://<projet>.supabase.co`, sans `/rest/v1`) et la clé `anon`.
+2. Mets-les dans `.env.local` pour le développement, et dans les variables
+   d'environnement de Vercel pour la production :
+
+   ```sh
+   NEXT_PUBLIC_SUPABASE_URL=https://<projet>.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=<clé anon>
+   ```
+
+Aucune table à créer : les salles ne vivent que le temps de la partie. Un
+projet gratuit resté sept jours sans activité est mis en pause ; on le
+réactive depuis le tableau de bord de Supabase.
+
 ## Mettre tes propres photos de fond
 
 Les six zones s'affichent pour l'instant avec un dégradé de la palette. Pour
@@ -110,6 +138,12 @@ croisera peut-être jamais, soit environ 0,6 Mo en plus. Une mise à jour ne
 retélécharge que ceux qui manquent. Si flagcdn est injoignable à ce moment-là,
 l'installation aboutit quand même : chaque drapeau manquant est récupéré à sa
 première vue en ligne, et l'emoji le remplace d'ici là.
+
+Les **photos de fond** des catégories (`public/categories/`) suivent le même
+régime : téléchargées à l'installation dans un cache qui survit aux mises à
+jour, reprises à la première vue si elles ont manqué (le dégradé de la
+catégorie les remplace d'ici là). Une photo remplacée sous le même nom est
+récupérée à la vue suivante, sans nouvelle version.
 
 ### Mises à jour
 

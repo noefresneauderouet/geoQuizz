@@ -39,6 +39,14 @@ const FLAG_WIDTH = 640;
  */
 const EXCLUDED = [/^sw\.js$/, /\.map$/, /\.txt$/];
 
+/*
+ * Les photos de fond ont leur propre cache, qui traverse les versions (voir
+ * le modèle). Elles sortent donc de la coquille, et de l'empreinte : changer
+ * une photo n'annonce pas une nouvelle version, elle est reprise à la vue
+ * suivante.
+ */
+const BACKGROUND_DIR = 'categories/';
+
 function walk(dir) {
   const out = [];
   for (const entry of readdirSync(dir)) {
@@ -49,10 +57,13 @@ function walk(dir) {
   return out;
 }
 
-const files = walk(OUT)
+const produced = walk(OUT)
   .map((full) => ({ full, rel: relative(OUT, full).split(sep).join('/') }))
   .filter(({ rel }) => !EXCLUDED.some((pattern) => pattern.test(rel)))
   .sort((a, b) => a.rel.localeCompare(b.rel));
+
+const files = produced.filter(({ rel }) => !rel.startsWith(BACKGROUND_DIR));
+const backgrounds = produced.filter(({ rel }) => rel.startsWith(BACKGROUND_DIR));
 
 if (files.length === 0) {
   console.error('out/ est vide — lancez `next build` d’abord.');
@@ -80,6 +91,7 @@ const buildId = digest.digest('hex').slice(0, 12);
 /* encodeURI : les noms produits par Next partent tels quels dans un
    `new Request(url)` côté worker. */
 const urls = files.map(({ rel }) => `/${encodeURI(rel)}`);
+const backgroundUrls = backgrounds.map(({ rel }) => `/${encodeURI(rel)}`);
 
 /* Même forme que `flagUrl` dans src/lib/countries.ts. */
 const flagUrls = JSON.parse(readFileSync(COUNTRIES, 'utf8')).map(
@@ -89,10 +101,12 @@ const flagUrls = JSON.parse(readFileSync(COUNTRIES, 'utf8')).map(
 const source = readFileSync(TEMPLATE, 'utf8')
   .replace("'__BUILD_ID__'", JSON.stringify(buildId))
   .replace('__PRECACHE_URLS__', JSON.stringify(urls, null, 2))
-  .replace('__FLAG_URLS__', JSON.stringify(flagUrls, null, 2));
+  .replace('__FLAG_URLS__', JSON.stringify(flagUrls, null, 2))
+  .replace('__BACKGROUND_URLS__', JSON.stringify(backgroundUrls, null, 2));
 
 writeFileSync(join(OUT, 'sw.js'), source);
 
 console.log(`sw.js écrit — version ${buildId}`);
 console.log(`  ${files.length} fichiers précachés, ${(bytes / 1024 / 1024).toFixed(2)} Mo`);
+console.log(`  ${backgroundUrls.length} photos de fond précachées`);
 console.log(`  ${flagUrls.length} drapeaux précachés depuis flagcdn.com`);

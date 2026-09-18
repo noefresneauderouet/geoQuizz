@@ -18,6 +18,27 @@ Il n'y a plus ni Expo, ni React Native, ni cible mobile : ne réintroduis pas
   instantané serveur constant à `useSyncExternalStore` : le HTML est produit à
   la compilation, et un écart ferait échouer l'hydratation.
 
+## Le multijoueur
+
+Les parties à plusieurs (`/salle`) passent par **Supabase Realtime**, appelé
+depuis le navigateur : canaux Broadcast + Presence, sans table ni serveur.
+
+- `src/lib/room.ts` porte le protocole (codes, identité, messages, classement)
+  et charge `@supabase/realtime-js` par `import()` dynamique : le jeu solo ne
+  doit jamais l'embarquer.
+- **Presence est limité en fréquence** : au-delà de quelques mises à jour en
+  quelques secondes, Supabase ferme le canal du joueur (« Client presence rate
+  limit exceeded »). N'y publie que ce qui change deux ou trois fois par
+  partie (pseudo, statut). Tout ce qui bouge en jeu — l'avancée — passe par
+  Broadcast (`progress`).
+- `src/lib/round.ts` est la mécanique d'une manche, partagée par le solo et le
+  multijoueur ; `src/components/quiz/quiz-board.tsx` en est l'écran commun.
+- Même quiz pour tous : la graine du lancement passe à `buildRound` via
+  `seeded()` (`src/lib/random.ts`). N'y introduis aucun autre `Math.random`.
+- Configuration : `NEXT_PUBLIC_SUPABASE_URL` (racine du projet) et
+  `NEXT_PUBLIC_SUPABASE_ANON_KEY`, dans `.env.local` et dans Vercel. Sans elles,
+  `/salle` affiche « Multijoueur indisponible ».
+
 ## Le service worker
 
 `scripts/service-worker.js` est un **modèle**. `npm run build` y injecte la

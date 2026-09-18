@@ -310,6 +310,53 @@
   margin-top: var(--space-2);
 }
 
+/* Un record de temps battu : le premier message de l'écran. */
+.newRecord {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: var(--space-3);
+  border-radius: var(--radius-l);
+  background-color: var(--green-light);
+  border: 2px solid var(--green);
+  animation: record-pop 520ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.newRecordTitle {
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1.1;
+  color: var(--green-dark);
+  text-align: center;
+}
+
+.newRecordDetail {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--green-dark);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes record-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .newRecord {
+    animation: none;
+  }
+}
+
 .summaryMedal {
   font-size: 56px;
   line-height: 1;
@@ -321,16 +368,55 @@
   color: var(--ink);
 }
 
-.summaryScore {
-  font-size: 52px;
-  font-weight: 800;
-  color: var(--green);
+/* Le temps de la manche, chiffre principal de l'écran : brun tant qu'il ne
+   compte pas, vert dès que le sans-faute le rend comparable. */
+.summaryDuration {
+  font-size: 56px;
+  font-weight: 900;
   line-height: 1;
+  color: var(--brown-dark);
+  font-variant-numeric: tabular-nums;
 }
 
-.summaryScoreTotal {
-  font-size: 26px;
+.summaryDurationPerfect {
+  color: var(--green);
+}
+
+.summaryDurationIcon {
+  font-size: 34px;
+}
+
+/* Le temps réalisé et, à sa droite, le record auquel il se compare. */
+.summaryTimes {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.summaryBest {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--border);
+  line-height: 1.1;
+}
+
+.summaryBestLabel {
+  font-size: 13px;
+  font-weight: 700;
   color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.summaryBestValue {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
 }
 
 .summaryMeta {
@@ -340,9 +426,8 @@
   text-align: center;
 }
 
-/* Le temps de la manche : discret tant qu'il ne compte pas, vert dès que le
-   sans-faute le rend comparable. */
-.summaryTime {
+/* Le score, passé au second plan, avec le temps par question. */
+.summaryFound {
   display: flex;
   align-items: baseline;
   justify-content: center;
@@ -356,18 +441,19 @@
   font-variant-numeric: tabular-nums;
 }
 
-.summaryTimePerfect {
-  background-color: var(--green-light);
-  color: var(--green-dark);
+/* Sur un record, le vert revient au bandeau et au temps : cette ligne passe en orange. */
+.summaryFoundRecord {
+  background-color: var(--yellow-light);
+  color: var(--yellow-dark);
 }
 
-.summaryTimeDetail {
+.summaryFoundDetail {
   font-size: 13px;
   font-weight: 600;
   color: var(--ink-soft);
 }
 
-.summaryTimePerfect .summaryTimeDetail {
+.summaryFoundRecord .summaryFoundDetail {
   color: inherit;
 }
 

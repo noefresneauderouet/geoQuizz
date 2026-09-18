@@ -1,0 +1,537 @@
+'use client';
+
+import Link from 'next/link';
+import { useEffect, useReducer, useRef, useState } from 'react';
+
+import { CategoryBackground } from '@/components/category-background';
+import { useRoom } from '@/components/multi/use-room';
+import { QuizBoard } from '@/components/quiz/quiz-board';
+import type { Category, Mode } from '@/constants/categories';
+import { vibrateSuccess } from '@/lib/feedback';
+import { buildRound } from '@/lib/quiz';
+import { newSeed, seeded } from '@/lib/random';
+import {
+  COUNTDOWN_MS,
+  formatTimeLimit,
+  getPlayerId,
+  isHostOf,
+  MAX_PLAYERS,
+  rankPlayers,
+  type Contender,
+  type FinishMessage,
+  type KnownPlayer,
+  type PlayerState,
+  type ResetMessage,
+  type StartMessage,
+  type TimeLimit,
+} from '@/lib/room';
+import { newGame, reducer, SOLVED_PAUSE_MS, type Game } from '@/lib/round';
+
+import styles from './multi.module.css';
+
+type Phase =
+  | { kind: 'lobby' }
+  | { kind: 'countdown'; until: number }
+  /** `deadline` : fin de la partie quand la salle a une limite de temps. */
+  | { kind: 'playing'; deadline: number | null }
+  /** Partie arrêtée, le temps que les derniers états arrivent. `winnerId` vide : le temps est écoulé. */
+  | { kind: 'stopped'; winnerId: string }
+  | { kind: 'ranking'; winnerId: string };
+
+/** L'avancée d'une manche, telle qu'on la publie et qu'on la classe. */
+const scoreOf = (game: Game) => ({ found: game.found.length, reachedMs: game.lastFoundMs });
+
+/** Le temps laissé aux derniers états pour arriver avant d'afficher le classement. */
+const SETTLE_MS = 1200;
+
+type Props = {
+  code: string;
+  name: string;
+  category: Category;
+  mode: Mode;
+  count: number;
+  limit: TimeLimit;
+};
+
+/**
+ * Une salle, de l'attente au classement.
+ *
+ * Tout ce qui est partagé passe par la salle (src/lib/room.ts) ; tout le
+ * reste — la manche elle-même, son chronomètre — tourne ici, sur chaque
+ * appareil, à partir de la même graine.
+ */
+export function MultiRoom({ code, name, category, mode, count, limit }: Props) {
+  /**
+   * Ce que ce joueur publie dans la salle (Presence). Son avancée n'y est pas :
+   * elle se lit dans sa manche, et part aux autres par des messages `progress`.
+   */
+  const [me, setMe] = useState<PlayerState>(() => ({
+    id: getPlayerId(),
+    name,
+    host: isHostOf(code),
+    joinedAt: Date.now(),
+    status: 'lobby',
+    game: 0,
+  }));
+  const [phase, setPhase] = useState<Phase>({ kind: 'lobby' });
+  const [game, dispatch] = useReducer(reducer, null, () => newGame([], 0));
+  /** La partie en cours a déjà été arrêtée : un second `finish` est ignoré. */
+  const stopped = useRef(-1);
+
+  const update = (patch: Partial<typeof me>) => setMe((s) => ({ ...s, ...patch }));
+  const clearRound = () => dispatch({ type: 'restart', round: [], now: Date.now() });
+
+  /*
+   * Les trois moments partagés. Chacun est appliqué ici tout de suite par
+   * celui qui le déclenche, puis envoyé aux autres : on ne compte pas sur
+   * l'écho de ses propres messages, que Supabase ne renvoie pas toujours.
+   */
+  const startGame = ({ game: number, seed }: StartMessage) => {
+    // Les numéros de partie ne font que croître : un lancement déjà vu est ignoré.
+    if (number <= me.game) return;
+    clearRound();
+    // Une seule publication pour tout le lancement : Presence est limité.
+    update({ game: number, status: 'playing' });
+    setPhase({ kind: 'countdown', until: Date.now() + COUNTDOWN_MS });
+    setTimeout(() => {
+      const round = buildRound(category.id, mode.id, count, seeded(seed));
+      dispatch({ type: 'restart', round, now: Date.now() });
+      setPhase({ kind: 'playing', deadline: limit ? Date.now() + limit * 1000 : null });
+    }, COUNTDOWN_MS);
+  };
+
+  const finishGame = ({ game: number, playerId }: FinishMessage) => {
+    if (number !== me.game || stopped.current === number) return;
+    stopped.current = number;
+    dispatch({ type: 'end', now: Date.now() });
+    update({ status: 'done' });
+    setPhase({ kind: 'stopped', winnerId: playerId });
+    setTimeout(() => setPhase({ kind: 'ranking', winnerId: playerId }), SETTLE_MS);
+  };
+
+  const backToLobby = ({ game: number }: ResetMessage) => {
+    clearRound();
+    update({ game: number, status: 'lobby' });
+    setPhase({ kind: 'lobby' });
+  };
+
+  const room = useRoom(code, me, {
+    onStart: startGame,
+    onFinish: finishGame,
+    onReset: backToLobby,
+  });
+
+  /* Une réponse trouvée reste affichée un instant, comme en solo. */
+  useEffect(() => {
+    if (!game.solved) return;
+    vibrateSuccess();
+    const last = game.queue.length === 1;
+    const id = setTimeout(() => {
+      dispatch({ type: 'advance', now: Date.now() });
+      room.progress({ game: me.game, playerId: me.id, ...scoreOf(game) });
+      // Tout trouvé : on arrête la partie de tout le monde, la sienne comprise.
+      if (last) {
+        const message = { game: me.game, playerId: me.id };
+        room.finish(message);
+        finishGame(message);
+      }
+    }, SOLVED_PAUSE_MS.exact);
+    return () => clearTimeout(id);
+    // `game` ne bouge pas tant que la réponse est affichée : seule l'arrivée
+    // d'une réponse relance, comme en solo.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game.solved]);
+
+  /*
+   * Partie arrêtée : sa dernière avancée est renvoyée une fois. Si un message
+   * s'est perdu en route, le classement se fait quand même sur le vrai score.
+   */
+  useEffect(() => {
+    if (me.status === 'done') {
+      room.progress({ game: me.game, playerId: me.id, ...scoreOf(game) });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [me.status]);
+
+  /*
+   * Limite de temps : chaque appareil arrête sa propre partie à l'échéance,
+   * sans message — tous ont lancé au même moment, à la latence près.
+   */
+  useEffect(() => {
+    if (phase.kind !== 'playing' || phase.deadline === null) return;
+    const id = setTimeout(
+      () => finishGame({ game: me.game, playerId: '' }),
+      phase.deadline - Date.now(),
+    );
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
+
+  const complete = game.over && game.round.length > 0 && game.queue.length === 0;
+
+  const connected = room.players.filter((p) => p.connected);
+  // Les places vont aux premiers arrivés.
+  const seat = [...connected]
+    .sort((a, b) => a.joinedAt - b.joinedAt || a.id.localeCompare(b.id))
+    .findIndex((p) => p.id === me.id);
+
+  /*
+   * Les participants de la partie en cours, avec leur avancée. La sienne vient
+   * de sa propre manche, jamais du réseau ; celle des autres, de leurs
+   * derniers messages `progress`.
+   */
+  const contenders = (): Contender[] => {
+    const others = room.players
+      .filter((p) => p.id !== me.id)
+      .filter(
+        (p) =>
+          (p.game === me.game && p.status !== 'lobby') || room.scores[p.id]?.game === me.game,
+      )
+      .map((p) => {
+        const score = room.scores[p.id];
+        return score?.game === me.game
+          ? { ...p, found: score.found, reachedMs: score.reachedMs }
+          : { ...p, found: 0, reachedMs: 0 };
+      });
+    return [{ ...me, connected: true, ...scoreOf(game) }, ...others];
+  };
+
+  if (room.status === 'error') {
+    return (
+      <Notice category={category} emoji="📡" title="Connexion impossible">
+        Les parties à plusieurs ont besoin d&apos;internet. Vérifie ta connexion, puis rouvre le
+        lien.
+      </Notice>
+    );
+  }
+
+  if (room.status === 'connecting' || seat === -1) {
+    return (
+      <Notice category={category} emoji="⏳" title="Connexion à la salle…">
+        Salle {code}
+      </Notice>
+    );
+  }
+
+  if (seat >= MAX_PLAYERS) {
+    return (
+      <Notice category={category} emoji="🚪" title="Salle complète">
+        Cette salle accueille {MAX_PLAYERS} joueurs au plus.
+      </Notice>
+    );
+  }
+
+  if (phase.kind === 'countdown') {
+    return <Countdown category={category} until={phase.until} />;
+  }
+
+  // Manche arrêtée — tout trouvé, ou un autre a fini : il n'y a plus de
+  // question à montrer le temps que les derniers états arrivent.
+  if (phase.kind === 'stopped' || (phase.kind === 'playing' && game.over)) {
+    const timeUp = phase.kind === 'stopped' && phase.winnerId === '';
+    return (
+      <CategoryBackground category={category} className={styles.screen}>
+        <div className={styles.centered}>
+          <div className={styles.card}>
+            <span className={styles.bigEmoji} aria-hidden="true">
+              {complete ? '🎉' : '🏁'}
+            </span>
+            <h1 className={styles.title}>
+              {complete ? 'Tout trouvé !' : timeUp ? 'Temps écoulé !' : 'Partie terminée'}
+            </h1>
+            <p className={styles.hint}>Classement en cours…</p>
+          </div>
+        </div>
+      </CategoryBackground>
+    );
+  }
+
+  if (phase.kind === 'playing') {
+    const opponents = contenders().filter((p) => p.id !== me.id);
+    return (
+      <QuizBoard
+        category={category}
+        mode={mode}
+        game={game}
+        dispatch={dispatch}
+        deadline={phase.deadline}
+        status={<Opponents players={opponents} total={game.round.length} />}
+      />
+    );
+  }
+
+  if (phase.kind === 'ranking') {
+    const ranked = rankPlayers(contenders());
+    return (
+      <Ranking
+        category={category}
+        players={ranked}
+        selfId={me.id}
+        winnerId={phase.winnerId}
+        total={game.round.length}
+        isHost={me.host}
+        onReplay={() => {
+          const message = { game: me.game + 1 };
+          room.reset(message);
+          backToLobby(message);
+        }}
+      />
+    );
+  }
+
+  return (
+    <Lobby
+      code={code}
+      category={category}
+      mode={mode}
+      count={count}
+      limit={limit}
+      self={me}
+      players={connected}
+      onStart={() => {
+        const message = { game: me.game + 1, seed: newSeed() };
+        room.start(message);
+        startGame(message);
+      }}
+    />
+  );
+}
+
+/* ---------------------------- Salle d'attente ---------------------------- */
+
+type LobbyProps = {
+  code: string;
+  category: Category;
+  mode: Mode;
+  count: number;
+  limit: TimeLimit;
+  self: PlayerState;
+  players: KnownPlayer[];
+  onStart: () => void;
+};
+
+function Lobby({ code, category, mode, count, limit, self, players, onStart }: LobbyProps) {
+  const [copied, setCopied] = useState(false);
+  // Sa propre présence peut avoir un temps de retard sur un retour en salle
+  // d'attente : on ne se compte jamais soi-même comme « en partie ».
+  const inGame = players.filter(
+    (p) => p.id !== self.id && p.status !== 'lobby' && p.game >= self.game,
+  );
+  const waiting = players
+    .filter((p) => !inGame.includes(p))
+    .sort((a, b) => a.joinedAt - b.joinedAt);
+  const hostHere = players.some((p) => p.host);
+
+  const share = async () => {
+    const url = window.location.href;
+    const chrono = limit ? `, ${formatTimeLimit(limit)} chrono` : '';
+    const text = `Viens me défier sur GeoLearn : ${category.label}, ${mode.label.toLowerCase()}, ${count} questions${chrono}.`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'GeoLearn', text, url });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // partage annulé : rien à faire
+    }
+  };
+
+  let hint: string;
+  if (inGame.length > 0) hint = 'Une partie est en cours : tu joueras la suivante.';
+  else if (!hostHere) hint = 'L’hôte a quitté la salle.';
+  else if (self.host) hint = waiting.length < 2 ? 'Attends au moins un adversaire.' : '';
+  else hint = 'En attente de l’hôte…';
+
+  return (
+    <CategoryBackground category={category} className={styles.screen}>
+      <div className={styles.centered}>
+        <div className={styles.card}>
+          <p className={styles.eyebrow}>Salle d&apos;attente</p>
+          <p className={styles.code} aria-label={`Code de la salle : ${code.split('').join(' ')}`}>
+            {code}
+          </p>
+          <p className={styles.settings}>
+            {category.emoji} {category.label} · {mode.emoji} {mode.label} · {count} questions
+            {limit ? ` · ⏳ ${formatTimeLimit(limit)}` : ''}
+          </p>
+
+          <button type="button" className={styles.share} onClick={share}>
+            {copied ? '✓ Lien copié' : '🔗 Partager le lien'}
+          </button>
+
+          <h2 className={styles.listTitle}>
+            Joueurs · {waiting.length}/{MAX_PLAYERS}
+          </h2>
+          <ul className={styles.players}>
+            {waiting.map((p) => (
+              <li key={p.id} className={styles.player}>
+                <span className={styles.playerName}>
+                  {p.name}
+                  {p.id === self.id ? <span className={styles.you}> (toi)</span> : null}
+                </span>
+                {p.host ? (
+                  <span className={styles.hostBadge} aria-label="hôte">
+                    👑
+                  </span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+
+          {self.host && inGame.length === 0 ? (
+            <button
+              type="button"
+              className={styles.primary}
+              style={{ backgroundColor: category.accent }}
+              disabled={waiting.length < 2}
+              onClick={onStart}>
+              Lancer la partie
+            </button>
+          ) : null}
+          {hint ? <p className={styles.hint}>{hint}</p> : null}
+
+          <Link href="/" className={styles.ghost}>
+            Quitter la salle
+          </Link>
+        </div>
+      </div>
+    </CategoryBackground>
+  );
+}
+
+/* ---------------------------------- Jeu ---------------------------------- */
+
+function Countdown({ category, until }: { category: Category; until: number }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 100);
+    return () => clearInterval(id);
+  }, []);
+  const left = Math.max(1, Math.ceil((until - now) / 1000));
+  return (
+    <CategoryBackground category={category} className={styles.screen}>
+      <div className={styles.centered}>
+        <p key={left} className={styles.countdown} aria-live="assertive">
+          {left}
+        </p>
+        <p className={styles.countdownLabel}>Même quiz pour tout le monde. Prêt ?</p>
+      </div>
+    </CategoryBackground>
+  );
+}
+
+function Opponents({ players, total }: { players: Contender[]; total: number }) {
+  if (players.length === 0) return null;
+  return (
+    <ul className={styles.opponents} aria-label="Avancée des adversaires">
+      {rankPlayers(players).map((p) => (
+        <li key={p.id} className={p.connected ? styles.opponent : `${styles.opponent} ${styles.gone}`}>
+          <span className={styles.opponentName}>{p.name}</span>
+          <span className={styles.opponentScore}>
+            {p.found}/{total}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/* ------------------------------- Classement ------------------------------ */
+
+type RankingProps = {
+  category: Category;
+  players: Contender[];
+  selfId: string;
+  winnerId: string;
+  total: number;
+  isHost: boolean;
+  onReplay: () => void;
+};
+
+const MEDALS = ['🥇', '🥈', '🥉'];
+
+function Ranking({ category, players, selfId, winnerId, total, isHost, onReplay }: RankingProps) {
+  const winner = players.find((p) => p.id === winnerId);
+  const myRank = players.findIndex((p) => p.id === selfId);
+
+  return (
+    <CategoryBackground category={category} className={styles.screen}>
+      <div className={styles.centered}>
+        <div className={styles.card}>
+          <span className={styles.bigEmoji} aria-hidden="true">
+            {myRank === 0 ? '🏆' : '🏁'}
+          </span>
+          <h1 className={styles.title}>{myRank === 0 ? 'Victoire !' : 'Partie terminée'}</h1>
+          {winner ? (
+            <p className={styles.settings}>
+              {winner.id === selfId ? 'Tu as' : `${winner.name} a`} tout trouvé en premier.
+            </p>
+          ) : winnerId === '' ? (
+            <p className={styles.settings}>
+              ⏳ Temps écoulé : le classement suit les questions trouvées.
+            </p>
+          ) : null}
+
+          <ol className={styles.ranking}>
+            {players.map((p, i) => (
+              <li
+                key={p.id}
+                className={p.id === selfId ? `${styles.rankRow} ${styles.rankSelf}` : styles.rankRow}>
+                <span className={styles.rank}>{MEDALS[i] ?? `${i + 1}`}</span>
+                <span className={styles.playerName}>
+                  {p.name}
+                  {p.id === selfId ? <span className={styles.you}> (toi)</span> : null}
+                  {!p.connected ? <span className={styles.you}> · déconnecté</span> : null}
+                </span>
+                <span className={styles.rankScore}>
+                  {p.found}/{total}
+                </span>
+              </li>
+            ))}
+          </ol>
+
+          {isHost ? (
+            <button
+              type="button"
+              className={styles.primary}
+              style={{ backgroundColor: category.accent }}
+              onClick={onReplay}>
+              Nouvelle partie
+            </button>
+          ) : (
+            <p className={styles.hint}>L&apos;hôte peut relancer une partie.</p>
+          )}
+          <Link href="/" className={styles.ghost}>
+            Quitter la salle
+          </Link>
+        </div>
+      </div>
+    </CategoryBackground>
+  );
+}
+
+/* --------------------------------- Divers -------------------------------- */
+
+type NoticeProps = { category: Category; emoji: string; title: string; children: React.ReactNode };
+
+export function Notice({ category, emoji, title, children }: NoticeProps) {
+  return (
+    <CategoryBackground category={category} className={styles.screen}>
+      <div className={styles.centered}>
+        <div className={styles.card}>
+          <span className={styles.bigEmoji} aria-hidden="true">
+            {emoji}
+          </span>
+          <h1 className={styles.title}>{title}</h1>
+          <p className={styles.settings}>{children}</p>
+          <Link href="/" className={styles.ghost}>
+            Retour à l&apos;accueil
+          </Link>
+        </div>
+      </div>
+    </CategoryBackground>
+  );
+}

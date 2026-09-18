@@ -13,6 +13,20 @@
   margin-top: 2px;
 }
 
+.challenge {
+  align-self: flex-start;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-pill);
+  background-color: var(--yellow-light);
+  border: 1px solid var(--yellow);
+  color: var(--brown-dark);
+  font-weight: 800;
+}
+
+.challenge:hover {
+  background-color: var(--yellow);
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

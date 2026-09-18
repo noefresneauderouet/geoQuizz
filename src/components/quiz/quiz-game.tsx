@@ -2,14 +2,10 @@
 
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useReducer, useRef, useState } from 'react';
+import { useEffect, useReducer, useState } from 'react';
 
 import { CategoryBackground } from '@/components/category-background';
-import { AnswerInput } from '@/components/quiz/answer-input';
-import { FeedbackBanner } from '@/components/quiz/feedback-banner';
-import { FlagView } from '@/components/quiz/flag-view';
-import { RoundTimer } from '@/components/quiz/round-timer';
-import { WorldMap } from '@/components/world-map';
+import { QuizBoard } from '@/components/quiz/quiz-board';
 import {
   getCategory,
   getMode,
@@ -19,162 +15,22 @@ import {
 } from '@/constants/categories';
 import { flagEmoji } from '@/lib/countries';
 import { vibrateSuccess } from '@/lib/feedback';
-import { recordRound } from '@/lib/progress';
-import {
-  answerLabel,
-  buildRound,
-  checkAnswer,
-  expectedAnswer,
-  getQuestionCount,
-  isSolvedWhileTyping,
-  questionPrompt,
-  type Question,
-} from '@/lib/quiz';
-import {
-  formatDuration,
-  formatSeconds,
-  IDLE_WATCH,
-  pauseWatch,
-  readWatch,
-  startWatch,
-  type Stopwatch,
-} from '@/lib/timer';
-import { followVisibleViewport } from '@/lib/viewport';
+import { NO_OUTCOME, recordRound, type RoundOutcome } from '@/lib/progress';
+import { buildRound, expectedAnswer, getQuestionCount } from '@/lib/quiz';
+import { newGame, reducer, SOLVED_PAUSE_MS, type Game } from '@/lib/round';
+import { formatDuration, formatSeconds, readWatch } from '@/lib/timer';
 
 import styles from './quiz-game.module.css';
 
-/* ---------------------------------- État ---------------------------------- */
-
-/**
- * Il n'y a pas de mauvaise réponse : une question est trouvée, ou passée.
- * Passer la renvoie en fin de file ; la manche se termine quand la file est
- * vide. Tout l'état tient dans un réducteur, parce que chaque geste touche
- * plusieurs morceaux à la fois — la file, la série, le chronomètre.
- */
-type Game = {
-  round: Question[];
-  /** Indices dans `round` restant à trouver ; la question affichée est la première. */
-  queue: number[];
-  found: number[];
-  /** Questions passées au moins une fois. */
-  skipped: number[];
-  input: string;
-  /** Réponse trouvée, affichée un court instant avant d'enchaîner. */
-  solved: { approximate: boolean } | null;
-  /** Nombre d'appuis sur Entrée sans succès pour cette question. */
-  nudge: number;
-  streak: number;
-  bestStreak: number;
-  zoomed: boolean;
-  watch: Stopwatch;
-  over: boolean;
-};
-
-type Action =
-  | { type: 'type'; text: string; now: number }
-  | { type: 'submit'; now: number }
-  | { type: 'advance'; now: number }
-  | { type: 'skip' }
-  | { type: 'end'; now: number }
-  | { type: 'zoom' }
-  | { type: 'restart'; round: Question[]; now: number };
-
-/** Temps d'affichage d'une réponse trouvée ; plus long quand l'orthographe était approximative. */
-const SOLVED_PAUSE_MS = { exact: 400, approximate: 1600 };
-
-function newGame(round: Question[], now: number): Game {
-  return {
-    round,
-    queue: round.map((_, i) => i),
-    found: [],
-    skipped: [],
-    input: '',
-    solved: null,
-    nudge: 0,
-    streak: 0,
-    bestStreak: 0,
-    zoomed: false,
-    watch: startWatch(IDLE_WATCH, now),
-    over: false,
-  };
-}
-
-function solve(game: Game, approximate: boolean, now: number): Game {
-  const streak = game.streak + 1;
-  return {
-    ...game,
-    solved: { approximate },
-    found: [...game.found, game.queue[0]],
-    streak,
-    bestStreak: Math.max(game.bestStreak, streak),
-    // La carte revient en vue d'ensemble : on voit où se situe vraiment le pays.
-    zoomed: false,
-    // Le temps de lecture de la réponse n'est pas du temps de jeu.
-    watch: pauseWatch(game.watch, now),
-  };
-}
-
-function reducer(game: Game, action: Action): Game {
-  const current = game.round[game.queue[0]];
-
-  switch (action.type) {
-    case 'type':
-      if (game.solved || game.over || !current) return game;
-      return isSolvedWhileTyping(current, action.text)
-        ? solve({ ...game, input: action.text }, false, action.now)
-        : { ...game, input: action.text };
-
-    case 'submit': {
-      if (game.solved || game.over || !current) return game;
-      const result = checkAnswer(current, game.input);
-      return result.correct
-        ? solve(game, !result.exact, action.now)
-        : { ...game, nudge: game.nudge + 1 };
-    }
-
-    case 'advance': {
-      if (!game.solved) return game;
-      const queue = game.queue.slice(1);
-      if (queue.length === 0) return { ...game, queue, solved: null, over: true };
-      return {
-        ...game,
-        queue,
-        input: '',
-        solved: null,
-        nudge: 0,
-        watch: startWatch(game.watch, action.now),
-      };
-    }
-
-    case 'skip': {
-      if (game.solved || game.queue.length < 2) return game;
-      const [first, ...rest] = game.queue;
-      return {
-        ...game,
-        queue: [...rest, first],
-        skipped: game.skipped.includes(first) ? game.skipped : [...game.skipped, first],
-        streak: 0,
-        input: '',
-        nudge: 0,
-        zoomed: false,
-      };
-    }
-
-    case 'end':
-      if (game.over) return game;
-      return { ...game, solved: null, over: true, watch: pauseWatch(game.watch, action.now) };
-
-    case 'zoom':
-      return { ...game, zoomed: !game.zoomed };
-
-    case 'restart':
-      return newGame(action.round, action.now);
-  }
-}
-
 /** Enregistre la manche telle qu'elle se termine à l'instant `now`. */
-function record(game: Game, category: CategoryId, mode: ModeId, remaining: number[], now: number) {
-  recordRound({
+function record(
+  game: Game,
+  category: CategoryId,
+  mode: ModeId,
+  remaining: number[],
+  now: number,
+): RoundOutcome {
+  return recordRound({
     category,
     mode,
     score: game.found.length,
@@ -204,13 +60,14 @@ export function QuizGame() {
   const mode = getMode(params.get('mode') ?? undefined);
   const count = getQuestionCount(params.get('count'));
   const router = useRouter();
-  const inputRef = useRef<HTMLInputElement>(null);
 
   const [game, dispatch] = useReducer(reducer, null, () =>
     newGame(buildRound(category.id, mode.id, count), Date.now()),
   );
   /** Question sur laquelle l'arrêt a été demandé, en attente de confirmation. */
   const [endRequestedAt, setEndRequestedAt] = useState<number | null>(null);
+  /** Effet de la manche terminée sur les records, lu par l'écran de fin. */
+  const [outcome, setOutcome] = useState<RoundOutcome>(NO_OUTCOME);
 
   /*
    * Une réponse trouvée reste affichée un instant, puis la question suivante
@@ -226,7 +83,7 @@ export function QuizGame() {
       const now = Date.now();
       // Dernière question trouvée : la manche est complète, et le chronomètre
       // est en pause depuis la réponse.
-      if (game.queue.length === 1) record(game, category.id, mode.id, [], now);
+      if (game.queue.length === 1) setOutcome(record(game, category.id, mode.id, [], now));
       dispatch({ type: 'advance', now });
     }, delay);
     return () => clearTimeout(id);
@@ -235,11 +92,9 @@ export function QuizGame() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game.solved]);
 
-  // Clavier ouvert, l'écran de jeu se loge au-dessus de lui (voir `.playing`).
-  useEffect(() => followVisibleViewport(), []);
-
   const replay = () => {
     setEndRequestedAt(null);
+    setOutcome(NO_OUTCOME);
     dispatch({ type: 'restart', round: buildRound(category.id, mode.id, count), now: Date.now() });
   };
 
@@ -262,6 +117,7 @@ export function QuizGame() {
         category={category}
         modeLabel={mode.label}
         game={game}
+        outcome={outcome}
         onReplay={replay}
         onBack={() => router.push('/')}
       />
@@ -269,9 +125,6 @@ export function QuizGame() {
   }
 
   const index = game.queue[0];
-  const question = game.round[index];
-  const total = game.round.length;
-  const alreadySkipped = game.skipped.includes(index);
 
   /*
    * On peut s'arrêter à tout moment, en deux appuis : le bouton demande
@@ -286,129 +139,28 @@ export function QuizGame() {
       return;
     }
     const now = Date.now();
-    record(game, category.id, mode.id, game.queue, now);
+    setOutcome(record(game, category.id, mode.id, game.queue, now));
     dispatch({ type: 'end', now });
   };
 
   return (
-    <CategoryBackground category={category} className={`${styles.screen} ${styles.playing}`}>
-      <div className={styles.frame}>
-        <header className={styles.topBar}>
-          <Link href="/" className={styles.close} aria-label="Quitter la partie">
-            ✕
-          </Link>
-          <div className={styles.topLabels}>
-            <p className={styles.topTitle}>
-              {category.emoji} {category.label}
-            </p>
-            <p className={styles.topSub}>
-              {mode.emoji} {mode.label} · {game.queue.length} restante
-              {game.queue.length > 1 ? 's' : ''}
-            </p>
-          </div>
-          <RoundTimer watch={game.watch} />
-          <p className={styles.scorePill} aria-label={`${game.found.length} trouvées sur ${total}`}>
-            {game.found.length}/{total}
-          </p>
-        </header>
-
-        <div
-          className={styles.progressTrack}
-          role="progressbar"
-          aria-valuenow={game.found.length}
-          aria-valuemin={0}
-          aria-valuemax={total}>
-          <div
-            className={styles.progressFill}
-            style={{ width: `${(game.found.length / total) * 100}%` }}
-          />
-        </div>
-
-        <div className={styles.scroll}>
-          {/* `key` remonte la carte à chaque question : c'est ce qui rejoue
-              l'animation d'entrée et vide l'état du drapeau. */}
-          <section key={index} className={styles.card}>
-            {alreadySkipped ? <p className={styles.skippedBadge}>↩ Question passée</p> : null}
-            <h1 className={styles.prompt}>{questionPrompt(question)}</h1>
-
-            {question.mode === 'drapeau' ? <FlagView code={question.country.code} /> : null}
-
-            {question.mode === 'pays' ? (
-              <div className={styles.mapBlock}>
-                <WorldMap
-                  country={question.country}
-                  category={category}
-                  zoomed={game.zoomed}
-                  scope={category.id === 'monde' ? 'monde' : 'continent'}
-                />
-                <button
-                  type="button"
-                  className={styles.zoomButton}
-                  onClick={() => dispatch({ type: 'zoom' })}>
-                  {game.zoomed ? "Vue d'ensemble" : 'Zoomer sur le pays'}
-                </button>
-              </div>
-            ) : null}
-
-            {question.mode === 'capitale' ? (
-              <p className={styles.countryChip}>
-                <span className={styles.chipIcon} aria-hidden="true">
-                  {flagEmoji(question.country.code)}
-                </span>
-                <span className={styles.countryName}>{question.country.name}</span>
-              </p>
-            ) : null}
-          </section>
-
-          {game.solved ? (
-            <FeedbackBanner
-              correct
-              approximate={game.solved.approximate}
-              answer={expectedAnswer(question)}
-              detail={
-                question.mode === 'capitale'
-                  ? `capitale de ${question.country.name}`
-                  : `${question.country.name} · capitale : ${question.country.capital}`
-              }
-            />
-          ) : null}
-
-          {game.solved ? null : (
-            <button
-              type="button"
-              className={confirmingEnd ? `${styles.giveUp} ${styles.giveUpConfirm}` : styles.giveUp}
-              onClick={end}>
-              {confirmingEnd
-                ? 'Appuie encore pour terminer'
-                : 'Terminer la partie et voir les réponses'}
-            </button>
-          )}
-        </div>
-
-        <footer className={styles.footer}>
-          <AnswerInput
-            ref={inputRef}
-            value={game.input}
-            onChange={(text) => dispatch({ type: 'type', text, now: Date.now() })}
-            onSubmit={() => dispatch({ type: 'submit', now: Date.now() })}
-            onSkip={() => {
-              // Une question passée finit par revenir : sa demande d'arrêt ne
-              // doit pas l'attendre.
-              setEndRequestedAt(null);
-              dispatch({ type: 'skip' });
-              // Le clic a pris le focus : on le rend au champ pour que le
-              // clavier mobile reste ouvert.
-              inputRef.current?.focus();
-            }}
-            canSkip={game.queue.length > 1}
-            label={answerLabel(question)}
-            accent={category.accent}
-            solved={game.solved !== null}
-            nudge={game.nudge}
-          />
-        </footer>
-      </div>
-    </CategoryBackground>
+    <QuizBoard
+      category={category}
+      mode={mode}
+      game={game}
+      dispatch={dispatch}
+      // Une question passée finit par revenir : sa demande d'arrêt ne doit
+      // pas l'attendre.
+      onSkip={() => setEndRequestedAt(null)}
+      actions={
+        <button
+          type="button"
+          className={confirmingEnd ? `${styles.giveUp} ${styles.giveUpConfirm}` : styles.giveUp}
+          onClick={end}>
+          {confirmingEnd ? 'Appuie encore pour terminer' : 'Terminer la partie et voir les réponses'}
+        </button>
+      }
+    />
   );
 }
 
@@ -418,11 +170,13 @@ type SummaryProps = {
   category: Category;
   modeLabel: string;
   game: Game;
+  /** Le record d'avant la manche, et s'il vient d'être battu. */
+  outcome: RoundOutcome;
   onReplay: () => void;
   onBack: () => void;
 };
 
-function Summary({ category, modeLabel, game, onReplay, onBack }: SummaryProps) {
+function Summary({ category, modeLabel, game, outcome, onReplay, onBack }: SummaryProps) {
   const total = game.round.length;
   const score = game.found.length;
   const complete = game.queue.length === 0;
@@ -432,6 +186,7 @@ function Summary({ category, modeLabel, game, onReplay, onBack }: SummaryProps) 
   const missed = game.queue.map((i) => game.round[i]);
 
   const ratio = score / total;
+  const { previousBestMs, newRecord } = outcome;
   const [medal, title] = complete
     ? comebacks === 0
       ? ['🏆', 'Parfait !']
@@ -444,28 +199,54 @@ function Summary({ category, modeLabel, game, onReplay, onBack }: SummaryProps) 
     <CategoryBackground category={category} className={styles.screen}>
       <div className={styles.centered}>
         <div className={styles.summaryCard}>
+          {newRecord && previousBestMs !== undefined ? (
+            <div className={styles.newRecord} role="status">
+              <p className={styles.newRecordTitle}>
+                <span aria-hidden="true">⚡</span> Nouveau record !
+              </p>
+              <p className={styles.newRecordDetail}>
+                {formatSeconds(previousBestMs - durationMs)} de mieux
+              </p>
+            </div>
+          ) : null}
           <span className={styles.summaryMedal} aria-hidden="true">
             {medal}
           </span>
           <h1 className={styles.summaryTitle}>{title}</h1>
-          <p className={styles.summaryScore}>
-            {score}
-            <span className={styles.summaryScoreTotal}> / {total}</span>
+          {/* Le temps tient la place d'honneur : c'est lui qui compte au
+              classement. Le chrono ne vaut que sur une manche entièrement
+              trouvée ; sinon, il reste en grand mais sans le vert. */}
+          <div className={styles.summaryTimes}>
+            <p
+              className={`${styles.summaryDuration} ${complete ? styles.summaryDurationPerfect : ''}`}>
+              <span className={styles.summaryDurationIcon} aria-hidden="true">
+                ⏱
+              </span>{' '}
+              {formatDuration(durationMs)}
+            </p>
+            {/* Le record d'avant la manche, pour comparer d'un coup d'œil.
+                Jamais de record ici : la colonne n'apparaît pas. */}
+            {previousBestMs !== undefined ? (
+              <p className={styles.summaryBest}>
+                <span className={styles.summaryBestLabel}>
+                  {newRecord ? 'ancien record' : 'record'}
+                </span>
+                <span className={styles.summaryBestValue}>{formatDuration(previousBestMs)}</span>
+              </p>
+            ) : null}
+          </div>
+          <p className={`${styles.summaryFound} ${newRecord ? styles.summaryFoundRecord : ''}`}>
+            {score} / {total} trouvées
+            <span className={styles.summaryFoundDetail}>
+              {' '}
+              · {formatSeconds(durationMs / total)} par question
+            </span>
           </p>
           <p className={styles.summaryMeta}>
             {category.label} · {modeLabel} · meilleure série : {game.bestStreak}
             {comebacks > 0
               ? ` · ${comebacks} retrouvée${comebacks > 1 ? 's' : ''} après avoir passé`
               : ''}
-          </p>
-          {/* Le chrono ne vaut que sur une manche entièrement trouvée : il n'y
-              a alors plus que lui à comparer. */}
-          <p className={`${styles.summaryTime} ${complete ? styles.summaryTimePerfect : ''}`}>
-            <span aria-hidden="true">⏱</span> {formatDuration(durationMs)}
-            <span className={styles.summaryTimeDetail}>
-              {' '}
-              · {formatSeconds(durationMs / total)} par question
-            </span>
           </p>
           <p className={styles.summaryMeta}>
             {complete

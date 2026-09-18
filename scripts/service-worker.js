@@ -6,7 +6,7 @@
  * des fichiers produits et l'empreinte de la version, puis écrit le résultat
  * dans out/sw.js. Voir scripts/build-sw.mjs.
  *
- * Tout est téléchargé à l'installation, dans deux caches :
+ * Tout est téléchargé à l'installation, dans trois caches :
  *
  *   - la coquille (HTML, JS, CSS, icônes, données) change à chaque version.
  *     Elle est précachée en entier, et l'installation échoue s'il en manque
@@ -17,7 +17,14 @@
  *     les versions : une mise à jour ne télécharge que ceux qui manquent.
  *     Leur précache ne fait pas échouer l'installation : un drapeau raté est
  *     repris à sa première vue, et d'ici là l'emoji le remplace. Ensuite, ils
- *     sont servis en stale-while-revalidate.
+ *     sont servis en stale-while-revalidate ;
+ *
+ *   - les photos de fond des catégories (public/categories/), sur le même
+ *     modèle : un cache qui traverse les versions, un précache qui ne bloque
+ *     pas l'installation, du stale-while-revalidate. Une mise à jour ne
+ *     retélécharge donc pas ~1,4 Mo de photos, et une photo remplacée sous le
+ *     même nom est reprise à la vue suivante. En attendant, le dégradé de la
+ *     catégorie tient lieu de fond.
  *
  * Une fois installée, l'application est donc entièrement jouable sans réseau.
  */
@@ -26,10 +33,13 @@
 const BUILD_ID = '__BUILD_ID__';
 const PRECACHE_URLS = __PRECACHE_URLS__;
 const FLAG_URLS = __FLAG_URLS__;
+const BACKGROUND_URLS = __BACKGROUND_URLS__;
 
 const SHELL_CACHE = `geolearn-shell-${BUILD_ID}`;
 const FLAG_CACHE = 'geolearn-flags-v1';
 const FLAG_ORIGIN = 'https://flagcdn.com';
+const BACKGROUND_CACHE = 'geolearn-backgrounds-v1';
+const BACKGROUND_PREFIX = '/categories/';
 
 /** 194 pays, plus les différentes largeurs demandées et un peu de marge. */
 const FLAG_MAX_ENTRIES = 400;
@@ -39,7 +49,7 @@ const FLAG_MAX_ENTRIES = 400;
 /* ------------------------------------------------------------------ */
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(Promise.all([precacheShell(), precacheFlags()]));
+  event.waitUntil(Promise.all([precacheShell(), precacheFlags(), precacheBackgrounds()]));
 });
 
 async function precacheShell() {
@@ -63,12 +73,21 @@ async function precacheFlags() {
   );
 }
 
+/** Même principe que les drapeaux : une photo ratée sera reprise à sa première vue. */
+async function precacheBackgrounds() {
+  const cache = await caches.open(BACKGROUND_CACHE);
+  await Promise.all(
+    BACKGROUND_URLS.map(async (url) => {
+      if (!(await cache.match(url))) await fetchBackground(cache, url);
+    })
+  );
+}
+
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
-      /* Une coquille par version : les précédentes n'ont plus d'usage. Le
-         cache des drapeaux, lui, traverse les versions — son contenu ne
-         dépend pas du build. */
+      /* Une coquille par version : les précédentes n'ont plus d'usage. Les
+         caches des drapeaux et des photos, eux, traversent les versions. */
       const names = await caches.keys();
       await Promise.all(
         names
@@ -102,6 +121,11 @@ self.addEventListener('fetch', (event) => {
 
   /* Tout autre domaine est laissé au navigateur. */
   if (url.origin !== self.location.origin) return;
+
+  if (url.pathname.startsWith(BACKGROUND_PREFIX)) {
+    event.respondWith(serveBackground(request));
+    return;
+  }
 
   if (request.mode === 'navigate') {
     event.respondWith(serveNavigation(url));
@@ -179,6 +203,37 @@ async function serveFlag(request) {
   const fresh = await refresh;
   /* Ni cache ni réseau : l'échec fait basculer FlagView sur l'emoji. */
   return fresh ?? new Response('', { status: 504, statusText: 'Hors ligne' });
+}
+
+/**
+ * Photos de fond : stale-while-revalidate, comme les drapeaux. On cherche par
+ * URL seule (`ignoreVary`) : la balise <img> envoie un en-tête Accept que la
+ * requête du précache n'avait pas, et un `Vary: Accept` de l'hébergeur
+ * suffirait sinon à rater la copie en cache.
+ */
+async function serveBackground(request) {
+  const cache = await caches.open(BACKGROUND_CACHE);
+  const cached = await cache.match(request.url, { ignoreSearch: true, ignoreVary: true });
+  const refresh = fetchBackground(cache, new URL(request.url).pathname);
+
+  if (cached) return cached;
+
+  const fresh = await refresh;
+  /* Ni cache ni réseau : l'image échoue, le dégradé reste visible. */
+  return fresh ?? new Response('', { status: 504, statusText: 'Hors ligne' });
+}
+
+/** Télécharge une photo et la range sous `url` ; `null` si le réseau ou le stockage fait défaut. */
+async function fetchBackground(cache, url) {
+  try {
+    /* `no-cache` : on revalide auprès du serveur plutôt que de recopier une
+       réponse périmée du cache HTTP — c'est ce qui fait suivre un remplacement. */
+    const response = await fetch(new Request(url, { cache: 'no-cache' }));
+    if (response.ok) await cache.put(url, response.clone());
+    return response;
+  } catch {
+    return null;
+  }
 }
 
 /**

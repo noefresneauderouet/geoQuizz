@@ -1,0 +1,366 @@
+/*
+ * Les écrans de la salle reprennent ceux du jeu solo : fond de la zone,
+ * carte blanche centrée. Pas de barre d'onglets (voir app-tabs.tsx) : on
+ * quitte la salle par son propre lien.
+ */
+.screen {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.centered {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  max-width: 560px;
+  margin-inline: auto;
+  padding: var(--space-3);
+  padding-top: max(var(--space-3), env(safe-area-inset-top, 0px));
+}
+
+.loading {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-4);
+  border-radius: var(--radius-l);
+  background-color: var(--card);
+  box-shadow: var(--shadow-card);
+  animation: fade-in 260ms ease both;
+}
+
+.eyebrow {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--brown);
+}
+
+.code {
+  font-size: 44px;
+  font-weight: 900;
+  letter-spacing: 6px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.settings {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--ink);
+  text-align: center;
+}
+
+.bigEmoji {
+  font-size: 56px;
+  line-height: 1;
+}
+
+.hint {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+/* -------------------------------- Boutons -------------------------------- */
+
+.primary {
+  align-self: stretch;
+  margin-top: var(--space-2);
+  padding: 14px;
+  border-radius: var(--radius-m);
+  color: var(--card);
+  font-size: 17px;
+  font-weight: 800;
+  text-align: center;
+  box-shadow: var(--shadow-card);
+  transition: opacity 120ms ease;
+}
+
+.primary:hover {
+  opacity: 0.9;
+}
+
+.primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.share {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-pill);
+  background-color: var(--yellow-light);
+  border: 1px solid var(--yellow);
+  color: var(--brown-dark);
+  font-weight: 800;
+}
+
+.share:hover {
+  background-color: var(--yellow);
+}
+
+.ghost {
+  padding: var(--space-2);
+  color: var(--ink-soft);
+  font-weight: 700;
+}
+
+.ghost:hover {
+  color: var(--ink);
+}
+
+/* -------------------------------- Joueurs -------------------------------- */
+
+.listTitle {
+  align-self: stretch;
+  margin-top: var(--space-2);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--brown);
+}
+
+.players,
+.ranking {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.player,
+.rankRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-m);
+  background-color: var(--sand);
+  animation: fade-in 200ms ease both;
+}
+
+.playerName {
+  flex: 1;
+  min-width: 0;
+  font-weight: 800;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.you {
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.hostBadge {
+  font-size: 18px;
+}
+
+.rankSelf {
+  background-color: var(--green-light);
+}
+
+.rank {
+  width: 28px;
+  font-size: 20px;
+  font-weight: 900;
+  text-align: center;
+  color: var(--brown-dark);
+}
+
+.rankScore {
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--green-dark);
+  font-variant-numeric: tabular-nums;
+}
+
+/* -------------------------------- En jeu --------------------------------- */
+
+.countdown {
+  font-size: 120px;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--card);
+  animation: count-pop 900ms ease both;
+}
+
+.countdownLabel {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--card);
+  text-align: center;
+}
+
+@keyframes count-pop {
+  from {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .countdown {
+    animation: none;
+  }
+}
+
+/* L'avancée des adversaires, sous la barre de progression. */
+.opponents {
+  display: flex;
+  gap: var(--space-1);
+  margin: var(--space-2) var(--space-3) 0;
+  padding: 0;
+  list-style: none;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.opponent {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
+  background-color: var(--card);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.opponentName {
+  max-width: 9em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.opponentScore {
+  font-weight: 900;
+  color: var(--green-dark);
+  font-variant-numeric: tabular-nums;
+}
+
+.gone {
+  opacity: 0.55;
+}
+
+/* ------------------------------- Création -------------------------------- */
+
+.back {
+  display: inline-block;
+  margin-bottom: var(--space-2);
+  color: var(--ink-soft);
+  font-weight: 700;
+}
+
+.pageTitle {
+  font-size: 30px;
+  font-weight: 800;
+  color: var(--green);
+  line-height: 1.1;
+}
+
+.pageSubtitle {
+  margin-top: 2px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.nameField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.nameInput {
+  padding: 12px var(--space-3);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-m);
+  background-color: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.nameInput:focus {
+  outline: none;
+  border-color: var(--green);
+}
+
+/* Cinq choix au lieu de trois : les boutons se resserrent sur téléphone. */
+.limitTrack button {
+  min-width: 40px;
+  padding-inline: var(--space-2);
+}
+
+.zones {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-2);
+}
+
+.zone {
+  padding: 12px var(--space-3);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-m);
+  background-color: var(--card);
+  font-weight: 800;
+  color: var(--ink);
+  text-align: left;
+}
+
+.zoneActive {
+  background-color: var(--sand);
+}
+
+@media (min-width: 700px) {
+  .zones {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
