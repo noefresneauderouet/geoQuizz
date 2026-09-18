@@ -13,8 +13,15 @@
   margin-top: 2px;
 }
 
+/* Créer et rejoindre vont de pair ; sur un écran étroit, ils passent l'un
+   sous l'autre plutôt que de se comprimer. */
+.multiplayer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
 .challenge {
-  align-self: flex-start;
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-pill);
   background-color: var(--yellow-light);

@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import styles from './app-tabs.module.css';
 
 const TABS = [
-  { href: '/', label: 'Apprendre' },
+  { href: '/', label: 'Jouer' },
   { href: '/profil', label: 'Profil' },
 ] as const;
 

@@ -5,7 +5,8 @@
  * salle. Les joueurs se retrouvent donc sur un canal Supabase Realtime,
  * `room:<CODE>`, qui ne stocke rien et se contente de relayer :
  *
- * - **Presence** — qui est là (pseudo, hôte, statut). Le service retire tout
+ * - **Presence** — qui est là (pseudo, hôte, statut, et les réglages pour le
+ *   seul hôte). Le service retire tout
  *   seul ceux qui ferment l'onglet ou perdent le réseau : c'est la salle
  *   d'attente. Supabase limite sévèrement la fréquence de ces mises à jour —
  *   au-delà, il ferme le canal du joueur — : on n'y publie donc que ce qui
@@ -46,6 +47,17 @@ export function isRoomCode(value: string | null | undefined): value is string {
   );
 }
 
+/**
+ * Le code tel qu'on le saisit à la main : en minuscules, espacé, ou collé
+ * avec le lien tout entier — c'est ce qu'on a sous la main quand un ami
+ * l'envoie. `null` si rien de valable n'en sort.
+ */
+export function parseRoomCode(value: string): string | null {
+  const fromLink = value.match(/[?&]code=([^&\s]+)/i)?.[1];
+  const code = (fromLink ?? value).replace(/[\s-]/g, '').toUpperCase();
+  return isRoomCode(code) ? code : null;
+}
+
 /** Ce que la salle fait jouer. Tout est dans le lien : on l'affiche avant même d'être connecté. */
 export type RoomSettings = {
   category: CategoryId;
@@ -58,6 +70,15 @@ export type RoomSettings = {
 export function roomPath(code: string, settings: RoomSettings): string {
   const { category, mode, count, limit } = settings;
   return `/salle?code=${code}&category=${category}&mode=${mode}&count=${count}&limit=${limit}`;
+}
+
+/**
+ * Entrer par le code seul : le lien complet n'est pas passé par là, donc les
+ * réglages manquent. L'hôte les publie dans la salle (`PlayerState.settings`),
+ * et le lancement les porte de toute façon.
+ */
+export function joinPath(code: string): string {
+  return `/salle?code=${code}`;
 }
 
 /** Limites de temps proposées à la création d'une salle, en secondes. */
@@ -140,6 +161,11 @@ export type PlayerState = {
   status: PlayerStatus;
   /** Numéro de la partie dans la salle : il avance à chaque « Rejouer ». */
   game: number;
+  /**
+   * Publié par le seul hôte, et jamais modifié ensuite : c'est ainsi que
+   * celui qui est entré avec le code seul apprend ce que la salle fait jouer.
+   */
+  settings?: RoomSettings;
 };
 
 /** Un joueur tel qu'on le connaît : son dernier état publié, et s'il est encore là. */
@@ -173,7 +199,11 @@ export function rankPlayers<T extends PlayerState & Score>(players: readonly T[]
 
 /* --------------------------------- Réseau -------------------------------- */
 
-export type StartMessage = { game: number; seed: number };
+/**
+ * Le lancement porte les réglages : tout le monde construit la même manche,
+ * y compris celui dont l'URL ne les contient pas.
+ */
+export type StartMessage = { game: number; seed: number; settings: RoomSettings };
 export type FinishMessage = { game: number; playerId: string };
 export type ResetMessage = { game: number };
 export type ProgressMessage = Score & { game: number; playerId: string };

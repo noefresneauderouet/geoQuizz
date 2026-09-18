@@ -29,8 +29,12 @@ depuis le navigateur : canaux Broadcast + Presence, sans table ni serveur.
 - **Presence est limité en fréquence** : au-delà de quelques mises à jour en
   quelques secondes, Supabase ferme le canal du joueur (« Client presence rate
   limit exceeded »). N'y publie que ce qui change deux ou trois fois par
-  partie (pseudo, statut). Tout ce qui bouge en jeu — l'avancée — passe par
-  Broadcast (`progress`).
+  partie (pseudo, statut, et les réglages pour le seul hôte). Tout ce qui
+  bouge en jeu — l'avancée — passe par Broadcast (`progress`).
+- On entre par le lien, qui porte les réglages, **ou par le code seul**
+  (boîte « Rejoindre une partie », sur l'accueil). Rien ne doit donc supposer
+  que l'URL les contient : ils viennent de la Presence de l'hôte, et le
+  message `start` les porte de toute façon.
 - `src/lib/round.ts` est la mécanique d'une manche, partagée par le solo et le
   multijoueur ; `src/components/quiz/quiz-board.tsx` en est l'écran commun.
 - Même quiz pour tous : la graine du lancement passe à `buildRound` via

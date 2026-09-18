@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, type ReadonlyURLSearchParams } from 'next/navigation';
 import { useState, useSyncExternalStore, type CSSProperties, type FormEvent } from 'react';
 
 import { CountSelector } from '@/components/count-selector';
@@ -23,6 +23,7 @@ import {
   roomPath,
   setPlayerName,
   TIME_LIMITS,
+  type RoomSettings,
   type TimeLimit,
 } from '@/lib/room';
 
@@ -57,21 +58,36 @@ export function RoomScreen() {
   return inBrowser ? <RoomRouter /> : <p className={styles.loading}>Ouverture de la salle…</p>;
 }
 
+/**
+ * Les réglages portés par l'URL.
+ *
+ * Le lien partagé les contient tous ; un code tapé à la main, aucun. On rend
+ * alors `null` plutôt que des valeurs par défaut, qui feraient annoncer une
+ * partie que l'hôte n'a pas choisie.
+ */
+function urlSettings(params: ReadonlyURLSearchParams): RoomSettings | null {
+  if (!params.has('category')) return null;
+  const category = getCategory(params.get('category') ?? undefined);
+  return {
+    category: category.id,
+    mode: getMode(params.get('mode') ?? undefined).id,
+    // Une zone plus petite que la longueur demandée se joue en entier.
+    count: Math.min(getQuestionCount(params.get('count')), countriesOf(category.id).length),
+    limit: getTimeLimit(params.get('limit')),
+  };
+}
+
 function RoomRouter() {
   const params = useSearchParams();
   const code = params.get('code');
-  const category = getCategory(params.get('category') ?? undefined);
-  const mode = getMode(params.get('mode') ?? undefined);
-  const count = Math.min(getQuestionCount(params.get('count')), countriesOf(category.id).length);
-  const limit = getTimeLimit(params.get('limit'));
-  const chrono = limit ? ` · ⏳ ${formatTimeLimit(limit)}` : '';
+  const settings = urlSettings(params);
   /** Pseudo confirmé pour cette visite ; le dernier utilisé ne sert qu'à préremplir. */
   const [name, setName] = useState<string | null>(null);
 
   if (!isMultiplayerConfigured()) {
     return (
-      <Notice category={category} emoji="🛠️" title="Multijoueur indisponible">
-        Cette version de GeoLearn n&apos;est pas reliée à un service de parties en ligne.
+      <Notice category={getCategory(undefined)} emoji="🛠️" title="Multijoueur indisponible">
+        Cette version de GeoQuizz n&apos;est pas reliée à un service de parties en ligne.
       </Notice>
     );
   }
@@ -81,25 +97,19 @@ function RoomRouter() {
   // Toujours demandé en rejoignant, prérempli : on garde son pseudo d'un
   // appui, ou on en change.
   if (!name) {
-    return (
-      <NameStep
-        title="Rejoindre la partie"
-        subtitle={`${category.emoji} ${category.label} · ${mode.emoji} ${mode.label} · ${count} questions${chrono}`}
-        onSubmit={setName}
-      />
-    );
+    return <NameStep title="Rejoindre la partie" subtitle={roomSummary(code, settings)} onSubmit={setName} />;
   }
 
-  return (
-    <MultiRoom
-      code={code}
-      name={name}
-      category={category}
-      mode={mode}
-      count={count}
-      limit={limit}
-    />
-  );
+  return <MultiRoom code={code} name={name} settings={settings} />;
+}
+
+/** Ce qu'on peut annoncer de la partie avant d'être entré : tout, ou le code seul. */
+function roomSummary(code: string, settings: RoomSettings | null): string {
+  if (!settings) return `Salle ${code}`;
+  const category = getCategory(settings.category);
+  const mode = getMode(settings.mode);
+  const chrono = settings.limit ? ` · ⏳ ${formatTimeLimit(settings.limit)}` : '';
+  return `${category.emoji} ${category.label} · ${mode.emoji} ${mode.label} · ${settings.count} questions${chrono}`;
 }
 
 /* -------------------------------- Création ------------------------------- */
@@ -131,9 +141,9 @@ function CreateRoom({ onName }: { onName: (name: string) => void }) {
         <Link href="/" className={styles.back}>
           ← Accueil
         </Link>
-        <h1 className={styles.pageTitle}>Défier des amis</h1>
+        <h1 className={styles.pageTitle}>Créer une partie</h1>
         <p className={styles.pageSubtitle}>
-          Crée une salle, partage le lien, et lance quand tout le monde est là.
+          Partage le lien ou dicte le code, et lance quand tout le monde est là.
         </p>
       </header>
 

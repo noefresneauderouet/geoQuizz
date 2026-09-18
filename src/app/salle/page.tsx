@@ -4,7 +4,7 @@ import { Suspense } from 'react';
 import { RoomScreen } from '@/components/multi/room-screen';
 
 export const metadata: Metadata = {
-  title: 'Défier des amis',
+  title: 'Partie à plusieurs',
 };
 
 /**

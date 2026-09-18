@@ -6,7 +6,7 @@ import { useEffect, useReducer, useRef, useState } from 'react';
 import { CategoryBackground } from '@/components/category-background';
 import { useRoom } from '@/components/multi/use-room';
 import { QuizBoard } from '@/components/quiz/quiz-board';
-import type { Category, Mode } from '@/constants/categories';
+import { getCategory, getMode, type Category, type Mode } from '@/constants/categories';
 import { vibrateSuccess } from '@/lib/feedback';
 import { buildRound } from '@/lib/quiz';
 import { newSeed, seeded } from '@/lib/random';
@@ -22,8 +22,8 @@ import {
   type KnownPlayer,
   type PlayerState,
   type ResetMessage,
+  type RoomSettings,
   type StartMessage,
-  type TimeLimit,
 } from '@/lib/room';
 import { newGame, reducer, SOLVED_PAUSE_MS, type Game } from '@/lib/round';
 
@@ -47,10 +47,8 @@ const SETTLE_MS = 1200;
 type Props = {
   code: string;
   name: string;
-  category: Category;
-  mode: Mode;
-  count: number;
-  limit: TimeLimit;
+  /** Ceux du lien ; `null` quand on est entré avec le code seul. */
+  settings: RoomSettings | null;
 };
 
 /**
@@ -60,7 +58,8 @@ type Props = {
  * reste — la manche elle-même, son chronomètre — tourne ici, sur chaque
  * appareil, à partir de la même graine.
  */
-export function MultiRoom({ code, name, category, mode, count, limit }: Props) {
+export function MultiRoom({ code, name, settings: fromLink }: Props) {
+  const host = isHostOf(code);
   /**
    * Ce que ce joueur publie dans la salle (Presence). Son avancée n'y est pas :
    * elle se lit dans sa manche, et part aux autres par des messages `progress`.
@@ -68,11 +67,19 @@ export function MultiRoom({ code, name, category, mode, count, limit }: Props) {
   const [me, setMe] = useState<PlayerState>(() => ({
     id: getPlayerId(),
     name,
-    host: isHostOf(code),
+    host,
     joinedAt: Date.now(),
     status: 'lobby',
     game: 0,
+    // L'hôte arrive toujours depuis l'écran de création : ses réglages sont
+    // dans son URL, et il est le seul à les publier.
+    settings: host ? (fromLink ?? undefined) : undefined,
   }));
+  /**
+   * Les réglages du lancement. Ils l'emportent sur ce que l'URL et la salle
+   * d'attente annonçaient : c'est ce que l'hôte envoie qui se joue.
+   */
+  const [launched, setLaunched] = useState<RoomSettings | null>(null);
   const [phase, setPhase] = useState<Phase>({ kind: 'lobby' });
   const [game, dispatch] = useReducer(reducer, null, () => newGame([], 0));
   /** La partie en cours a déjà été arrêtée : un second `finish` est ignoré. */
@@ -86,17 +93,21 @@ export function MultiRoom({ code, name, category, mode, count, limit }: Props) {
    * celui qui le déclenche, puis envoyé aux autres : on ne compte pas sur
    * l'écho de ses propres messages, que Supabase ne renvoie pas toujours.
    */
-  const startGame = ({ game: number, seed }: StartMessage) => {
+  const startGame = ({ game: number, seed, settings: played }: StartMessage) => {
     // Les numéros de partie ne font que croître : un lancement déjà vu est ignoré.
     if (number <= me.game) return;
     clearRound();
+    setLaunched(played);
     // Une seule publication pour tout le lancement : Presence est limité.
     update({ game: number, status: 'playing' });
     setPhase({ kind: 'countdown', until: Date.now() + COUNTDOWN_MS });
     setTimeout(() => {
-      const round = buildRound(category.id, mode.id, count, seeded(seed));
+      const round = buildRound(played.category, played.mode, played.count, seeded(seed));
       dispatch({ type: 'restart', round, now: Date.now() });
-      setPhase({ kind: 'playing', deadline: limit ? Date.now() + limit * 1000 : null });
+      setPhase({
+        kind: 'playing',
+        deadline: played.limit ? Date.now() + played.limit * 1000 : null,
+      });
     }, COUNTDOWN_MS);
   };
 
@@ -120,6 +131,18 @@ export function MultiRoom({ code, name, category, mode, count, limit }: Props) {
     onFinish: finishGame,
     onReset: backToLobby,
   });
+
+  /*
+   * Ce que la salle fait jouer, par ordre d'autorité : le lancement, puis le
+   * lien qu'on a ouvert, puis ce que l'hôte publie — la seule source quand on
+   * est entré avec le code seul. Tout cela s'accorde : une salle fait jouer ce
+   * que son hôte a choisi à la création.
+   */
+  const published = room.players.find((p) => p.host)?.settings ?? null;
+  const settings = launched ?? fromLink ?? published;
+
+  const category = getCategory(settings?.category);
+  const mode = getMode(settings?.mode);
 
   /* Une réponse trouvée reste affichée un instant, comme en solo. */
   useEffect(() => {
@@ -284,12 +307,11 @@ export function MultiRoom({ code, name, category, mode, count, limit }: Props) {
       code={code}
       category={category}
       mode={mode}
-      count={count}
-      limit={limit}
+      settings={settings}
       self={me}
       players={connected}
-      onStart={() => {
-        const message = { game: me.game + 1, seed: newSeed() };
+      onStart={(played) => {
+        const message = { game: me.game + 1, seed: newSeed(), settings: played };
         room.start(message);
         startGame(message);
       }}
@@ -303,14 +325,14 @@ type LobbyProps = {
   code: string;
   category: Category;
   mode: Mode;
-  count: number;
-  limit: TimeLimit;
+  /** `null` tant que l'hôte ne s'est pas présenté : on ne sait pas encore ce qui se jouera. */
+  settings: RoomSettings | null;
   self: PlayerState;
   players: KnownPlayer[];
-  onStart: () => void;
+  onStart: (settings: RoomSettings) => void;
 };
 
-function Lobby({ code, category, mode, count, limit, self, players, onStart }: LobbyProps) {
+function Lobby({ code, category, mode, settings, self, players, onStart }: LobbyProps) {
   const [copied, setCopied] = useState(false);
   // Sa propre présence peut avoir un temps de retard sur un retour en salle
   // d'attente : on ne se compte jamais soi-même comme « en partie ».
@@ -324,8 +346,10 @@ function Lobby({ code, category, mode, count, limit, self, players, onStart }: L
 
   const share = async () => {
     const url = window.location.href;
-    const chrono = limit ? `, ${formatTimeLimit(limit)} chrono` : '';
-    const text = `Viens me défier sur GeoLearn : ${category.label}, ${mode.label.toLowerCase()}, ${count} questions${chrono}.`;
+    const chrono = settings?.limit ? `, ${formatTimeLimit(settings.limit)} chrono` : '';
+    const text = settings
+      ? `Viens me défier sur GeoLearn : ${category.label}, ${mode.label.toLowerCase()}, ${settings.count} questions${chrono}.`
+      : `Viens me défier sur GeoLearn, salle ${code}.`;
     try {
       if (navigator.share) {
         await navigator.share({ title: 'GeoLearn', text, url });
@@ -341,6 +365,9 @@ function Lobby({ code, category, mode, count, limit, self, players, onStart }: L
 
   let hint: string;
   if (inGame.length > 0) hint = 'Une partie est en cours : tu joueras la suivante.';
+  // Entré par le code, seul dans la salle : le plus probable est une faute de
+  // frappe, pas un hôte parti entre-temps.
+  else if (!hostHere && waiting.length < 2) hint = 'Personne ici. Vérifie le code de la partie.';
   else if (!hostHere) hint = 'L’hôte a quitté la salle.';
   else if (self.host) hint = waiting.length < 2 ? 'Attends au moins un adversaire.' : '';
   else hint = 'En attente de l’hôte…';
@@ -354,8 +381,14 @@ function Lobby({ code, category, mode, count, limit, self, players, onStart }: L
             {code}
           </p>
           <p className={styles.settings}>
-            {category.emoji} {category.label} · {mode.emoji} {mode.label} · {count} questions
-            {limit ? ` · ⏳ ${formatTimeLimit(limit)}` : ''}
+            {settings ? (
+              <>
+                {category.emoji} {category.label} · {mode.emoji} {mode.label} · {settings.count}{' '}
+                questions{settings.limit ? ` · ⏳ ${formatTimeLimit(settings.limit)}` : ''}
+              </>
+            ) : (
+              'Réglages de l’hôte…'
+            )}
           </p>
 
           <button type="button" className={styles.share} onClick={share}>
@@ -381,13 +414,15 @@ function Lobby({ code, category, mode, count, limit, self, players, onStart }: L
             ))}
           </ul>
 
-          {self.host && inGame.length === 0 ? (
+          {/* Seul l'hôte lance, et il a ses réglages depuis la création : le
+              bouton ne peut pas manquer de savoir quoi lancer. */}
+          {self.host && settings && inGame.length === 0 ? (
             <button
               type="button"
               className={styles.primary}
               style={{ backgroundColor: category.accent }}
               disabled={waiting.length < 2}
-              onClick={onStart}>
+              onClick={() => onStart(settings)}>
               Lancer la partie
             </button>
           ) : null}

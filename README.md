@@ -29,13 +29,19 @@ Les réponses se tapent au clavier. La comparaison est **tolérante** : insensib
 (« USA » pour États-Unis, « Myanmar » pour Birmanie, « La Paz » pour la Bolivie)
 et pardonne une à deux fautes de frappe selon la longueur du mot.
 
-## Défier des amis
+## Jouer à plusieurs
 
-Depuis l'accueil, **Défier des amis** crée une salle et donne un lien à
-partager. Ceux qui l'ouvrent choisissent un pseudo et arrivent en salle
-d'attente ; l'hôte lance, et tout le monde reçoit le même quiz. La partie
-s'arrête dès que le premier a tout trouvé : on est classé au nombre de
-questions trouvées, puis au temps mis pour y arriver.
+Depuis l'accueil, **Créer une partie** ouvre une salle, qui affiche un lien à
+partager et un code de cinq caractères. **Rejoindre une partie** demande ce
+code dans une boîte de dialogue : c'est ce qui reste quand on se le dicte de
+vive voix, ou d'un téléphone à l'autre. Le lien complet fait aussi l'affaire,
+collé tel quel.
+
+Le lien porte les réglages de la partie ; le code seul, non — ils arrivent
+alors dans la salle d'attente, publiés par l'hôte. Dans les deux cas, on
+choisit un pseudo et on attend ; l'hôte lance, et tout le monde reçoit le même
+quiz. La partie s'arrête dès que le premier a tout trouvé : on est classé au
+nombre de questions trouvées, puis au temps mis pour y arriver.
 
 À la création, l'hôte peut aussi fixer une limite de temps (1, 2, 3 ou
 5 minutes). La partie s'arrête alors pour tout le monde à l'échéance, si

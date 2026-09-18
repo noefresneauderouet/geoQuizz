@@ -289,7 +289,7 @@ check('« /salle » avec paramètres sert salle.html', async () => {
   const response = await through('/salle?code=K7PQX&category=europe&mode=drapeau&count=10', {
     mode: 'navigate',
   });
-  assert.match(await response.text(), /Défier des amis — GeoLearn/);
+  assert.match(await response.text(), /Partie à plusieurs — GeoLearn/);
 });
 
 check('hors ligne, une route inconnue rend la page « introuvable »', async () => {

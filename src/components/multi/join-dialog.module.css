@@ -1,0 +1,119 @@
+/*
+ * La boîte « Rejoindre une partie », ouverte depuis l'accueil.
+ *
+ * Elle reprend la carte blanche des écrans de salle (multi.module.css) : ce
+ * qu'on y fait mène droit à la salle d'attente, autant que ça s'y ressemble.
+ */
+
+.trigger {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-pill);
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  color: var(--brown-dark);
+  font-weight: 800;
+}
+
+.trigger:hover {
+  background-color: var(--brown-light);
+}
+
+/* `dialog` porte sa propre mise en page : la remise à zéro du navigateur lui
+   donne une bordure et une largeur qui ne sont pas celles de l'app. */
+.dialog {
+  width: min(360px, calc(100vw - 2 * var(--space-3)));
+  padding: var(--space-4);
+  border: none;
+  border-radius: var(--radius-l);
+  background-color: var(--card);
+  color: var(--ink);
+  box-shadow: var(--shadow-card);
+}
+
+.dialog[open] {
+  animation: fade-in-down 200ms ease both;
+}
+
+.dialog::backdrop {
+  /* La teinte de l'encre, adoucie : la palette n'expose pas de transparence. */
+  background-color: color-mix(in srgb, var(--ink) 55%, transparent);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.title {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.help {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+/* Cinq caractères dictés puis tapés : ils doivent se relire d'un coup d'œil. */
+.code {
+  margin-top: var(--space-2);
+  padding: 12px var(--space-3);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-m);
+  background-color: var(--sand);
+  color: var(--ink);
+  font: inherit;
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 6px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.code:focus {
+  outline: none;
+  border-color: var(--green);
+  background-color: var(--card);
+}
+
+.code::placeholder {
+  color: var(--border);
+  letter-spacing: 6px;
+}
+
+.error {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--danger);
+  text-align: center;
+}
+
+.primary {
+  margin-top: var(--space-2);
+  padding: 14px;
+  border-radius: var(--radius-m);
+  background-color: var(--green);
+  color: var(--card);
+  font-size: 17px;
+  font-weight: 800;
+  text-align: center;
+  box-shadow: var(--shadow-card);
+  transition: opacity 120ms ease;
+}
+
+.primary:hover {
+  opacity: 0.9;
+}
+
+.ghost {
+  padding: var(--space-2);
+  color: var(--ink-soft);
+  font-weight: 700;
+}
+
+.ghost:hover {
+  color: var(--ink);
+}
