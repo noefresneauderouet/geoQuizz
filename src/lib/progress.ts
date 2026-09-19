@@ -36,8 +36,6 @@ export type Stats = {
   rounds: number;
   /** Meilleure série de réponses trouvées sans passer, tous modes confondus. */
   bestStreak: number;
-  /** Codes ISO des pays laissés sans réponse et jamais retrouvés depuis. */
-  toReview: string[];
 };
 
 export const EMPTY_STATS: Stats = {
@@ -48,7 +46,6 @@ export const EMPTY_STATS: Stats = {
   totalTimeMs: 0,
   rounds: 0,
   bestStreak: 0,
-  toReview: [],
 };
 
 /**
@@ -109,8 +106,6 @@ export type RoundResult = {
   /** Temps de recherche de la manche, correction exclue (src/lib/timer.ts). */
   durationMs: number;
   bestStreak: number;
-  missed: string[];
-  solved: string[];
 };
 
 /**
@@ -130,11 +125,6 @@ export function recordRound(result: RoundResult): RoundOutcome {
   const prev = getSnapshot();
   const key = scoreKey(result.category, result.mode, result.total);
 
-  // Un pays quitte la liste « à revoir » dès qu'on le retrouve.
-  const toReview = new Set(prev.toReview);
-  result.solved.forEach((code) => toReview.delete(code));
-  result.missed.forEach((code) => toReview.add(code));
-
   // Seule une manche entièrement trouvée laisse un temps, et seulement s'il
   // bat le précédent. Tout le reste de la progression, lui, continue de compter.
   const prevTime = prev.bestTime[key];
@@ -152,7 +142,6 @@ export function recordRound(result: RoundResult): RoundOutcome {
     totalTimeMs: prev.totalTimeMs + result.durationMs,
     rounds: prev.rounds + 1,
     bestStreak: Math.max(prev.bestStreak, result.bestStreak),
-    toReview: [...toReview],
   });
 
   return {

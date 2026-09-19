@@ -1,12 +1,16 @@
-import type { CategoryId, ModeId } from '@/constants/categories';
+import { isRegionSet, type CategoryId, type ModeId, type RegionSetId } from '@/constants/categories';
 import { countriesOf, type Country } from '@/lib/countries';
 import { matchAnswer, type MatchResult } from '@/lib/normalize';
 import type { Random } from '@/lib/random';
+import { regionSet, type Region } from '@/lib/regions';
 
-export type Question = {
-  country: Country;
-  mode: ModeId;
-};
+/**
+ * Une question porte toujours un pays. En mode « États », c'est celui de la
+ * région cherchée : son drapeau et son nom servent à la correction.
+ */
+export type Question =
+  | { mode: Exclude<ModeId, 'etats'>; country: Country }
+  | { mode: 'etats'; country: Country; set: RegionSetId; region: Region };
 
 /** Longueurs de partie proposées à l'accueil. */
 export const QUESTION_COUNTS = [10, 15, 20] as const;
@@ -28,9 +32,32 @@ function shuffle<T>(items: readonly T[], random: Random): T[] {
 }
 
 /**
+ * Toutes les questions qu'une catégorie offre dans un mode : ses pays, ou les
+ * régions du pays en mode « États ». Un couple qui ne va pas ensemble — une
+ * zone en mode États — n'en offre aucune.
+ */
+function questionsOf(category: CategoryId, mode: ModeId): Question[] {
+  if (mode === 'etats') {
+    if (!isRegionSet(category)) return [];
+    const { country, regions } = regionSet(category);
+    return regions.map((region) => ({ mode, country, set: category, region }));
+  }
+  if (isRegionSet(category)) return [];
+  // Tous les pays sont jouables dans tous les modes, y compris sur la carte :
+  // ceux qui sont trop petits pour se voir reçoivent un cercle de repérage.
+  return countriesOf(category).map((country) => ({ mode, country }));
+}
+
+/** Nombre de questions différentes : une manche ne peut pas être plus longue. */
+export function poolSize(category: CategoryId, mode: ModeId): number {
+  return questionsOf(category, mode).length;
+}
+
+/**
  * Tire une manche. Une zone plus petite que la longueur demandée — l'Océanie
- * compte 14 pays — est jouée en entier : la manche est alors plus courte, et
- * c'est sa longueur réelle qui sert de clé aux records (voir progress.ts).
+ * compte 14 pays, la France 13 régions — est jouée en entier : la manche est
+ * alors plus courte, et c'est sa longueur réelle qui sert de clé aux records
+ * (voir progress.ts).
  *
  * `random` n'est fourni qu'à plusieurs : une même graine (src/lib/random.ts)
  * donne alors la même manche sur chaque appareil.
@@ -41,15 +68,17 @@ export function buildRound(
   count: number,
   random: Random = Math.random,
 ): Question[] {
-  // Tous les pays sont jouables dans tous les modes, y compris sur la carte :
-  // ceux qui sont trop petits pour se voir reçoivent un cercle de repérage.
-  return shuffle(countriesOf(category), random)
-    .slice(0, count)
-    .map((country) => ({ country, mode }));
+  return shuffle(questionsOf(category, mode), random).slice(0, count);
+}
+
+/** Identifie une question dans sa manche : plusieurs régions partagent un pays. */
+export function questionKey(q: Question): string {
+  return q.mode === 'etats' ? q.region.code : q.country.code;
 }
 
 /** La consigne exacte de la question courante. */
 export function questionPrompt(q: Question): string {
+  if (q.mode === 'etats') return regionSet(q.set).prompt;
   if (q.mode === 'drapeau') return 'À quel pays appartient ce drapeau ?';
   if (q.mode === 'pays') return 'Quel est le pays surligné ?';
   return 'Quelle est la capitale de ce pays ?';
@@ -57,15 +86,30 @@ export function questionPrompt(q: Question): string {
 
 /** Ce qu'on attend dans le champ de saisie. */
 export function answerLabel(q: Question): string {
+  if (q.mode === 'etats') return regionSet(q.set).label;
   return q.mode === 'capitale' ? 'Capitale' : 'Pays';
 }
 
 /** La bonne réponse, telle qu'on l'affiche à l'utilisateur. */
 export function expectedAnswer(q: Question): string {
+  if (q.mode === 'etats') return q.region.name;
   return q.mode === 'capitale' ? q.country.capital : q.country.name;
 }
 
+/** Ce que la correction ajoute sous la réponse. */
+export function answerDetail(q: Question): string {
+  if (q.mode === 'etats') {
+    const { capitalLabel } = regionSet(q.set);
+    return q.region.capital
+      ? `${q.country.name} · ${capitalLabel} : ${q.region.capital}`
+      : q.country.name;
+  }
+  if (q.mode === 'capitale') return `capitale de ${q.country.name}`;
+  return `${q.country.name} · capitale : ${q.country.capital}`;
+}
+
 function acceptedAnswers(q: Question): string[] {
+  if (q.mode === 'etats') return [q.region.name, ...q.region.nameAliases];
   return q.mode === 'capitale'
     ? [q.country.capital, ...q.country.capitalAliases]
     : [q.country.name, ...q.country.nameAliases];
@@ -73,7 +117,17 @@ function acceptedAnswers(q: Question): string[] {
 
 /** Vérification complète, fautes de frappe tolérées : la touche Entrée. */
 export function checkAnswer(q: Question, input: string): MatchResult {
-  return matchAnswer(input, acceptedAnswers(q));
+  const result = matchAnswer(input, acceptedAnswers(q));
+  if (q.mode !== 'etats' || result.exact || !result.correct) return result;
+
+  // Hubei et Hebei, Hunan et Henan, Shanxi et Shaanxi ne diffèrent que d'une
+  // lettre : la tolérance aux fautes prendrait l'une pour l'autre. Une saisie
+  // qui nomme exactement une autre région du pays n'est donc pas une faute de
+  // frappe, c'est une erreur.
+  const namesAnother = regionSet(q.set).regions.some(
+    (r) => r.code !== q.region.code && matchAnswer(input, [r.name, ...r.nameAliases]).exact,
+  );
+  return namesAnother ? { correct: false, exact: false } : result;
 }
 
 /**

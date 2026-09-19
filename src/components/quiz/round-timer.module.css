@@ -9,7 +9,7 @@
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-pill);
   background-color: rgb(255 255 255 / 25%);
-  color: var(--card);
+  color: var(--on-color);
   font-size: 14px;
   font-weight: 700;
 }

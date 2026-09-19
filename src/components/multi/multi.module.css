@@ -95,7 +95,7 @@
   margin-top: var(--space-2);
   padding: 14px;
   border-radius: var(--radius-m);
-  color: var(--card);
+  color: var(--on-color);
   font-size: 17px;
   font-weight: 800;
   text-align: center;
@@ -123,6 +123,7 @@
 
 .share:hover {
   background-color: var(--yellow);
+  color: var(--on-yellow);
 }
 
 .ghost {
@@ -213,14 +214,14 @@
   font-size: 120px;
   font-weight: 900;
   line-height: 1;
-  color: var(--card);
+  color: var(--on-color);
   animation: count-pop 900ms ease both;
 }
 
 .countdownLabel {
   font-size: 17px;
   font-weight: 700;
-  color: var(--card);
+  color: var(--on-color);
   text-align: center;
 }
 

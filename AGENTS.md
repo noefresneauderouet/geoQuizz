@@ -18,6 +18,18 @@ Il n'y a plus ni Expo, ni React Native, ni cible mobile : ne réintroduis pas
   instantané serveur constant à `useSyncExternalStore` : le HTML est produit à
   la compilation, et un écart ferait échouer l'hydratation.
 
+## Le mode États
+
+Une question « États » porte une région (`Question`, src/lib/quiz.ts) et se
+joue sur un pays, pas sur une zone : `categoriesFor(mode)` donne la bonne liste,
+et `getCategory(id, mode)` refuse un couple qui ne va pas ensemble.
+
+- `src/data/regions.json` et `src/data/region-shapes.json` sont **générés** par
+  `npm run generate-regions` : ne les édite pas à la main, corrige
+  scripts/generate-regions.mjs.
+- src/components/region-map.tsx garde sa dernière projection hors du
+  composant : l'écran de jeu le remonte à chaque question.
+
 ## Le multijoueur
 
 Les parties à plusieurs (`/salle`) passent par **Supabase Realtime**, appelé

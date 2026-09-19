@@ -13,7 +13,7 @@ type Props = {
   accent: string;
 };
 
-/** Segment à trois positions : Drapeau · Capitale · Pays. */
+/** Segment à quatre positions : Drapeau · Capitale · Pays · États. */
 export function ModeSelector({ value, onChange, accent }: Props) {
   return (
     <div className={styles.track} role="tablist" aria-label="Mode de révision">

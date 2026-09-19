@@ -8,7 +8,8 @@ import styles from './category-card.module.css';
 
 type Props = {
   category: Category;
-  countryCount: number;
+  /** Ce qu'elle contient : « 194 pays », « 50 États ». */
+  meta: string;
   /** Meilleur score sur ce couple catégorie/mode, ou null si jamais jouée. */
   best: number | null;
   total: number;
@@ -27,7 +28,7 @@ type Props = {
  */
 export function CategoryCard({
   category,
-  countryCount,
+  meta,
   best,
   total,
   mode,
@@ -38,7 +39,7 @@ export function CategoryCard({
     <Link
       href={`/quiz?category=${category.id}&mode=${mode}&count=${count}`}
       className={`${styles.card} ${featured ? styles.featured : styles.tile}`}
-      aria-label={`${category.label}, ${countryCount} pays — ${category.tagline}`}>
+      aria-label={`${category.label}, ${meta} — ${category.tagline}`}>
       <CategoryBackground category={category} className={styles.background}>
         <div className={styles.content}>
           <div className={styles.topRow}>
@@ -50,7 +51,7 @@ export function CategoryCard({
           <div className={styles.bottom}>
             <p className={styles.label}>{category.label}</p>
             {featured ? <p className={styles.meta}>{category.tagline}</p> : null}
-            <p className={styles.meta}>{countryCount} pays</p>
+            <p className={styles.meta}>{meta}</p>
           </div>
         </div>
       </CategoryBackground>

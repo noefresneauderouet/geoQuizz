@@ -8,26 +8,38 @@ il n'y a pas de version iOS ni Android.
 
 Deux onglets, pas plus :
 
-- **Apprendre** — on choisit un mode (Drapeau · Capitale · Pays) puis une zone
-  (Monde, Afrique, Amérique, Asie, Europe, Océanie), et on enchaîne 10 questions.
+- **Apprendre** — on choisit un mode (Drapeau · Capitale · Pays · États) puis
+  une zone (Monde, Afrique, Amérique, Asie, Europe, Océanie) — ou, en mode
+  États, un pays (États-Unis, France, Espagne, Chine) —, et on enchaîne
+  10 questions.
 - **Profil** — meilleurs scores par zone et par mode, taux de réussite, meilleure
-  série, et la liste des pays ratés à revoir.
+  série, et le choix du thème : clair, sombre, ou celui de l'appareil.
 
 Chaque zone a sa couleur et son fond : l'écran de jeu porte le fond de la zone
 en cours, donc on sait toujours où on est.
 
-## Les trois modes
+## Les quatre modes
 
 | Mode | Question | Réponse attendue |
 | --- | --- | --- |
 | Drapeau | un drapeau s'affiche | le nom du pays |
 | Capitale | un pays (2 fois sur 3) ou une capitale (1 fois sur 3) | l'autre moitié de la paire |
 | Pays | une carte du continent, le pays cherché surligné | le nom du pays |
+| États | la carte d'un pays, une de ses régions surlignée | le nom de la région |
+
+Le mode États se joue sur un pays et non sur une zone : les 50 États des
+États-Unis, les 13 régions de France métropolitaine, les 17 communautés
+autonomes d'Espagne et les 31 provinces, régions autonomes et municipalités de
+Chine. L'Alaska, Hawaï et les Canaries sont en encart, les plus petites régions
+(Rhode Island, Tianjin…) reçoivent un cercle de repérage, et un bouton zoome
+sur celles qui en ont besoin.
 
 Les réponses se tapent au clavier. La comparaison est **tolérante** : insensible
 à la casse et aux accents, elle ignore les articles, accepte les variantes
 (« USA » pour États-Unis, « Myanmar » pour Birmanie, « La Paz » pour la Bolivie)
-et pardonne une à deux fautes de frappe selon la longueur du mot.
+et pardonne une à deux fautes de frappe selon la longueur du mot. En mode
+États, elle ne pardonne pas une saisie qui nomme exactement une autre région
+du pays : Hebei n'est pas une faute de frappe pour Hubei.
 
 ## Jouer à plusieurs
 
@@ -65,12 +77,12 @@ réactive depuis le tableau de bord de Supabase.
 
 ## Mettre tes propres photos de fond
 
-Les six zones s'affichent pour l'instant avec un dégradé de la palette. Pour
+Les pays du mode États s'affichent pour l'instant avec un dégradé. Pour
 passer aux photos :
 
-1. Dépose tes images dans `public/categories/` :
-   `monde.jpg`, `afrique.jpg`, `amerique.jpg`, `asie.jpg`, `europe.jpg`, `oceanie.jpg`
-2. Dé-commente la ligne correspondante dans `PHOTOS`, en haut de
+1. Dépose tes images dans `public/categories/` : `etats-unis.jpg`,
+   `france.jpg`, `espagne.jpg`, `chine.jpg` (les six zones ont déjà la leur)
+2. Remplace `null` par le chemin de l'image dans `PHOTOS`, en haut de
    [src/constants/categories.ts](src/constants/categories.ts).
 
 Le dégradé reste dessiné sous la photo : il sert de fond pendant le chargement,
@@ -123,6 +135,32 @@ coordonnées : l'anneau est alors sa seule représentation.
 Les drapeaux viennent de flagcdn.com. Le service worker les télécharge tous à
 son installation. Si l'un d'eux n'a pas pu l'être, l'emoji drapeau prend le
 relais.
+
+### Les régions du mode États
+
+`src/data/regions.json` (noms, variantes acceptées, capitales) et
+`src/data/region-shapes.json` (contours) sont **générés** :
+
+```sh
+npm run generate-regions
+```
+
+Les contours viennent de **Natural Earth 1:10m** (divisions administratives de
+premier niveau), téléchargé une fois (40 Mo) dans le dossier temporaire du
+système. Natural Earth découpe la France en départements et l'Espagne en
+provinces : le script les fusionne en régions et en communautés autonomes,
+écarte les îlots, simplifie et quantifie les tracés — 240 ko pour les quatre
+pays. Les noms français, les variantes et les capitales sont listés en clair
+dans [scripts/generate-regions.mjs](scripts/generate-regions.mjs).
+
+Hors jeu : le district de Columbia, les régions d'outre-mer, Ceuta et Melilla,
+Hong Kong et Macao (et Taïwan, distinct dans Natural Earth). Ils restent
+dessinés quand ils tombent dans le cadre, sans être une réponse attendue.
+
+Ajouter un pays demande trois choses : son entrée dans `SETS`
+([scripts/generate-regions.mjs](scripts/generate-regions.mjs)), sa catégorie
+dans `REGION_SETS` ([src/constants/categories.ts](src/constants/categories.ts))
+et sa projection dans `LAYOUTS` ([src/components/region-map.tsx](src/components/region-map.tsx)).
 
 ## L'installer
 

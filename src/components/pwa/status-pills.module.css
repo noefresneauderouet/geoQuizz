@@ -44,11 +44,12 @@
   padding: var(--space-1) 10px;
   border-radius: var(--radius-pill);
   background-color: var(--green);
-  color: var(--card);
+  color: var(--on-color);
   font-size: 12px;
   font-weight: 800;
 }
 
+/* Pas `--green-dark` : en sombre il devient clair, sous un texte blanc. */
 .action:hover {
-  background-color: var(--green-dark);
+  opacity: 0.9;
 }

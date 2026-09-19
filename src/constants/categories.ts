@@ -1,9 +1,17 @@
 import { Palette } from '@/constants/theme';
 
-export type CategoryId = 'monde' | 'afrique' | 'amerique' | 'asie' | 'europe' | 'oceanie';
+/** Les zones des modes Drapeau, Capitale et Pays : le monde, ou un continent. */
+export type ZoneId = 'monde' | 'afrique' | 'amerique' | 'asie' | 'europe' | 'oceanie';
+export type ContinentId = Exclude<ZoneId, 'monde'>;
 
-export type Category = {
-  id: CategoryId;
+/** Les pays du mode « États », dont on cherche les régions (src/data/regions.json). */
+export type RegionSetId = 'etats-unis' | 'france' | 'espagne' | 'chine';
+
+/** Ce qu'on joue : une zone, ou le pays dont on cherche les régions. */
+export type CategoryId = ZoneId | RegionSetId;
+
+export type Category<Id extends CategoryId = CategoryId> = {
+  id: Id;
   label: string;
   /** Sous-titre affiché sur la carte de la catégorie. */
   tagline: string;
@@ -14,7 +22,7 @@ export type Category = {
   accent: string;
   /** Voile posé sur la photo pour garder le texte lisible. */
   scrim: string;
-  /** Teinte de la carte du monde en mode « Pays ». */
+  /** Teinte de la carte, en mode « Pays » comme en mode « États ». */
   map: { land: string; highlight: string; stroke: string };
   /** Photo de fond optionnelle, servie depuis public/categories/. */
   photo: string | null;
@@ -27,9 +35,8 @@ export type Category = {
  *   public/categories/monde.jpg
  *   public/categories/afrique.jpg   (etc.)
  *
- * puis dé-commente la ligne correspondante ci-dessous. Tant qu'une ligne
- * reste commentée, la catégorie affiche son dégradé — aucun autre code à
- * toucher. Pense à relancer la construction : le service worker précache la
+ * puis indique son chemin ci-dessous. Tant qu'elle vaut `null`, la catégorie
+ * affiche son dégradé — aucun autre code à toucher. Pense à relancer la construction : le service worker précache la
  * liste exacte des fichiers produits.
  */
 const PHOTOS: Record<CategoryId, string | null> = {
@@ -39,9 +46,14 @@ const PHOTOS: Record<CategoryId, string | null> = {
   asie: '/categories/asie.jpg',
   europe: '/categories/europe.jpg',
   oceanie: '/categories/oceanie.jpg',
+  // Pas encore de photo : ces pays jouent sur leur dégradé.
+  'etats-unis': null,
+  france: null,
+  espagne: null,
+  chine: null,
 };
 
-export const CATEGORIES: readonly Category[] = [
+export const CATEGORIES: readonly Category<ZoneId>[] = [
   {
     id: 'monde',
     label: 'Monde',
@@ -110,13 +122,79 @@ export const CATEGORIES: readonly Category[] = [
   },
 ] as const;
 
-export function getCategory(id: string | undefined): Category {
-  return CATEGORIES.find((c) => c.id === id) ?? CATEGORIES[0];
+/**
+ * Les pays du mode « États ». Leurs régions, et la façon d'en parler, sont
+ * dans src/data/regions.json (voir scripts/generate-regions.mjs).
+ */
+export const REGION_SETS: readonly Category<RegionSetId>[] = [
+  {
+    id: 'etats-unis',
+    label: 'États-Unis',
+    tagline: 'De la Nouvelle-Angleterre à Hawaï',
+    emoji: '🦅',
+    gradient: ['#2E5A94', '#B03A48'],
+    accent: '#2E5A94',
+    scrim: 'rgba(46, 90, 148, 0.3)',
+    map: { land: Palette.brownLight, highlight: '#2E5A94', stroke: Palette.brownDark },
+    photo: PHOTOS['etats-unis'],
+  },
+  {
+    id: 'france',
+    label: 'France',
+    tagline: 'Les treize régions de métropole',
+    emoji: '🥐',
+    gradient: ['#8E6CB8', '#5B3F87'],
+    accent: '#6F52A0',
+    scrim: 'rgba(91, 63, 135, 0.3)',
+    map: { land: Palette.brownLight, highlight: '#6F52A0', stroke: Palette.brownDark },
+    photo: PHOTOS.france,
+  },
+  {
+    id: 'espagne',
+    label: 'Espagne',
+    tagline: 'De la Galice aux Baléares, Canaries comprises',
+    emoji: '💃',
+    gradient: ['#E07A3F', '#A8452A'],
+    accent: '#C4572E',
+    scrim: 'rgba(168, 69, 42, 0.3)',
+    map: { land: Palette.brownLight, highlight: '#C4572E', stroke: Palette.brownDark },
+    photo: PHOTOS.espagne,
+  },
+  {
+    id: 'chine',
+    label: 'Chine',
+    tagline: 'Provinces, régions autonomes et municipalités',
+    emoji: '🐉',
+    gradient: ['#C23B3B', '#7D1F2B'],
+    accent: '#B8323A',
+    scrim: 'rgba(125, 31, 43, 0.3)',
+    map: { land: Palette.brownLight, highlight: '#B8323A', stroke: Palette.brownDark },
+    photo: PHOTOS.chine,
+  },
+] as const;
+
+export function isRegionSet(id: CategoryId): id is RegionSetId {
+  return REGION_SETS.some((c) => c.id === id);
+}
+
+/** Ce qu'on peut jouer dans un mode : les pays pour « États », les zones sinon. */
+export function categoriesFor(mode: ModeId): readonly Category[] {
+  return mode === 'etats' ? REGION_SETS : CATEGORIES;
+}
+
+/**
+ * La catégorie d'une adresse. Avec un mode, elle doit lui correspondre — un
+ * lien « France » en mode Drapeau retombe sur le monde, un lien « Europe » en
+ * mode États sur le premier pays. Sans mode, toutes sont acceptées.
+ */
+export function getCategory(id: string | undefined, mode?: ModeId): Category {
+  const candidates = mode ? categoriesFor(mode) : [...CATEGORIES, ...REGION_SETS];
+  return candidates.find((c) => c.id === id) ?? candidates[0];
 }
 
 /* ------------------------------------------------------------------ */
 
-export type ModeId = 'drapeau' | 'capitale' | 'pays';
+export type ModeId = 'drapeau' | 'capitale' | 'pays' | 'etats';
 
 export type Mode = {
   id: ModeId;
@@ -144,7 +222,18 @@ export const MODES: readonly Mode[] = [
     prompt: 'Quelle est la capitale ?',
   },
   { id: 'pays', label: 'Pays', plural: 'pays', emoji: '🗺️', prompt: 'Quel est le pays surligné ?' },
+  {
+    id: 'etats',
+    label: 'États',
+    plural: 'États et régions',
+    emoji: '🧩',
+    // La consigne exacte dépend du pays : « l'État », « la région »…
+    prompt: 'Quelle est la région surlignée ?',
+  },
 ] as const;
+
+/** Les modes qui se jouent sur une zone, à l'inverse de « États ». */
+export const ZONE_MODES = MODES.filter((m) => m.id !== 'etats');
 
 export function getMode(id: string | undefined): Mode {
   return MODES.find((m) => m.id === id) ?? MODES[0];

@@ -3,7 +3,8 @@
  *
  * Les couleurs n'apparaissent pas ici : elles sont dérivées de
  * src/constants/theme.ts et écrites dans le document par le layout racine, de
- * façon qu'il n'existe qu'une seule définition de la palette. Ce fichier ne
+ * façon qu'il n'existe qu'une seule définition de la palette — thème sombre
+ * et `color-scheme` compris. Ce fichier ne
  * porte que le reste — espacements, rayons, ombre, et les quelques
  * comportements qu'une application installée doit avoir.
  */
@@ -20,7 +21,7 @@
   --radius-l: 28px;
   --radius-pill: 999px;
 
-  --shadow-card: 0 6px 14px rgb(122 74 43 / 18%);
+  --shadow-card: 0 6px 14px var(--shadow);
 
   --content-max: 800px;
 
@@ -31,8 +32,6 @@
 
   --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
     'Apple Color Emoji', 'Segoe UI Emoji';
-
-  color-scheme: light;
 }
 
 /* Sur un écran d'ordinateur, 800 px laissaient l'essentiel de la fenêtre vide. */

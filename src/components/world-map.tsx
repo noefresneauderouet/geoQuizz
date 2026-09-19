@@ -7,7 +7,7 @@ import type { GeometryCollection, MultiPolygon, Polygon, Topology } from 'topojs
 import coarseAtlas from 'visionscarto-world-atlas/world/110m.json';
 import detailedAtlas from 'visionscarto-world-atlas/world/50m.json';
 
-import type { Category, CategoryId } from '@/constants/categories';
+import type { Category, ContinentId } from '@/constants/categories';
 import { Palette } from '@/constants/theme';
 import type { Country } from '@/lib/countries';
 
@@ -162,7 +162,7 @@ const ALL_LAND: GeoJSON.GeoJsonObject = {
  * jusqu'à 180°E et la France jusqu'en Guyane, ce qui ramènerait la vue
  * « Europe » à une mappemonde. Ces fenêtres sont celles d'un atlas classique.
  */
-const WINDOWS: Record<Exclude<CategoryId, 'monde'>, Window> = {
+const WINDOWS: Record<ContinentId, Window> = {
   afrique: [
     [-20, -37],
     [53, 39],

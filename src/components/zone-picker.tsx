@@ -7,14 +7,30 @@ import { CategoryCard } from '@/components/category-card';
 import { CountSelector } from '@/components/count-selector';
 import { ModeSelector } from '@/components/mode-selector';
 import { JoinDialog } from '@/components/multi/join-dialog';
-import { CATEGORIES, MODES, type CategoryId, type ModeId } from '@/constants/categories';
+import {
+  CATEGORIES,
+  isRegionSet,
+  MODES,
+  REGION_SETS,
+  type Category,
+  type CategoryId,
+  type ModeId,
+} from '@/constants/categories';
 import { countriesOf } from '@/lib/countries';
 import { scoreKey, useStats } from '@/lib/progress';
-import { DEFAULT_QUESTION_COUNT, type QuestionCount } from '@/lib/quiz';
+import { DEFAULT_QUESTION_COUNT, poolSize, type QuestionCount } from '@/lib/quiz';
+import { regionSet } from '@/lib/regions';
 
 import styles from './zone-picker.module.css';
 
 const [MONDE, ...CONTINENTS] = CATEGORIES;
+
+/** « 194 pays », « 50 États », « 13 régions ». */
+function sizeLabel(id: CategoryId): string {
+  if (!isRegionSet(id)) return `${countriesOf(id).length} pays`;
+  const { regions, plural } = regionSet(id);
+  return `${regions.length} ${plural}`;
+}
 
 /**
  * Le choix d'une partie : un mode, puis une zone.
@@ -32,9 +48,22 @@ export function ZonePicker() {
   const activeMode = MODES.find((m) => m.id === mode) ?? MODES[0];
   // Une zone plus petite que la longueur choisie se joue en entier : c'est
   // cette longueur réelle qui porte le record.
-  const lengthOf = (categoryId: CategoryId) => Math.min(count, countriesOf(categoryId).length);
+  const lengthOf = (categoryId: CategoryId) => Math.min(count, poolSize(categoryId, mode));
   const bestOf = (categoryId: CategoryId) =>
     stats.best[scoreKey(categoryId, mode, lengthOf(categoryId))] ?? null;
+
+  const card = (category: Category, featured = false) => (
+    <CategoryCard
+      key={category.id}
+      featured={featured}
+      category={category}
+      meta={sizeLabel(category.id)}
+      best={bestOf(category.id)}
+      total={lengthOf(category.id)}
+      mode={mode}
+      count={count}
+    />
+  );
 
   return (
     <>
@@ -58,34 +87,24 @@ export function ZonePicker() {
         <JoinDialog />
       </div>
 
-      <h2 className="sectionTitle">Choisis ta zone</h2>
+      {mode === 'etats' ? (
+        <>
+          {/* En mode États, on ne choisit plus une zone mais le pays dont on
+              cherche les régions. */}
+          <h2 className="sectionTitle">Choisis ton pays</h2>
+          <div className={styles.grid}>{REGION_SETS.map((category) => card(category))}</div>
+        </>
+      ) : (
+        <>
+          <h2 className="sectionTitle">Choisis ta zone</h2>
 
-      <CategoryCard
-        featured
-        category={MONDE}
-        countryCount={countriesOf(MONDE.id).length}
-        best={bestOf(MONDE.id)}
-        total={lengthOf(MONDE.id)}
-        mode={mode}
-        count={count}
-      />
+          {card(MONDE, true)}
 
-      {/* Les continents vont deux par deux ; une grille garde la même largeur
-          de carte même si la dernière ligne est incomplète. */}
-      <div className={styles.grid}>
-        {CONTINENTS.map((category) => (
-          <CategoryCard
-            key={category.id}
-            category={category}
-            countryCount={countriesOf(category.id).length}
-            best={bestOf(category.id)}
-            total={lengthOf(category.id)}
-            mode={mode}
-            count={count}
-          />
-        ))}
-      </div>
-
+          {/* Les continents vont deux par deux ; une grille garde la même largeur
+              de carte même si la dernière ligne est incomplète. */}
+          <div className={styles.grid}>{CONTINENTS.map((category) => card(category))}</div>
+        </>
+      )}
     </>
   );
 }

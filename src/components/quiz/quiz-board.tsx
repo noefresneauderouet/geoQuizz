@@ -8,10 +8,11 @@ import { AnswerInput } from '@/components/quiz/answer-input';
 import { FeedbackBanner } from '@/components/quiz/feedback-banner';
 import { FlagView } from '@/components/quiz/flag-view';
 import { RoundTimer } from '@/components/quiz/round-timer';
+import { RegionMap } from '@/components/region-map';
 import { WorldMap } from '@/components/world-map';
 import type { Category, Mode } from '@/constants/categories';
 import { flagEmoji } from '@/lib/countries';
-import { answerLabel, expectedAnswer, questionPrompt } from '@/lib/quiz';
+import { answerDetail, answerLabel, expectedAnswer, questionPrompt } from '@/lib/quiz';
 import type { Action, Game } from '@/lib/round';
 import { followVisibleViewport } from '@/lib/viewport';
 
@@ -121,6 +122,25 @@ export function QuizBoard({
               </div>
             ) : null}
 
+            {question.mode === 'etats' ? (
+              <div className={styles.mapBlock}>
+                <RegionMap
+                  set={question.set}
+                  region={question.region.code}
+                  category={category}
+                  zoomed={game.zoomed}
+                  zoomButton={
+                    <button
+                      type="button"
+                      className={styles.zoomButton}
+                      onClick={() => dispatch({ type: 'zoom' })}>
+                      {game.zoomed ? "Vue d'ensemble" : 'Zoomer sur la région'}
+                    </button>
+                  }
+                />
+              </div>
+            ) : null}
+
             {question.mode === 'capitale' ? (
               <p className={styles.countryChip}>
                 <span className={styles.chipIcon} aria-hidden="true">
@@ -136,11 +156,7 @@ export function QuizBoard({
               correct
               approximate={game.solved.approximate}
               answer={expectedAnswer(question)}
-              detail={
-                question.mode === 'capitale'
-                  ? `capitale de ${question.country.name}`
-                  : `${question.country.name} · capitale : ${question.country.capital}`
-              }
+              detail={answerDetail(question)}
             />
           ) : (
             actions

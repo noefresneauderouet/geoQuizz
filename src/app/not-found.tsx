@@ -29,7 +29,7 @@ export default function NotFound() {
           padding: '12px var(--space-4)',
           borderRadius: 'var(--radius-pill)',
           backgroundColor: 'var(--green)',
-          color: 'var(--card)',
+          color: 'var(--on-color)',
           fontWeight: 800,
         }}>
         Retour à l’accueil

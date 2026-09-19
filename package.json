@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit",
     "test": "node ./scripts/test-sw.mjs",
     "generate-countries": "node ./scripts/generate-countries.mjs",
+    "generate-regions": "node ./scripts/generate-regions.mjs",
     "generate-icons": "node ./scripts/generate-icons.mjs"
   },
   "dependencies": {
@@ -33,6 +34,8 @@
     "eslint": "^9.0.0",
     "eslint-config-next": "16.3.4",
     "pngjs": "^7.0.0",
+    "topojson-server": "^3.0.1",
+    "topojson-simplify": "^3.0.3",
     "typescript": "~5.9.0",
     "world-countries": "^5.1.0"
   }

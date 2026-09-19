@@ -3,7 +3,7 @@ import type { Metadata, Viewport } from 'next';
 import { AppTabs } from '@/components/app-tabs';
 import { InstallBanner } from '@/components/pwa/install-banner';
 import { StatusPills } from '@/components/pwa/status-pills';
-import { BACKGROUND_COLOR, paletteVariables, THEME_COLOR } from '@/constants/theme';
+import { BACKGROUND_COLOR, paletteVariables, THEME_COLOR, THEME_KEY } from '@/constants/theme';
 import { Analytics } from "@vercel/analytics/next"
 import './globals.css';
 
@@ -58,10 +58,25 @@ window.addEventListener('beforeinstallprompt', function (event) {
 });
 `;
 
+/**
+ * Le thème imposé depuis le profil, posé sur `<html>` avant la première image.
+ * Attendre l'hydratation ferait clignoter l'écran du clair au sombre. Sans
+ * réglage, pas d'attribut : la feuille suit l'appareil.
+ */
+const applyTheme = `
+try {
+  var theme = localStorage.getItem('${THEME_KEY}');
+  if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
+} catch (error) {}
+`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr">
+    // `data-theme` est posé par `applyTheme` avant l'hydratation : React ne
+    // doit pas le prendre pour un écart avec le HTML construit.
+    <html lang="fr" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: applyTheme }} />
         {/* La palette part dans le HTML statique : les couleurs s'appliquent
             dès la première image, sans attendre le JavaScript. */}
         <style dangerouslySetInnerHTML={{ __html: paletteVariables() }} />

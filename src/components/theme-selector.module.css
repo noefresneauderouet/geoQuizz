@@ -1,3 +1,5 @@
+/* Même segment que le sélecteur de mode, au vert de l'app plutôt qu'à
+   l'accent d'une zone. */
 .track {
   display: flex;
   gap: var(--space-1);
@@ -20,6 +22,7 @@
   font-size: 15px;
   font-weight: 700;
   color: var(--ink-soft);
+  white-space: nowrap;
   transition: background-color 120ms ease, color 120ms ease;
 }
 
@@ -28,32 +31,7 @@
 }
 
 .active {
-  background-color: var(--accent);
+  background-color: var(--green);
   color: var(--on-color);
   box-shadow: var(--shadow-card);
-}
-
-.label {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Quatre modes côte à côte sur un téléphone : l'emoji passe au-dessus du
-   libellé, qui garde ainsi toute la largeur du segment au lieu d'être coupé
-   en « Capi… ». */
-@media (max-width: 520px) {
-  .segment {
-    flex-direction: column;
-    gap: 2px;
-    padding: 6px var(--space-1);
-    font-size: 13px;
-  }
-}
-
-/* Plus étroit encore, l'emoji suffit à distinguer les quatre modes. */
-@media (max-width: 340px) {
-  .label {
-    display: none;
-  }
 }

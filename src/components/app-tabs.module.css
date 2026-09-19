@@ -49,5 +49,5 @@
 .tabActive,
 .tabActive:hover {
   background-color: var(--green);
-  color: var(--card);
+  color: var(--on-color);
 }

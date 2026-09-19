@@ -35,8 +35,8 @@
 }
 
 .dialog::backdrop {
-  /* La teinte de l'encre, adoucie : la palette n'expose pas de transparence. */
-  background-color: color-mix(in srgb, var(--ink) 55%, transparent);
+  /* Pas l'encre : en sombre, elle est claire, et le voile éclairerait la page. */
+  background-color: var(--backdrop);
 }
 
 .form {
@@ -96,7 +96,7 @@
   padding: 14px;
   border-radius: var(--radius-m);
   background-color: var(--green);
-  color: var(--card);
+  color: var(--on-color);
   font-size: 17px;
   font-weight: 800;
   text-align: center;

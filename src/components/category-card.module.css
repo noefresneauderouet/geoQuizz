@@ -55,7 +55,8 @@
 }
 
 .badge {
-  background-color: rgb(255 255 255 / 92%);
+  /* La couleur de carte plutôt que du blanc : l'encre posée dessus suit le thème. */
+  background-color: color-mix(in srgb, var(--card) 92%, transparent);
   border-radius: var(--radius-pill);
   padding: 3px var(--space-2);
   font-size: 12px;
@@ -72,7 +73,7 @@
 }
 
 .label {
-  color: var(--card);
+  color: var(--on-color);
   font-size: 20px;
   font-weight: 800;
   letter-spacing: 0.2px;

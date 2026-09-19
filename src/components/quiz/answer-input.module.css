@@ -106,7 +106,7 @@
 
 .button {
   background-color: var(--accent);
-  color: var(--card);
+  color: var(--on-color);
   box-shadow: var(--shadow-card);
 }
 

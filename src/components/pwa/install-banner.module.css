@@ -63,13 +63,14 @@
   padding: 10px var(--space-3);
   border-radius: var(--radius-pill);
   background-color: var(--green);
-  color: var(--card);
+  color: var(--on-color);
   font-weight: 800;
   font-size: 14px;
 }
 
+/* Pas `--green-dark` : en sombre il devient clair, sous un texte blanc. */
 .primary:hover {
-  background-color: var(--green-dark);
+  opacity: 0.9;
 }
 
 .secondary {

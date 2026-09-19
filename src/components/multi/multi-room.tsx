@@ -141,8 +141,8 @@ export function MultiRoom({ code, name, settings: fromLink }: Props) {
   const published = room.players.find((p) => p.host)?.settings ?? null;
   const settings = launched ?? fromLink ?? published;
 
-  const category = getCategory(settings?.category);
   const mode = getMode(settings?.mode);
+  const category = getCategory(settings?.category, mode.id);
 
   /* Une réponse trouvée reste affichée un instant, comme en solo. */
   useEffect(() => {

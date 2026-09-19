@@ -1,6 +1,6 @@
 import raw from '@/data/countries.json';
 
-import type { CategoryId } from '@/constants/categories';
+import type { ContinentId, ZoneId } from '@/constants/categories';
 
 export type Country = {
   /** ISO 3166-1 alpha-2, sert aussi à charger le drapeau. */
@@ -11,7 +11,7 @@ export type Country = {
   nameAliases: string[];
   capital: string;
   capitalAliases: string[];
-  continent: Exclude<CategoryId, 'monde'>;
+  continent: ContinentId;
   /** [latitude, longitude] — sert à poser le repère quand la carte n'a pas de forme. */
   latlng: [number, number];
   area: number;
@@ -25,8 +25,8 @@ export function countryByCode(code: string): Country | undefined {
   return BY_CODE.get(code);
 }
 
-/** Les pays d'une catégorie ; « monde » renvoie tout. */
-export function countriesOf(category: CategoryId): Country[] {
+/** Les pays d'une zone ; « monde » renvoie tout. */
+export function countriesOf(category: ZoneId): Country[] {
   if (category === 'monde') return COUNTRIES;
   return COUNTRIES.filter((c) => c.continent === category);
 }

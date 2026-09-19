@@ -1,0 +1,22 @@
+/* Le même cadre que la carte du monde (world-map.module.css) : c'est l'image
+   de la question, et `--map-height` la réduit clavier ouvert. */
+.container {
+  position: relative;
+  height: var(--map-height, clamp(280px, 44dvh, 460px));
+  border-radius: var(--radius-m);
+  overflow: hidden;
+  background-color: var(--blue-light);
+  border: 2px solid var(--brown-light);
+}
+
+.map {
+  position: absolute;
+  inset: 0;
+}
+
+/* Le zoom agrandit la vue d'ensemble au lieu de la reprojeter : il peut donc
+   glisser d'une vue à l'autre. */
+.zoom {
+  transform-origin: 0 0;
+  transition: transform 420ms ease;
+}

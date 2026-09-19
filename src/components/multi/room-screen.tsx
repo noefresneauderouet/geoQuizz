@@ -7,9 +7,14 @@ import { useState, useSyncExternalStore, type CSSProperties, type FormEvent } fr
 import { CountSelector } from '@/components/count-selector';
 import { ModeSelector } from '@/components/mode-selector';
 import { MultiRoom, Notice } from '@/components/multi/multi-room';
-import { CATEGORIES, getCategory, getMode, type CategoryId } from '@/constants/categories';
-import { countriesOf } from '@/lib/countries';
-import { getQuestionCount, type QuestionCount } from '@/lib/quiz';
+import {
+  CATEGORIES,
+  categoriesFor,
+  getCategory,
+  getMode,
+  type CategoryId,
+} from '@/constants/categories';
+import { getQuestionCount, poolSize, type QuestionCount } from '@/lib/quiz';
 import {
   cleanName,
   formatTimeLimit,
@@ -67,12 +72,13 @@ export function RoomScreen() {
  */
 function urlSettings(params: ReadonlyURLSearchParams): RoomSettings | null {
   if (!params.has('category')) return null;
-  const category = getCategory(params.get('category') ?? undefined);
+  const mode = getMode(params.get('mode') ?? undefined);
+  const category = getCategory(params.get('category') ?? undefined, mode.id);
   return {
     category: category.id,
-    mode: getMode(params.get('mode') ?? undefined).id,
+    mode: mode.id,
     // Une zone plus petite que la longueur demandée se joue en entier.
-    count: Math.min(getQuestionCount(params.get('count')), countriesOf(category.id).length),
+    count: Math.min(getQuestionCount(params.get('count')), poolSize(category.id, mode.id)),
     limit: getTimeLimit(params.get('limit')),
   };
 }
@@ -106,7 +112,7 @@ function RoomRouter() {
 /** Ce qu'on peut annoncer de la partie avant d'être entré : tout, ou le code seul. */
 function roomSummary(code: string, settings: RoomSettings | null): string {
   if (!settings) return `Salle ${code}`;
-  const category = getCategory(settings.category);
+  const category = getCategory(settings.category, settings.mode);
   const mode = getMode(settings.mode);
   const chrono = settings.limit ? ` · ⏳ ${formatTimeLimit(settings.limit)}` : '';
   return `${category.emoji} ${category.label} · ${mode.emoji} ${mode.label} · ${settings.count} questions${chrono}`;
@@ -120,9 +126,13 @@ function CreateRoom({ onName }: { onName: (name: string) => void }) {
   const [mode, setMode] = useState(getMode(params.get('mode') ?? undefined).id);
   const [count, setCount] = useState<QuestionCount>(getQuestionCount(params.get('count')));
   const [limit, setLimit] = useState<TimeLimit>(getTimeLimit(params.get('limit')));
-  const [category, setCategory] = useState<CategoryId>('monde');
+  const [choice, setCategory] = useState<CategoryId>('monde');
   const [draft, setDraft] = useState(getPlayerName);
   const accent = CATEGORIES[0].accent;
+  // Passer en mode États remplace les zones par les pays : le choix
+  // précédent retombe alors sur le premier de la liste.
+  const choices = categoriesFor(mode);
+  const category = choices.some((c) => c.id === choice) ? choice : choices[0].id;
 
   const create = (event: FormEvent) => {
     event.preventDefault();
@@ -155,9 +165,12 @@ function CreateRoom({ onName }: { onName: (name: string) => void }) {
         <CountSelector value={count} onChange={setCount} accent={accent} />
         <LimitSelector value={limit} onChange={setLimit} accent={accent} />
 
-        <h2 className="sectionTitle">Zone</h2>
-        <div className={styles.zones} role="radiogroup" aria-label="Zone">
-          {CATEGORIES.map((c) => (
+        <h2 className="sectionTitle">{mode === 'etats' ? 'Pays' : 'Zone'}</h2>
+        <div
+          className={styles.zones}
+          role="radiogroup"
+          aria-label={mode === 'etats' ? 'Pays' : 'Zone'}>
+          {choices.map((c) => (
             <button
               key={c.id}
               type="button"

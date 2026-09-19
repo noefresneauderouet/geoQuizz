@@ -32,6 +32,7 @@
 
 .challenge:hover {
   background-color: var(--yellow);
+  color: var(--on-yellow);
 }
 
 .grid {

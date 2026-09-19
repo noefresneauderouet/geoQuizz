@@ -9,6 +9,7 @@ import { QuizBoard } from '@/components/quiz/quiz-board';
 import {
   getCategory,
   getMode,
+  isRegionSet,
   type Category,
   type CategoryId,
   type ModeId,
@@ -16,20 +17,14 @@ import {
 import { flagEmoji } from '@/lib/countries';
 import { vibrateSuccess } from '@/lib/feedback';
 import { NO_OUTCOME, recordRound, type RoundOutcome } from '@/lib/progress';
-import { buildRound, expectedAnswer, getQuestionCount } from '@/lib/quiz';
+import { buildRound, expectedAnswer, getQuestionCount, questionKey } from '@/lib/quiz';
 import { newGame, reducer, SOLVED_PAUSE_MS, type Game } from '@/lib/round';
 import { formatDuration, formatSeconds, readWatch } from '@/lib/timer';
 
 import styles from './quiz-game.module.css';
 
 /** Enregistre la manche telle qu'elle se termine à l'instant `now`. */
-function record(
-  game: Game,
-  category: CategoryId,
-  mode: ModeId,
-  remaining: number[],
-  now: number,
-): RoundOutcome {
+function record(game: Game, category: CategoryId, mode: ModeId, now: number): RoundOutcome {
   return recordRound({
     category,
     mode,
@@ -37,8 +32,6 @@ function record(
     total: game.round.length,
     durationMs: readWatch(game.watch, now),
     bestStreak: game.bestStreak,
-    missed: remaining.map((i) => game.round[i].country.code),
-    solved: game.found.map((i) => game.round[i].country.code),
   });
 }
 
@@ -56,8 +49,8 @@ function record(
  */
 export function QuizGame() {
   const params = useSearchParams();
-  const category = getCategory(params.get('category') ?? undefined);
   const mode = getMode(params.get('mode') ?? undefined);
+  const category = getCategory(params.get('category') ?? undefined, mode.id);
   const count = getQuestionCount(params.get('count'));
   const router = useRouter();
 
@@ -83,7 +76,7 @@ export function QuizGame() {
       const now = Date.now();
       // Dernière question trouvée : la manche est complète, et le chronomètre
       // est en pause depuis la réponse.
-      if (game.queue.length === 1) setOutcome(record(game, category.id, mode.id, [], now));
+      if (game.queue.length === 1) setOutcome(record(game, category.id, mode.id, now));
       dispatch({ type: 'advance', now });
     }, delay);
     return () => clearTimeout(id);
@@ -139,7 +132,7 @@ export function QuizGame() {
       return;
     }
     const now = Date.now();
-    setOutcome(record(game, category.id, mode.id, game.queue, now));
+    setOutcome(record(game, category.id, mode.id, now));
     dispatch({ type: 'end', now });
   };
 
@@ -259,8 +252,11 @@ function Summary({ category, modeLabel, game, outcome, onReplay, onBack }: Summa
               <h2 className={styles.missedTitle}>Les réponses qui manquaient</h2>
               <ul className={styles.missedList}>
                 {missed.map((q) => (
-                  <li key={q.country.code} className={styles.missedChip}>
-                    <span aria-hidden="true">{flagEmoji(q.country.code)}</span>
+                  <li key={questionKey(q)} className={styles.missedChip}>
+                    {/* Des régions d'un même pays porteraient toutes le même drapeau. */}
+                    {q.mode === 'etats' ? null : (
+                      <span aria-hidden="true">{flagEmoji(q.country.code)}</span>
+                    )}
                     {expectedAnswer(q)}
                   </li>
                 ))}
@@ -276,7 +272,7 @@ function Summary({ category, modeLabel, game, outcome, onReplay, onBack }: Summa
             Rejouer {total} questions
           </button>
           <button type="button" className={styles.ghost} onClick={onBack}>
-            Changer de zone
+            {isRegionSet(category.id) ? 'Changer de pays' : 'Changer de zone'}
           </button>
         </div>
       </div>

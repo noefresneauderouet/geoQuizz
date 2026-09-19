@@ -15,7 +15,7 @@
 }
 
 .ko {
-  background-color: #f7d9d4;
+  background-color: var(--danger-light);
   border-color: var(--danger);
 }
 

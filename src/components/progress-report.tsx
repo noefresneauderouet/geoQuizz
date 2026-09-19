@@ -2,14 +2,23 @@
 
 import { useState } from 'react';
 
-import { CATEGORIES, MODES, type CategoryId, type ModeId } from '@/constants/categories';
-import { countryByCode, flagEmoji } from '@/lib/countries';
+import { ThemeSelector } from '@/components/theme-selector';
+import {
+  CATEGORIES,
+  MODES,
+  REGION_SETS,
+  ZONE_MODES,
+  type Category,
+  type CategoryId,
+  type Mode,
+  type ModeId,
+} from '@/constants/categories';
 import { resetProgress, useStats, type ScoreKey, type Stats } from '@/lib/progress';
 import { formatDuration, formatSeconds } from '@/lib/timer';
 
 import styles from './progress-report.module.css';
 
-/** Meilleurs scores, taux de réussite, et les pays à revoir. */
+/** Meilleurs scores, taux de réussite, et le choix du thème. */
 export function ProgressReport() {
   const stats = useStats();
   const [confirming, setConfirming] = useState(false);
@@ -28,10 +37,6 @@ export function ProgressReport() {
     time === undefined ? [] : [time / lengthOf(key)],
   );
   const fastest = paces.length > 0 ? Math.min(...paces) : null;
-
-  const toReview = stats.toReview
-    .map((code) => countryByCode(code))
-    .filter((c): c is NonNullable<typeof c> => Boolean(c));
 
   /*
    * Effacement en deux temps : le bouton demande confirmation dans son propre
@@ -75,71 +80,79 @@ export function ProgressReport() {
         affiche le nombre de réponses ; ensuite, seul le chrono compte — c’est lui qui fera le
         classement.
       </p>
-      <div className={styles.tableWrap}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th scope="col">Zone</th>
-              {MODES.map((m) => (
-                <th key={m.id} scope="col">
-                  {m.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {CATEGORIES.map((cat) => (
-              <tr key={cat.id}>
-                <th scope="row">
-                  {cat.emoji} {cat.label}
-                </th>
-                {MODES.map((m) => {
-                  const records = recordsOf(stats, cat.id, m.id);
-                  return (
-                    <td key={m.id}>
-                      {records.length === 0
-                        ? '—'
-                        : records.map(({ length, found, time }) => (
-                            <span
-                              key={length}
-                              className={
-                                time === undefined
-                                  ? styles.cellLine
-                                  : `${styles.cellLine} ${styles.perfect}`
-                              }>
-                              <span className={styles.cellLength}>{length} q</span>
-                              {time === undefined ? `${found}/${length}` : formatDuration(time)}
-                            </span>
-                          ))}
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <ScoreTable stats={stats} heading="Zone" categories={CATEGORIES} modes={ZONE_MODES} />
 
-      <h2 className="sectionTitle">À revoir</h2>
-      {toReview.length === 0 ? (
-        <p className={styles.empty}>
-          Rien à revoir. Les pays laissés sans réponse atterrissent ici jusqu’à ce que tu les retrouves.
-        </p>
-      ) : (
-        <ul className={styles.chips}>
-          {toReview.map((c) => (
-            <li key={c.code} className={styles.chip}>
-              <span aria-hidden="true">{flagEmoji(c.code)}</span>
-              {c.name}
-            </li>
-          ))}
-        </ul>
-      )}
+      <h2 className="sectionTitle">États et régions</h2>
+      <ScoreTable stats={stats} heading="Pays" categories={REGION_SETS} modes={REGION_MODES} />
+
+      <h2 className="sectionTitle">Thème</h2>
+      <p className={styles.hint}>Auto suit le réglage clair ou sombre de ton appareil.</p>
+      <ThemeSelector />
 
       <button type="button" className={styles.reset} onClick={reset}>
         {confirming ? 'Appuie encore pour confirmer' : 'Réinitialiser ma progression'}
       </button>
     </>
+  );
+}
+
+const REGION_MODES = MODES.filter((m) => m.id === 'etats');
+
+type ScoreTableProps = {
+  stats: Stats;
+  /** Titre de la première colonne : « Zone », ou « Pays » pour le mode États. */
+  heading: string;
+  categories: readonly Category[];
+  modes: readonly Mode[];
+};
+
+/** Une ligne par catégorie, une colonne par mode, les records dans les cases. */
+function ScoreTable({ stats, heading, categories, modes }: ScoreTableProps) {
+  return (
+    <div className={styles.tableWrap}>
+      <table className={styles.table}>
+        <thead>
+          <tr>
+            <th scope="col">{heading}</th>
+            {modes.map((m) => (
+              <th key={m.id} scope="col">
+                {m.label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {categories.map((cat) => (
+            <tr key={cat.id}>
+              <th scope="row">
+                {cat.emoji} {cat.label}
+              </th>
+              {modes.map((m) => {
+                const records = recordsOf(stats, cat.id, m.id);
+                return (
+                  <td key={m.id}>
+                    {records.length === 0
+                      ? '—'
+                      : records.map(({ length, found, time }) => (
+                          <span
+                            key={length}
+                            className={
+                              time === undefined
+                                ? styles.cellLine
+                                : `${styles.cellLine} ${styles.perfect}`
+                            }>
+                            <span className={styles.cellLength}>{length} q</span>
+                            {time === undefined ? `${found}/${length}` : formatDuration(time)}
+                          </span>
+                        ))}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
