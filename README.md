@@ -1,4 +1,4 @@
-# GeoLearn
+# GeoQuizz
 
 Application **web installable** de révision de géographie : une PWA construite
 avec **Next.js 16** (App Router, export statique). Le web est la seule cible —

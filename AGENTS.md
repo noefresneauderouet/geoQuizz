@@ -1,4 +1,4 @@
-# GeoLearn
+# GeoQuizz
 
 Application web installable (PWA). **Next.js 16, App Router, export statique.**
 Il n'y a plus ni Expo, ni React Native, ni cible mobile : ne réintroduis pas
