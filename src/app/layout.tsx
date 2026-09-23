@@ -5,6 +5,7 @@ import { InstallBanner } from '@/components/pwa/install-banner';
 import { StatusPills } from '@/components/pwa/status-pills';
 import { BACKGROUND_COLOR, paletteVariables, THEME_COLOR, THEME_KEY } from '@/constants/theme';
 import { Analytics } from "@vercel/analytics/next"
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -88,6 +89,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         {/* Couches flottantes, communes à tous les écrans. */}
         <Analytics/>
+        <SpeedInsights />
         <StatusPills />
         <InstallBanner />
         <AppTabs />
