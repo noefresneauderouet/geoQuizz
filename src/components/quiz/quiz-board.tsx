@@ -9,6 +9,7 @@ import { FeedbackBanner } from '@/components/quiz/feedback-banner';
 import { FlagView } from '@/components/quiz/flag-view';
 import { RoundTimer } from '@/components/quiz/round-timer';
 import { RegionMap } from '@/components/region-map';
+import { usePhoneLayout } from '@/components/use-phone-layout';
 import { WorldMap } from '@/components/world-map';
 import type { Category, Mode } from '@/constants/categories';
 import { flagEmoji } from '@/lib/countries';
@@ -60,6 +61,38 @@ export function QuizBoard({
   const total = game.round.length;
   const alreadySkipped = game.skipped.includes(index);
 
+  /*
+   * Sur téléphone, la carte est petite : elle s'ouvre zoomée sur le pays, et
+   * le bouton dézoome. Sur grand écran, l'inverse. Une réponse trouvée passe
+   * toujours en vue d'ensemble : on voit où se situe vraiment le pays.
+   */
+  const phone = usePhoneLayout();
+  const zoomed = !game.solved && phone !== game.zoomToggled;
+
+  /*
+   * Le bouton de zoom ne ferme pas le clavier. Un appui sort le focus du
+   * champ, et le clavier mobile se replie : empêcher le `mousedown` le garde
+   * en place. Si le navigateur le déplace quand même, on le rend au champ —
+   * seulement s'il l'avait, pour ne pas ouvrir un clavier fermé.
+   */
+  const typing = useRef(false);
+  const zoomButton = (target: string) => (
+    <button
+      type="button"
+      className={styles.zoomButton}
+      onPointerDown={() => {
+        typing.current = document.activeElement === inputRef.current;
+      }}
+      onMouseDown={(event) => event.preventDefault()}
+      onClick={() => {
+        dispatch({ type: 'zoom' });
+        if (typing.current) inputRef.current?.focus();
+        typing.current = false;
+      }}>
+      {zoomed ? "Vue d'ensemble" : `Zoomer sur ${target}`}
+    </button>
+  );
+
   return (
     <CategoryBackground category={category} className={`${styles.screen} ${styles.playing}`}>
       <div className={styles.frame}>
@@ -110,15 +143,10 @@ export function QuizBoard({
                 <WorldMap
                   country={question.country}
                   category={category}
-                  zoomed={game.zoomed}
+                  zoomed={zoomed}
                   scope={category.id === 'monde' ? 'monde' : 'continent'}
                 />
-                <button
-                  type="button"
-                  className={styles.zoomButton}
-                  onClick={() => dispatch({ type: 'zoom' })}>
-                  {game.zoomed ? "Vue d'ensemble" : 'Zoomer sur le pays'}
-                </button>
+                {zoomButton('le pays')}
               </div>
             ) : null}
 
@@ -128,15 +156,8 @@ export function QuizBoard({
                   set={question.set}
                   region={question.region.code}
                   category={category}
-                  zoomed={game.zoomed}
-                  zoomButton={
-                    <button
-                      type="button"
-                      className={styles.zoomButton}
-                      onClick={() => dispatch({ type: 'zoom' })}>
-                      {game.zoomed ? "Vue d'ensemble" : 'Zoomer sur la région'}
-                    </button>
-                  }
+                  zoomed={zoomed}
+                  zoomButton={zoomButton('la région')}
                 />
               </div>
             ) : null}

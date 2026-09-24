@@ -50,6 +50,10 @@ export const Palette = {
   /** Ombre des cartes, et voile derrière une boîte de dialogue. */
   shadow: 'rgb(122 74 43 / 18%)',
   backdrop: 'rgb(58 46 34 / 55%)',
+
+  /** Un QR code se lit sombre sur clair : tous les lecteurs ne savent pas l'inverse. */
+  qrInk: '#3A2E22',
+  qrPaper: '#FFFFFF',
 } as const;
 
 /**
@@ -90,6 +94,9 @@ export const DarkPalette: { readonly [K in keyof typeof Palette]: string } = {
 
   shadow: 'rgb(0 0 0 / 45%)',
   backdrop: 'rgb(0 0 0 / 60%)',
+
+  qrInk: '#3A2E22',
+  qrPaper: '#FFFFFF',
 };
 
 /**

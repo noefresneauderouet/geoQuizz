@@ -68,6 +68,7 @@ const ZOOM_PADDING = 0.40;
  */
 const ZOOM_REFERENCE = '218';
 
+
 /**
  * Un pays plus petit que ce seuil (en pixels) reçoit un cercle de repérage.
  * La Dominique ou Bahreïn ne font que 6 px de large même au zoom maximal :

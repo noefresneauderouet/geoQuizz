@@ -1,0 +1,69 @@
+/*
+ * Le QR code du lien, ouvert depuis la salle d'attente.
+ *
+ * Même boîte que « Rejoindre une partie » (join-dialog.module.css), en plus
+ * large : il doit se viser d'un autre téléphone, à bout de bras.
+ */
+
+.dialog {
+  width: min(480px, calc(100vw - 2 * var(--space-3)));
+  max-height: calc(100dvh - 2 * var(--space-3));
+  padding: var(--space-4);
+  border: none;
+  border-radius: var(--radius-l);
+  background-color: var(--card);
+  color: var(--ink);
+  box-shadow: var(--shadow-card);
+}
+
+.dialog[open] {
+  animation: fade-in-down 200ms ease both;
+}
+
+.dialog::backdrop {
+  background-color: var(--backdrop);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.title {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--ink);
+  text-align: center;
+}
+
+/* Aussi grand que la boîte le permet, sans déborder d'un écran couché. */
+.qr {
+  display: block;
+  width: min(100%, calc(100dvh - 240px));
+  min-width: 160px;
+  aspect-ratio: 1;
+  border-radius: var(--radius-m);
+  background-color: var(--qr-paper);
+  color: var(--qr-ink);
+}
+
+.code {
+  font-size: 32px;
+  font-weight: 900;
+  letter-spacing: 6px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.ghost {
+  padding: var(--space-2);
+  color: var(--ink-soft);
+  font-weight: 700;
+}
+
+.ghost:hover {
+  color: var(--ink);
+}

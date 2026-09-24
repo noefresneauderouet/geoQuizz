@@ -131,6 +131,59 @@
   box-shadow: none;
 }
 
+/* Les icônes ne servent que sur téléphone, où elles remplacent le libellé. */
+.icon {
+  display: none;
+  width: 26px;
+  height: 26px;
+}
+
+/*
+ * Téléphone : les boutons passent à droite du champ. Une rangée de moins sous
+ * la question, c'est autant de hauteur rendue à la carte ou au drapeau,
+ * surtout clavier ouvert. À l'horizontale, c'est la hauteur qui manque.
+ * Réduits à leur icône, ils laissent au champ l'essentiel de la largeur.
+ * Même requête que src/components/use-phone-layout.ts.
+ */
+@media (max-width: 699px), (max-height: 500px) {
+  .wrapper {
+    flex-direction: row;
+  }
+
+  .field {
+    flex: 1;
+    min-width: 0;
+    padding-inline: 12px;
+  }
+
+  .actions {
+    display: flex;
+  }
+
+  .button,
+  .skip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    padding: 0;
+  }
+
+  .icon {
+    display: block;
+  }
+
+  /* Masqué à l'œil, pas aux lecteurs d'écran : il reste le nom du bouton. */
+  .buttonLabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
 /* Même seuil que le drapeau : les deux grandissent ensemble. */
 @media (min-width: 900px) and (min-height: 800px) {
   .field {

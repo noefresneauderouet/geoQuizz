@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useReducer, useRef, useState } from 'react';
 
 import { CategoryBackground } from '@/components/category-background';
+import { QrDialog } from '@/components/multi/qr-dialog';
 import { useRoom } from '@/components/multi/use-room';
 import { QuizBoard } from '@/components/quiz/quiz-board';
 import { getCategory, getMode, type Category, type Mode } from '@/constants/categories';
@@ -391,9 +392,12 @@ function Lobby({ code, category, mode, settings, self, players, onStart }: Lobby
             )}
           </p>
 
-          <button type="button" className={styles.share} onClick={share}>
-            {copied ? '✓ Lien copié' : '🔗 Partager le lien'}
-          </button>
+          <div className={styles.shareRow}>
+            <button type="button" className={styles.share} onClick={share}>
+              {copied ? '✓ Lien copié' : '🔗 Partager le lien'}
+            </button>
+            <QrDialog code={code} className={`${styles.share} ${styles.qrButton}`} />
+          </div>
 
           <h2 className={styles.listTitle}>
             Joueurs · {waiting.length}/{MAX_PLAYERS}

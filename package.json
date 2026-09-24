@@ -23,6 +23,7 @@
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "topojson-client": "^3.1.0",
+    "uqr": "^0.1.3",
     "visionscarto-world-atlas": "^1.0.0"
   },
   "devDependencies": {

@@ -30,7 +30,12 @@ export type Game = {
   bestStreak: number;
   /** Temps de recherche au moment de la dernière réponse trouvée : départage les joueurs à plusieurs. */
   lastFoundMs: number;
-  zoomed: boolean;
+  /**
+   * Le joueur a basculé la carte hors de sa vue de départ, qui dépend de
+   * l'écran : vue d'ensemble sur grand écran, zoom sur téléphone (voir
+   * quiz-board.tsx). Chaque question repart de la vue de départ.
+   */
+  zoomToggled: boolean;
   watch: Stopwatch;
   over: boolean;
 };
@@ -59,7 +64,7 @@ export function newGame(round: Question[], now: number): Game {
     streak: 0,
     bestStreak: 0,
     lastFoundMs: 0,
-    zoomed: false,
+    zoomToggled: false,
     watch: startWatch(IDLE_WATCH, now),
     over: false,
   };
@@ -74,8 +79,10 @@ function solve(game: Game, approximate: boolean, now: number): Game {
     streak,
     bestStreak: Math.max(game.bestStreak, streak),
     lastFoundMs: readWatch(game.watch, now),
-    // La carte revient en vue d'ensemble : on voit où se situe vraiment le pays.
-    zoomed: false,
+    // La question suivante repart de la vue de départ. Celle-ci, trouvée,
+    // passe en vue d'ensemble quel que soit l'écran : c'est quiz-board.tsx
+    // qui l'impose, pour qu'on voie où se situe vraiment le pays.
+    zoomToggled: false,
     // Le temps de lecture de la réponse n'est pas du temps de jeu.
     watch: pauseWatch(game.watch, now),
   };
@@ -123,7 +130,7 @@ export function reducer(game: Game, action: Action): Game {
         streak: 0,
         input: '',
         nudge: 0,
-        zoomed: false,
+        zoomToggled: false,
       };
     }
 
@@ -132,7 +139,7 @@ export function reducer(game: Game, action: Action): Game {
       return { ...game, solved: null, over: true, watch: pauseWatch(game.watch, action.now) };
 
     case 'zoom':
-      return { ...game, zoomed: !game.zoomed };
+      return { ...game, zoomToggled: !game.zoomToggled };
 
     case 'restart':
       return newGame(action.round, action.now);

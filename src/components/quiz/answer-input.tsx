@@ -35,6 +35,10 @@ type Props = {
  *
  * `autoComplete` et la correction automatique sont coupés — le navigateur
  * proposerait les réponses précédentes, ce qui reviendrait à souffler.
+ * Safari iOS passe outre `autoComplete="off"` : il lit le libellé, prend
+ * « Pays » pour un champ d'adresse et propose celle du propriétaire
+ * au-dessus du clavier. Il laisse tranquille un champ dont le nom contient
+ * « search » : d'où ce nom.
  */
 export function AnswerInput({
   value,
@@ -69,12 +73,13 @@ export function AnswerInput({
         </label>
         <input
           id="answer"
+          name="answer-search"
           ref={ref}
           className={styles.input}
           value={value}
           onChange={(event) => onChange(event.target.value)}
           readOnly={solved}
-          placeholder="Écris ta réponse…"
+          placeholder="Ta réponse…"
           autoComplete="off"
           autoCorrect="off"
           autoCapitalize="words"
@@ -84,18 +89,37 @@ export function AnswerInput({
         />
       </div>
 
+      {/* Sur téléphone, les boutons ne montrent que leur icône : le libellé
+          reste lu par les lecteurs d'écran. */}
       <div className={styles.actions}>
         <button
           type="button"
           className={styles.skip}
           onClick={onSkip}
           disabled={!canSkip || solved}>
-          Passer
+          <Icon path="m6 17 5-5-5-5M13 17l5-5-5-5" />
+          <span className={styles.buttonLabel}>Passer</span>
         </button>
         <button type="submit" className={styles.button} disabled={!canSubmit}>
-          Valider
+          <Icon path="M20 6 9 17l-5-5" />
+          <span className={styles.buttonLabel}>Valider</span>
         </button>
       </div>
     </form>
+  );
+}
+
+function Icon({ path }: { path: string }) {
+  return (
+    <svg className={styles.icon} viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d={path}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }

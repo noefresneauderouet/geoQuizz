@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import { useRouter, useSearchParams, type ReadonlyURLSearchParams } from 'next/navigation';
-import { useState, useSyncExternalStore, type CSSProperties, type FormEvent } from 'react';
+import { useState, type CSSProperties, type FormEvent } from 'react';
 
 import { CountSelector } from '@/components/count-selector';
 import { ModeSelector } from '@/components/mode-selector';
 import { MultiRoom, Notice } from '@/components/multi/multi-room';
+import { useInBrowser } from '@/components/use-in-browser';
 import {
   CATEGORIES,
   categoriesFor,
@@ -34,21 +35,6 @@ import {
 
 import selectorStyles from '../count-selector.module.css';
 import styles from './multi.module.css';
-
-const noSubscription = () => () => {};
-
-/**
- * Vrai dans le navigateur une fois l'hydratation faite, faux au rendu serveur
- * et pendant l'hydratation : l'instantané serveur est constant, donc les
- * deux rendus coïncident.
- */
-function useInBrowser(): boolean {
-  return useSyncExternalStore(
-    noSubscription,
-    () => true,
-    () => false,
-  );
-}
 
 /**
  * /salle — sans code, on crée une salle ; avec un code, on la rejoint.

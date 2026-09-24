@@ -126,6 +126,32 @@
   color: var(--on-yellow);
 }
 
+/* Le lien et, à sa droite, son QR code : sur la même ligne jusqu'aux plus petits écrans. */
+.shareRow {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-2);
+  max-width: 100%;
+}
+
+/* Le libellé ne passe jamais à la ligne — écran étroit ou texte agrandi dans
+   les réglages du téléphone : il doublerait la hauteur du bouton, et le QR
+   code, étiré à sa suite, tournerait à l'ovale. Il s'abrège plutôt. */
+.shareRow .share {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.qrButton {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-inline: 12px;
+}
+
 .ghost {
   padding: var(--space-2);
   color: var(--ink-soft);

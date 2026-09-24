@@ -6,6 +6,7 @@ import { useEffect, useReducer, useState } from 'react';
 
 import { CategoryBackground } from '@/components/category-background';
 import { QuizBoard } from '@/components/quiz/quiz-board';
+import { useInBrowser } from '@/components/use-in-browser';
 import {
   getCategory,
   getMode,
@@ -38,16 +39,28 @@ function record(game: Game, category: CategoryId, mode: ModeId, now: number): Ro
 /* ---------------------------------- Écran --------------------------------- */
 
 /**
+ * La manche n'existe que dans le navigateur : le tirage est aléatoire, et le
+ * chronomètre doit partir à l'ouverture, pas à la compilation.
+ *
+ * En développement, Next rend aussi cet écran côté serveur, avec les vrais
+ * paramètres de l'URL : il y tirait une autre manche que le navigateur, et
+ * l'hydratation laissait à l'écran le drapeau du serveur, qui n'était pas
+ * celui à trouver. Rien n'est donc tiré avant l'hydratation, comme pour
+ * /salle.
+ */
+export function QuizGame() {
+  const inBrowser = useInBrowser();
+  return inBrowser ? <QuizRound /> : <p className={styles.loading}>Préparation de la partie…</p>;
+}
+
+/**
  * Une manche de 10, 15 ou 20 questions.
  *
  * La zone, le mode et la longueur viennent de l'URL
  * (/quiz?category=europe&mode=drapeau&count=15), ce qui rend une partie
- * partageable et permet les raccourcis du manifeste. `useSearchParams` n'a de
- * valeur que dans le navigateur : cet écran est donc rendu côté client, ce
- * qui tombe bien — le tirage est aléatoire, et le chronomètre doit partir à
- * l'ouverture, pas à la compilation.
+ * partageable et permet les raccourcis du manifeste.
  */
-export function QuizGame() {
+function QuizRound() {
   const params = useSearchParams();
   const mode = getMode(params.get('mode') ?? undefined);
   const category = getCategory(params.get('category') ?? undefined, mode.id);

@@ -41,6 +41,16 @@
   min-height: 0;
 }
 
+/* Le même repli que la page (src/app/quiz/page.tsx) : rien ne bouge à l'hydratation. */
+.loading {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
 .centered {
   flex: 1;
   display: flex;
