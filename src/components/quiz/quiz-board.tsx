@@ -15,6 +15,7 @@ import type { Category, Mode } from '@/constants/categories';
 import { flagEmoji } from '@/lib/countries';
 import { answerDetail, answerLabel, expectedAnswer, questionPrompt } from '@/lib/quiz';
 import type { Action, Game } from '@/lib/round';
+import { clock } from '@/lib/timer';
 import { followVisibleViewport } from '@/lib/viewport';
 
 import styles from './quiz-game.module.css';
@@ -188,8 +189,8 @@ export function QuizBoard({
           <AnswerInput
             ref={inputRef}
             value={game.input}
-            onChange={(text) => dispatch({ type: 'type', text, now: Date.now() })}
-            onSubmit={() => dispatch({ type: 'submit', now: Date.now() })}
+            onChange={(text) => dispatch({ type: 'type', text, now: clock() })}
+            onSubmit={() => dispatch({ type: 'submit', now: clock() })}
             onSkip={() => {
               onSkip?.();
               dispatch({ type: 'skip' });

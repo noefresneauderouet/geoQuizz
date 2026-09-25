@@ -27,6 +27,7 @@ import {
   type StartMessage,
 } from '@/lib/room';
 import { newGame, reducer, SOLVED_PAUSE_MS, type Game } from '@/lib/round';
+import { clock } from '@/lib/timer';
 
 import styles from './multi.module.css';
 
@@ -87,7 +88,7 @@ export function MultiRoom({ code, name, settings: fromLink }: Props) {
   const stopped = useRef(-1);
 
   const update = (patch: Partial<typeof me>) => setMe((s) => ({ ...s, ...patch }));
-  const clearRound = () => dispatch({ type: 'restart', round: [], now: Date.now() });
+  const clearRound = () => dispatch({ type: 'restart', round: [], now: clock() });
 
   /*
    * Les trois moments partagés. Chacun est appliqué ici tout de suite par
@@ -104,7 +105,7 @@ export function MultiRoom({ code, name, settings: fromLink }: Props) {
     setPhase({ kind: 'countdown', until: Date.now() + COUNTDOWN_MS });
     setTimeout(() => {
       const round = buildRound(played.category, played.mode, played.count, seeded(seed));
-      dispatch({ type: 'restart', round, now: Date.now() });
+      dispatch({ type: 'restart', round, now: clock() });
       setPhase({
         kind: 'playing',
         deadline: played.limit ? Date.now() + played.limit * 1000 : null,
@@ -115,7 +116,7 @@ export function MultiRoom({ code, name, settings: fromLink }: Props) {
   const finishGame = ({ game: number, playerId }: FinishMessage) => {
     if (number !== me.game || stopped.current === number) return;
     stopped.current = number;
-    dispatch({ type: 'end', now: Date.now() });
+    dispatch({ type: 'end', now: clock() });
     update({ status: 'done' });
     setPhase({ kind: 'stopped', winnerId: playerId });
     setTimeout(() => setPhase({ kind: 'ranking', winnerId: playerId }), SETTLE_MS);
@@ -151,7 +152,7 @@ export function MultiRoom({ code, name, settings: fromLink }: Props) {
     vibrateSuccess();
     const last = game.queue.length === 1;
     const id = setTimeout(() => {
-      dispatch({ type: 'advance', now: Date.now() });
+      dispatch({ type: 'advance', now: clock() });
       room.progress({ game: me.game, playerId: me.id, ...scoreOf(game) });
       // Tout trouvé : on arrête la partie de tout le monde, la sienne comprise.
       if (last) {

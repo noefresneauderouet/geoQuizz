@@ -20,3 +20,7 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
+
+# fichiers temporaires
+*.tmp
+*.tmp.json

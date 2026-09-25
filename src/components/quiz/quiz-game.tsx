@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useReducer, useState } from 'react';
+import { useEffect, useReducer, useRef, useState } from 'react';
 
 import { CategoryBackground } from '@/components/category-background';
 import { QuizBoard } from '@/components/quiz/quiz-board';
@@ -17,31 +17,38 @@ import {
 } from '@/constants/categories';
 import { flagEmoji } from '@/lib/countries';
 import { vibrateSuccess } from '@/lib/feedback';
-import { submitRound, type Ranking } from '@/lib/leaderboard';
+import {
+  finishRankedRound,
+  startRankedRound,
+  type RankedRound,
+  type Ranking,
+} from '@/lib/leaderboard';
 import { NO_OUTCOME, recordRound, type RoundOutcome } from '@/lib/progress';
-import { buildRound, expectedAnswer, getQuestionCount, questionKey } from '@/lib/quiz';
+import { buildRound, expectedAnswer, getQuestionCount, poolSize, questionKey } from '@/lib/quiz';
 import { newGame, reducer, SOLVED_PAUSE_MS, type Game } from '@/lib/round';
-import { formatDuration, formatSeconds, readWatch } from '@/lib/timer';
+import { hasStoredSession } from '@/lib/supabase';
+import { clock, formatDuration, formatSeconds, readWatch } from '@/lib/timer';
 
 import styles from './quiz-game.module.css';
 
 /**
- * Enregistre la manche telle qu'elle se termine à l'instant `now`, et envoie
- * son temps au classement si elle est trouvée en entier. La réponse du
- * classement arrive plus tard, par `onRanking`.
+ * Enregistre la manche telle qu'elle se termine à l'instant `now`, et ferme
+ * la manche classée si elle est trouvée en entier. La réponse du classement
+ * arrive plus tard, par `onRanking`.
  */
 function record(
   game: Game,
   category: CategoryId,
   mode: ModeId,
   now: number,
+  ranked: RankedRound | null,
   onRanking: (ranking: Ranking) => void,
 ): RoundOutcome {
   const score = game.found.length;
   const total = game.round.length;
   const durationMs = readWatch(game.watch, now);
   if (score === total) {
-    void submitRound({ category, mode, length: total }, durationMs).then(onRanking);
+    void finishRankedRound(ranked, durationMs).then(onRanking);
   }
   return recordRound({ category, mode, score, total, durationMs, bestStreak: game.bestStreak });
 }
@@ -78,8 +85,37 @@ function QuizRound() {
   const router = useRouter();
 
   const [game, dispatch] = useReducer(reducer, null, () =>
-    newGame(buildRound(category.id, mode.id, count), Date.now()),
+    newGame(buildRound(category.id, mode.id, count), clock()),
   );
+  /*
+   * Connecté, la manche s'ouvre d'abord côté serveur (voir leaderboard.ts) :
+   * la première question n'apparaît, et le chrono ne part, qu'une fois la
+   * réponse arrivée. Un invité n'attend rien.
+   */
+  const [preparing, setPreparing] = useState(() => hasStoredSession());
+  const ranked = useRef<RankedRound | null>(null);
+  const length = Math.min(count, poolSize(category.id, mode.id));
+
+  /** Ouvre la manche classée, puis lance le chrono sur une manche neuve. */
+  const open = (isCancelled: () => boolean) => {
+    void startRankedRound({ category: category.id, mode: mode.id, length }).then((round) => {
+      if (isCancelled()) return;
+      ranked.current = round;
+      dispatch({ type: 'restart', round: buildRound(category.id, mode.id, count), now: clock() });
+      setPreparing(false);
+    });
+  };
+
+  // Une fois, à l'ouverture : les réglages viennent de l'URL et ne changent pas.
+  useEffect(() => {
+    if (!preparing) return;
+    let cancelled = false;
+    open(() => cancelled);
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   /** Question sur laquelle l'arrêt a été demandé, en attente de confirmation. */
   const [endRequestedAt, setEndRequestedAt] = useState<number | null>(null);
   /** Effet de la manche terminée sur les records, lu par l'écran de fin. */
@@ -98,11 +134,11 @@ function QuizRound() {
     vibrateSuccess();
     const delay = SOLVED_PAUSE_MS.exact;
     const id = setTimeout(() => {
-      const now = Date.now();
+      const now = clock();
       // Dernière question trouvée : la manche est complète, et le chronomètre
       // est en pause depuis la réponse.
       if (game.queue.length === 1) {
-        setOutcome(record(game, category.id, mode.id, now, setRanking));
+        setOutcome(record(game, category.id, mode.id, now, ranked.current, setRanking));
       }
       dispatch({ type: 'advance', now });
     }, delay);
@@ -116,8 +152,22 @@ function QuizRound() {
     setEndRequestedAt(null);
     setOutcome(NO_OUTCOME);
     setRanking(null);
-    dispatch({ type: 'restart', round: buildRound(category.id, mode.id, count), now: Date.now() });
+    ranked.current = null;
+    if (hasStoredSession() && length > 0) {
+      setPreparing(true);
+      open(() => false);
+    } else {
+      dispatch({ type: 'restart', round: buildRound(category.id, mode.id, count), now: clock() });
+    }
   };
+
+  if (preparing) {
+    return (
+      <CategoryBackground category={category} className={styles.screen}>
+        <p className={styles.loading}>Préparation de la partie…</p>
+      </CategoryBackground>
+    );
+  }
 
   if (game.round.length === 0) {
     return (
@@ -160,8 +210,8 @@ function QuizRound() {
       setEndRequestedAt(index);
       return;
     }
-    const now = Date.now();
-    setOutcome(record(game, category.id, mode.id, now, setRanking));
+    const now = clock();
+    setOutcome(record(game, category.id, mode.id, now, ranked.current, setRanking));
     dispatch({ type: 'end', now });
   };
 
@@ -339,10 +389,17 @@ function RankingLine({ ranking, href }: { ranking: Ranking | null; href: string 
       </p>
     );
   }
-  if (ranking.status === 'queued') {
+  if (ranking.status === 'offline') {
     return (
       <p className={styles.summaryMeta}>
-        Hors ligne : ton temps partira au classement dès le retour du réseau.
+        Pas de réseau pendant la manche : elle ne compte pas au classement.
+      </p>
+    );
+  }
+  if (ranking.status === 'rejected') {
+    return (
+      <p className={styles.summaryMeta}>
+        Ce temps n’a pas pu être vérifié : il ne compte pas au classement.
       </p>
     );
   }

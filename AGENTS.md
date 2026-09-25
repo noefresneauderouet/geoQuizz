@@ -63,16 +63,27 @@ passe, pseudo) et **Postgres**, appelés depuis le navigateur.
 - Le schéma est dans `supabase/migrations/` : toute évolution passe par un
   nouveau fichier de migration, jamais par une modification d'un fichier déjà
   appliqué.
-- Les clients ne font que lire : les temps passent par la fonction
-  `submit_scores`, qui garde le meilleur par joueur, zone, mode et longueur.
-  Le classement se lit par `get_leaderboard`, en un seul appel.
+- Les clients ne font que lire. Un temps passe par **deux** fonctions :
+  `start_round` ouvre la manche (l'écran attend sa réponse avant la première
+  question) et `finish_round` la ferme en confrontant le temps annoncé au
+  temps écoulé côté base. Ne réintroduis pas d'envoi de temps sans manche
+  ouverte : c'était la faille de `submit_scores`, supprimée.
+- Les classements permis sont dans la table `boards`. Une nouvelle zone ou
+  une nouvelle longueur de manche demande une migration qui les y ajoute.
+- Retirer un tricheur : `select public.ban_player('Pseudo');` dans le SQL
+  Editor. Le classement se lit par `get_leaderboard`, en un seul appel.
 - `src/lib/supabase.ts` charge `@supabase/auth-js` et `@supabase/postgrest-js`
   par `import()`, comme Realtime : un invité n'en télécharge rien, tant
   qu'aucune session n'est enregistrée sur l'appareil (`hasStoredSession`).
 - `src/lib/account.ts` et `src/lib/leaderboard.ts` ne dépendent pas de React ;
   leur hook est dans `src/components/use-account.ts`.
-- Un temps non envoyé (hors ligne, panne) attend dans une file locale, et le
-  dernier classement lu est gardé : le solo ne dépend jamais du réseau.
+- Une manche jouée hors ligne ne compte pas au classement (elle reste un
+  record local), et le dernier classement lu est gardé : le solo ne dépend
+  jamais du réseau.
+- Le chronomètre lit `clock()` (src/lib/timer.ts, `performance.now()`), jamais
+  `Date.now()` : l'heure du système se change à la main.
+- `vercel.json` porte les en-têtes de sécurité (CSP). Un nouveau domaine
+  appelé par le navigateur doit y être ajouté.
 
 ## Le service worker
 

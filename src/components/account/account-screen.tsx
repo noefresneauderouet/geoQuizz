@@ -3,8 +3,10 @@
 import Link from 'next/link';
 import { useState, type FormEvent } from 'react';
 
+import { Captcha, CAPTCHA_SITE_KEY } from '@/components/account/captcha';
 import { useAccount } from '@/components/use-account';
 import {
+  deleteAccount,
   MAX_NAME_LENGTH,
   MIN_NAME_LENGTH,
   MIN_PASSWORD_LENGTH,
@@ -57,11 +59,53 @@ export function AccountScreen() {
         <button type="button" className={styles.ghost} onClick={() => void signOut()}>
           Se déconnecter
         </button>
+        <DeleteAccount />
       </div>
     );
   }
 
   return <AuthForms />;
+}
+
+/**
+ * Effacer son compte, en deux appuis : le bouton demande confirmation dans
+ * son propre libellé, comme l'arrêt d'une manche.
+ */
+function DeleteAccount() {
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const press = () => {
+    if (!confirming) {
+      setConfirming(true);
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    void deleteAccount().then((failure) => {
+      setBusy(false);
+      setConfirming(false);
+      if (failure) setError(failure.error);
+    });
+  };
+
+  return (
+    <>
+      {error ? (
+        <p className={styles.error} role="alert">
+          {error}
+        </p>
+      ) : null}
+      <button type="button" className={styles.danger} disabled={busy} onClick={press}>
+        {busy
+          ? 'Un instant…'
+          : confirming
+            ? 'Appuie encore : pseudo et temps seront effacés'
+            : 'Supprimer mon compte'}
+      </button>
+    </>
+  );
 }
 
 function AuthForms() {
@@ -72,19 +116,29 @@ function AuthForms() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sentTo, setSentTo] = useState<string | null>(null);
+  /** La réponse du CAPTCHA, quand il est activé ; elle ne sert qu'une fois. */
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  const waitingForCaptcha = CAPTCHA_SITE_KEY !== '' && captchaToken === null;
+  const token = captchaToken ?? undefined;
+  const nextAttempt = () => {
+    setCaptchaToken(null);
+    setAttempt((n) => n + 1);
+  };
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setBusy(true);
     setError(null);
     if (tab === 'sign-in') {
-      const failure = await signIn(email, password);
+      const failure = await signIn(email, password, token);
       if (failure) setError(failure.error);
     } else {
-      const result = await signUp(email, password, username);
+      const result = await signUp(email, password, username, token);
       if ('error' in result) setError(result.error);
       else if (result.status === 'confirm-email') setSentTo(email.trim());
     }
+    nextAttempt();
     setBusy(false);
   };
 
@@ -101,15 +155,17 @@ function AuthForms() {
             {error}
           </p>
         ) : null}
+        <Captcha onToken={setCaptchaToken} attempt={attempt} />
         <button
           type="button"
           className={styles.ghost}
-          disabled={busy}
+          disabled={busy || waitingForCaptcha}
           onClick={() => {
             setBusy(true);
             setError(null);
-            void resendConfirmation(sentTo).then((failure) => {
+            void resendConfirmation(sentTo, token).then((failure) => {
               setError(failure ? failure.error : 'Lien renvoyé.');
+              nextAttempt();
               setBusy(false);
             });
           }}>
@@ -207,7 +263,9 @@ function AuthForms() {
           </p>
         ) : null}
 
-        <button type="submit" className={styles.primary} disabled={busy}>
+        <Captcha onToken={setCaptchaToken} attempt={attempt} />
+
+        <button type="submit" className={styles.primary} disabled={busy || waitingForCaptcha}>
           {busy ? 'Un instant…' : signingUp ? 'Créer mon compte' : 'Se connecter'}
         </button>
       </form>

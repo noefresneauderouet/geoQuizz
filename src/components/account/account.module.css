@@ -137,3 +137,27 @@
 .ghost:hover {
   background-color: var(--brown-light);
 }
+
+.danger {
+  padding: 10px var(--space-3);
+  border-radius: var(--radius-pill);
+  color: var(--danger);
+  font-weight: 800;
+  text-align: center;
+}
+
+.danger:hover {
+  background-color: var(--danger-light);
+}
+
+.danger:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* Le widget Turnstile a sa propre taille : on le centre. */
+.captcha {
+  display: flex;
+  justify-content: center;
+  min-height: 65px;
+}
