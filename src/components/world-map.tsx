@@ -473,7 +473,7 @@ export function WorldMap({ country, category, zoomed, scope }: Props) {
     const scaleBounds = zoomBounds(size);
 
     // Un pays absent du fond de carte : on cadre sur ses coordonnées et
-    // l'anneau fait tout le travail. Les 194 en ont une depuis le passage au
+    // l'anneau fait tout le travail. Les 196 en ont une depuis le passage au
     // fond Visionscarto — le précédent ignorait Tuvalu —, mais la garde reste :
     // le fond de carte n'est pas gravé dans le marbre.
     if (!target) {

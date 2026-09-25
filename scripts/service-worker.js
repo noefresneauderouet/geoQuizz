@@ -12,7 +12,7 @@
  *     Elle est précachée en entier, et l'installation échoue s'il en manque
  *     un fichier : une coquille incomplète ne sert à rien ;
  *
- *   - les drapeaux (flagcdn.com), les 194, même ceux qu'une partie ne
+ *   - les drapeaux (flagcdn.com), les 196, même ceux qu'une partie ne
  *     montrera peut-être jamais — environ 0,6 Mo en 640 px. Ils traversent
  *     les versions : une mise à jour ne télécharge que ceux qui manquent.
  *     Leur précache ne fait pas échouer l'installation : un drapeau raté est
@@ -41,7 +41,7 @@ const FLAG_ORIGIN = 'https://flagcdn.com';
 const BACKGROUND_CACHE = 'geolearn-backgrounds-v1';
 const BACKGROUND_PREFIX = '/categories/';
 
-/** 194 pays, plus les différentes largeurs demandées et un peu de marge. */
+/** 196 pays, plus les différentes largeurs demandées et un peu de marge. */
 const FLAG_MAX_ENTRIES = 400;
 
 /* ------------------------------------------------------------------ */
@@ -243,7 +243,7 @@ async function fetchBackground(cache, url) {
  * La requête d'une balise <img> est en mode `no-cors` et sa réponse serait
  * *opaque*. Une réponse opaque se met en cache, mais les navigateurs la
  * comptent dans le quota pour une taille forfaitaire de plusieurs mégaoctets
- * — 194 drapeaux suffiraient à saturer le stockage. flagcdn renvoyant
+ * — 196 drapeaux suffiraient à saturer le stockage. flagcdn renvoyant
  * `Access-Control-Allow-Origin: *`, on fait la requête en CORS et on stocke
  * une réponse de taille réelle.
  */

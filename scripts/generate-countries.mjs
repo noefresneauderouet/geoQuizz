@@ -2,7 +2,7 @@
  * Génère src/data/countries.json à partir de `world-countries` (npm) :
  * nom FR corrigé, capitale FR, continent, alias acceptés, coordonnées.
  *
- * Les 194 pays sont jouables dans les trois modes. En mode « Pays », ceux qui
+ * Les 196 pays sont jouables dans les trois modes. En mode « Pays », ceux qui
  * sont trop petits pour se voir sur la carte reçoivent un cercle de repérage,
  * posé sur `latlng` quand le fond de carte n'a carrément aucune forme pour eux.
  *
@@ -75,6 +75,7 @@ const CAPITAL_ALIASES = {
   KZ: ['Noursoultan', 'Nur-Sultan'],
   VA: ['Vatican'],
   US: ['Washington DC', 'Washington D.C.'],
+  XK: ['Prishtina'],
 };
 
 /** Noms de pays FR corrigés (world-countries a quelques libellés bancals). */
@@ -112,14 +113,27 @@ const NAME_ALIASES = {
   BY: ['Bélarus', 'Belarus'],
 };
 
+/**
+ * Pays retenus hors ONU : le Vatican (État observateur), le Kosovo, que la
+ * France reconnaît depuis 2008, et Taïwan, indépendant de fait avec son
+ * drapeau et sa capitale — ce qu'un quiz de géographie attend.
+ */
+const NON_UN_MEMBERS = new Set(['VA', 'XK', 'TW']);
+
+/**
+ * Le Kosovo n'a pas de code ISO 3166-1 numérique : on reprend l'id que
+ * Natural Earth lui donne dans le fond de carte.
+ */
+const NUMERIC_OVERRIDES = { XK: '-2' };
+
 const countries = world
-  .filter((c) => c.unMember || c.cca2 === 'VA')
+  .filter((c) => c.unMember || NON_UN_MEMBERS.has(c.cca2))
   .map((c) => {
     const name = NAMES_FR[c.cca2] ?? c.translations.fra.common;
     const capital = CAPITALS_FR[c.cca2] ?? c.capital?.[0] ?? null;
     return {
       code: c.cca2,
-      numeric: c.ccn3,
+      numeric: NUMERIC_OVERRIDES[c.cca2] ?? c.ccn3,
       name,
       nameAliases: NAME_ALIASES[c.cca2] ?? [],
       capital,

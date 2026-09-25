@@ -25,7 +25,7 @@ import styles from './zone-picker.module.css';
 
 const [MONDE, ...CONTINENTS] = CATEGORIES;
 
-/** « 194 pays », « 50 États », « 13 régions ». */
+/** « 196 pays », « 50 États », « 13 régions ». */
 function sizeLabel(id: CategoryId): string {
   if (!isRegionSet(id)) return `${countriesOf(id).length} pays`;
   const { regions, plural } = regionSet(id);

@@ -153,7 +153,7 @@ d'un statut officiel est l'*UN Clear Map* du
 [UN Geospatial](https://geoportal.un.org), qui hachure explicitement les zones
 disputées — mais sa licence n'est pas libre et demande une autorisation.
 
-**Les 194 pays sont jouables dans les trois modes, sans exception.** Sur la
+**Les 196 pays sont jouables dans les trois modes, sans exception.** Sur la
 carte, celui qui mesure moins de 16 px reçoit un cercle de repérage — une
 vingtaine au zoom (Monaco, Vatican, Malte, Maldives…) et environ la moitié en
 vue continentale. Tuvalu, absent même du fond 1:50m, est repéré à partir de ses
@@ -199,11 +199,11 @@ _Partager › Sur l'écran d'accueil_, et c'est ce que la bannière explique.
 Refusée une fois, la bannière ne revient plus.
 
 Une fois installée, GeoLearn s'ouvre dans sa propre fenêtre, sans barre
-d'adresse, et **fonctionne entièrement hors ligne** : les 194 pays, leurs
+d'adresse, et **fonctionne entièrement hors ligne** : les 196 pays, leurs
 capitales et les deux fonds de carte sont embarqués dans le bundle, précaché au
 premier lancement.
 
-Seuls les **drapeaux** viennent du réseau (flagcdn.com). Les 194 sont
+Seuls les **drapeaux** viennent du réseau (flagcdn.com). Les 196 sont
 téléchargés dès l'installation du service worker, y compris ceux qu'on ne
 croisera peut-être jamais, soit environ 0,6 Mo en plus. Une mise à jour ne
 retélécharge que ceux qui manquent. Si flagcdn est injoignable à ce moment-là,

@@ -8,7 +8,7 @@ import styles from './category-card.module.css';
 
 type Props = {
   category: Category;
-  /** Ce qu'elle contient : « 194 pays », « 50 États ». */
+  /** Ce qu'elle contient : « 196 pays », « 50 États ». */
   meta: string;
   /** Meilleur score sur ce couple catégorie/mode, ou null si jamais jouée. */
   best: number | null;

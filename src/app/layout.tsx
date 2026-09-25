@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     template: '%s — GeoLearn',
   },
   description:
-    'Révise les drapeaux, les capitales et les pays du monde. 194 pays, six zones, jouable hors ligne.',
+    'Révise les drapeaux, les capitales et les pays du monde. 196 pays, six zones, jouable hors ligne.',
   applicationName: 'GeoLearn',
   manifest: '/manifest.webmanifest',
   icons: {
