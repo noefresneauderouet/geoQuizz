@@ -90,9 +90,11 @@ Même projet Supabase que les salles, avec en plus une base :
    avec la CLI). Il crée les tables `profiles` et `scores`, leurs règles
    d'accès et les fonctions `submit_scores`, `get_leaderboard` et
    `username_available`.
-2. Dans *Authentication → Sign In / Providers*, garde *Email* activé. Si
-   *Confirm email* est actif, chaque inscription attend un clic dans un e-mail :
-   l'envoi intégré de Supabase est très limité, il faut alors brancher un SMTP.
+2. Dans *Authentication → Sign In / Providers*, garde *Email* et *Confirm
+   email* activés : chaque inscription attend un clic dans un e-mail.
+   L'envoi intégré de Supabase est très limité (quelques e-mails par heure) :
+   branche un SMTP (Resend, Brevo…) dans *Authentication → Emails → SMTP
+   Settings* avant d'ouvrir à de vrais joueurs.
 3. Dans *Authentication → URL Configuration*, mets l'adresse de production en
    *Site URL* et ajoute `https://<ton-domaine>/compte` aux *Redirect URLs*.
 

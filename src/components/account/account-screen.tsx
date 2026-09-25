@@ -8,6 +8,7 @@ import {
   MAX_NAME_LENGTH,
   MIN_NAME_LENGTH,
   MIN_PASSWORD_LENGTH,
+  resendConfirmation,
   signIn,
   signOut,
   signUp,
@@ -95,11 +96,31 @@ function AuthForms() {
           Un lien de confirmation vient de partir à <strong>{sentTo}</strong>. Ouvre-le sur cet
           appareil pour activer ton compte.
         </p>
+        {error ? (
+          <p className={styles.error} role="alert">
+            {error}
+          </p>
+        ) : null}
+        <button
+          type="button"
+          className={styles.ghost}
+          disabled={busy}
+          onClick={() => {
+            setBusy(true);
+            setError(null);
+            void resendConfirmation(sentTo).then((failure) => {
+              setError(failure ? failure.error : 'Lien renvoyé.');
+              setBusy(false);
+            });
+          }}>
+          Renvoyer le lien
+        </button>
         <button
           type="button"
           className={styles.ghost}
           onClick={() => {
             setSentTo(null);
+            setError(null);
             setTab('sign-in');
           }}>
           J’ai confirmé, me connecter

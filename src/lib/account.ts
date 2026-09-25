@@ -184,6 +184,21 @@ export async function signUp(
   }
 }
 
+/** Renvoie le lien de confirmation, s'il s'est perdu ou a expiré. */
+export async function resendConfirmation(email: string): Promise<Failure | null> {
+  try {
+    const auth = await getAuth();
+    const { error } = await auth.resend({
+      type: 'signup',
+      email: email.trim(),
+      options: { emailRedirectTo: `${globalThis.location.origin}/compte` },
+    });
+    return error ? { error: describe(error) } : null;
+  } catch {
+    return { error: NETWORK_ERROR };
+  }
+}
+
 export async function signIn(email: string, password: string): Promise<Failure | null> {
   try {
     const auth = await getAuth();
