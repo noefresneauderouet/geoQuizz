@@ -71,9 +71,34 @@ Il faut internet, et un projet [Supabase](https://supabase.com) (gratuit) :
    NEXT_PUBLIC_SUPABASE_ANON_KEY=<clé anon>
    ```
 
-Aucune table à créer : les salles ne vivent que le temps de la partie. Un
-projet gratuit resté sept jours sans activité est mis en pause ; on le
-réactive depuis le tableau de bord de Supabase.
+Aucune table à créer pour les salles : elles ne vivent que le temps de la
+partie. Un projet gratuit resté sept jours sans activité est mis en pause ; on
+le réactive depuis le tableau de bord de Supabase.
+
+## Comptes et classement
+
+L'onglet **Classement** montre, pour chaque zone, mode et longueur de manche,
+le meilleur temps de chaque joueur sur une manche trouvée en entier. On joue
+sans compte ; en créer un (pseudo, e-mail, mot de passe, depuis le profil ou
+l'écran de fin) sert seulement à y apparaître. À la première connexion sur un
+appareil, les records déjà faits dessus rejoignent le classement.
+
+Même projet Supabase que les salles, avec en plus une base :
+
+1. Dans le *SQL Editor* du projet, exécute
+   `supabase/migrations/20260925170000_leaderboard.sql` (ou `supabase db push`
+   avec la CLI). Il crée les tables `profiles` et `scores`, leurs règles
+   d'accès et les fonctions `submit_scores`, `get_leaderboard` et
+   `username_available`.
+2. Dans *Authentication → Sign In / Providers*, garde *Email* activé. Si
+   *Confirm email* est actif, chaque inscription attend un clic dans un e-mail :
+   l'envoi intégré de Supabase est très limité, il faut alors brancher un SMTP.
+3. Dans *Authentication → URL Configuration*, mets l'adresse de production en
+   *Site URL* et ajoute `https://<ton-domaine>/compte` aux *Redirect URLs*.
+
+Si Supabase ne répond pas, le jeu solo continue : un temps fait pendant la
+panne attend sur l'appareil et part au retour du réseau, et le dernier
+classement lu reste affiché.
 
 ## Mettre tes propres photos de fond
 

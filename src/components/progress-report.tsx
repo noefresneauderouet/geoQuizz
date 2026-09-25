@@ -1,8 +1,10 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 
 import { ThemeSelector } from '@/components/theme-selector';
+import { useAccount } from '@/components/use-account';
 import {
   CATEGORIES,
   MODES,
@@ -63,6 +65,8 @@ export function ProgressReport() {
         </p>
       </header>
 
+      <AccountLink />
+
       <div className={styles.statRow}>
         <Stat value={`${accuracy}%`} label="de réussite" color="var(--green)" />
         <Stat value={String(stats.bestStreak)} label="meilleure série" color="var(--yellow-dark)" />
@@ -77,7 +81,7 @@ export function ProgressReport() {
       <h2 className="sectionTitle">Meilleurs scores</h2>
       <p className={styles.hint}>
         Une ligne par longueur de partie. Tant qu’une manche n’est pas trouvée en entier, on
-        affiche le nombre de réponses ; ensuite, seul le chrono compte — c’est lui qui fera le
+        affiche le nombre de réponses ; ensuite, seul le chrono compte — c’est lui qui fait le
         classement.
       </p>
       <ScoreTable stats={stats} heading="Zone" categories={CATEGORIES} modes={ZONE_MODES} />
@@ -93,6 +97,29 @@ export function ProgressReport() {
         {confirming ? 'Appuie encore pour confirmer' : 'Réinitialiser ma progression'}
       </button>
     </>
+  );
+}
+
+/** Le compte, qui ne sert qu'au classement : une ligne, qui mène à /compte. */
+function AccountLink() {
+  const account = useAccount();
+  if (account.status === 'loading' || account.status === 'unavailable') return null;
+  return (
+    <Link href="/compte" className={styles.account}>
+      {account.status === 'signed-in' ? (
+        <>
+          <span>
+            Connecté : <strong>{account.username}</strong>
+          </span>
+          <span className={styles.accountAction}>Mon compte</span>
+        </>
+      ) : (
+        <>
+          <span>Crée un compte pour entrer au classement.</span>
+          <span className={styles.accountAction}>Se connecter</span>
+        </>
+      )}
+    </Link>
   );
 }
 

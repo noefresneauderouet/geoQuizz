@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from 'next';
 import { AppTabs } from '@/components/app-tabs';
 import { InstallBanner } from '@/components/pwa/install-banner';
 import { StatusPills } from '@/components/pwa/status-pills';
+import { LeaderboardSync } from '@/components/use-account';
 import { BACKGROUND_COLOR, paletteVariables, THEME_COLOR, THEME_KEY } from '@/constants/theme';
 import { Analytics } from "@vercel/analytics/next"
 import { SpeedInsights } from '@vercel/speed-insights/next';
@@ -93,6 +94,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <StatusPills />
         <InstallBanner />
         <AppTabs />
+        <LeaderboardSync />
       </body>
     </html>
   );

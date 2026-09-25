@@ -437,6 +437,21 @@
   text-align: center;
 }
 
+/* La place au classement en ligne, sous le chrono d'une manche complète. */
+.ranking {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--green);
+  text-align: center;
+}
+
+.rankingLink {
+  color: var(--blue);
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 /* Le score, passé au second plan, avec le temps par question. */
 .summaryFound {
   display: flex;

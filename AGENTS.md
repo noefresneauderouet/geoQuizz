@@ -55,6 +55,25 @@ depuis le navigateur : canaux Broadcast + Presence, sans table ni serveur.
   `NEXT_PUBLIC_SUPABASE_ANON_KEY`, dans `.env.local` et dans Vercel. Sans elles,
   `/salle` affiche « Multijoueur indisponible ».
 
+## Les comptes et le classement
+
+Même projet Supabase, cette fois avec une base : **Auth** (e-mail, mot de
+passe, pseudo) et **Postgres**, appelés depuis le navigateur.
+
+- Le schéma est dans `supabase/migrations/` : toute évolution passe par un
+  nouveau fichier de migration, jamais par une modification d'un fichier déjà
+  appliqué.
+- Les clients ne font que lire : les temps passent par la fonction
+  `submit_scores`, qui garde le meilleur par joueur, zone, mode et longueur.
+  Le classement se lit par `get_leaderboard`, en un seul appel.
+- `src/lib/supabase.ts` charge `@supabase/auth-js` et `@supabase/postgrest-js`
+  par `import()`, comme Realtime : un invité n'en télécharge rien, tant
+  qu'aucune session n'est enregistrée sur l'appareil (`hasStoredSession`).
+- `src/lib/account.ts` et `src/lib/leaderboard.ts` ne dépendent pas de React ;
+  leur hook est dans `src/components/use-account.ts`.
+- Un temps non envoyé (hors ligne, panne) attend dans une file locale, et le
+  dernier classement lu est gardé : le solo ne dépend jamais du réseau.
+
 ## Le service worker
 
 `scripts/service-worker.js` est un **modèle**. `npm run build` y injecte la

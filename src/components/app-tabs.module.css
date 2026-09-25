@@ -51,3 +51,15 @@
   background-color: var(--green);
   color: var(--on-color);
 }
+
+/* Trois onglets et le nom ne tiennent pas sur un petit téléphone : le nom
+   s'efface, les onglets se partagent la barre. */
+@media (max-width: 420px) {
+  .brand {
+    display: none;
+  }
+
+  .inner {
+    justify-content: space-between;
+  }
+}

@@ -23,6 +23,7 @@ import type { RealtimeChannel, RealtimeClient } from '@supabase/realtime-js';
 
 import type { CategoryId, ModeId } from '@/constants/categories';
 import { getItem, setItem } from '@/lib/storage';
+import { isSupabaseConfigured, supabaseKey, supabaseUrl } from '@/lib/supabase';
 
 /* --------------------------------- Salle --------------------------------- */
 
@@ -229,9 +230,7 @@ export type RoomConnection = {
 };
 
 /** Vrai si le projet Supabase est configuré dans cette construction. */
-export function isMultiplayerConfigured(): boolean {
-  return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-}
+export const isMultiplayerConfigured = isSupabaseConfigured;
 
 let client: RealtimeClient | null = null;
 
@@ -242,14 +241,8 @@ let client: RealtimeClient | null = null;
 async function getClient(): Promise<RealtimeClient> {
   if (client) return client;
   const { RealtimeClient } = await import('@supabase/realtime-js');
-  // L'adresse attendue est la racine du projet ; celle de l'API REST, souvent
-  // copiée à sa place, est ramenée à la racine.
-  const url = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? '')
-    .replace(/\/rest\/v1\/?$/, '')
-    .replace(/\/$/, '');
-  const apikey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
-  client = new RealtimeClient(`${url.replace(/^http/, 'ws')}/realtime/v1`, {
-    params: { apikey },
+  client = new RealtimeClient(`${supabaseUrl().replace(/^http/, 'ws')}/realtime/v1`, {
+    params: { apikey: supabaseKey() },
   });
   return client;
 }

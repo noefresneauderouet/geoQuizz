@@ -150,3 +150,28 @@
 .reset:hover {
   opacity: 0.75;
 }
+
+/* Le lien vers le compte, en tête du profil. */
+.account {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+  box-shadow: var(--shadow-card);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.accountAction {
+  flex-shrink: 0;
+  padding: 6px var(--space-3);
+  border-radius: var(--radius-pill);
+  background-color: var(--green);
+  color: var(--on-color);
+  font-weight: 800;
+}

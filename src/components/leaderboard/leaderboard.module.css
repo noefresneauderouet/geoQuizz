@@ -1,0 +1,128 @@
+.brand {
+  font-size: 30px;
+  font-weight: 800;
+  color: var(--green);
+  letter-spacing: -0.4px;
+  line-height: 1.1;
+}
+
+.subtitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  margin-top: 2px;
+}
+
+.muted {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  text-align: center;
+  padding: var(--space-3) 0;
+}
+
+/* Zones et longueurs : des pastilles qui passent à la ligne sur un téléphone. */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.chip {
+  padding: 6px var(--space-3);
+  border-radius: var(--radius-pill);
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+.chip:hover {
+  background-color: var(--yellow-light);
+}
+
+.chipActive,
+.chipActive:hover {
+  background-color: var(--green);
+  border-color: var(--green);
+  color: var(--on-color);
+}
+
+.banner {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-m);
+  background-color: var(--blue-light);
+  color: var(--blue-dark);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.link {
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+  box-shadow: var(--shadow-card);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 10px var(--space-3);
+  font-weight: 700;
+}
+
+.row:nth-child(even) {
+  background-color: var(--sand);
+}
+
+/* Le joueur classé au-delà du top, ajouté en bas de liste. */
+.row[data-outside] {
+  border-top: 2px dashed var(--border);
+}
+
+.me,
+.me:nth-child(even) {
+  background-color: var(--green-light);
+  color: var(--green-dark);
+}
+
+.rank {
+  font-size: 16px;
+  font-weight: 800;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  color: var(--brown-dark);
+}
+
+.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.time {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.pace {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
