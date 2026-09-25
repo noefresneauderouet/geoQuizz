@@ -1,0 +1,139 @@
+/*
+ * L'écran Compte : une carte blanche, comme la boîte « Rejoindre une partie »
+ * (multi/join-dialog.module.css).
+ */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 100%;
+  max-width: 420px;
+  margin-inline: auto;
+  padding: var(--space-4);
+  border-radius: var(--radius-l);
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-card);
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.muted {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.help {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ink-soft);
+}
+
+.tabs {
+  display: flex;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border-radius: var(--radius-pill);
+  background-color: var(--sand);
+  border: 1px solid var(--border);
+}
+
+.tab {
+  flex: 1;
+  padding: 8px var(--space-2);
+  border-radius: var(--radius-pill);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--ink-soft);
+}
+
+.tabActive {
+  background-color: var(--green);
+  color: var(--on-color);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--brown-dark);
+}
+
+.note {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.input {
+  padding: 12px var(--space-3);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-m);
+  background-color: var(--sand);
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--green);
+  background-color: var(--card);
+}
+
+.error {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-s);
+  background-color: var(--danger-light);
+  color: var(--danger);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.primary {
+  display: block;
+  padding: 14px var(--space-3);
+  border-radius: var(--radius-pill);
+  background-color: var(--green);
+  color: var(--on-color);
+  font-weight: 800;
+  font-size: 16px;
+  text-align: center;
+}
+
+.primary:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.ghost {
+  padding: 10px var(--space-3);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  color: var(--brown-dark);
+  font-weight: 800;
+  text-align: center;
+}
+
+.ghost:hover {
+  background-color: var(--brown-light);
+}

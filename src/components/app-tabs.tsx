@@ -7,11 +7,13 @@ import styles from './app-tabs.module.css';
 
 const TABS = [
   { href: '/', label: 'Jouer' },
+  { href: '/classement', label: 'Classement' },
   { href: '/profil', label: 'Profil' },
 ] as const;
 
 /**
- * Deux onglets, pas plus : on apprend, ou on regarde sa progression.
+ * Trois onglets : on apprend, on se compare aux autres, ou on regarde sa
+ * progression.
  *
  * La barre s'efface pendant une partie. Un quiz est un écran plein, dont on
  * sort par sa propre croix ; laisser les onglets par-dessus invitait à

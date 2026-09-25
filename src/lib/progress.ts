@@ -150,6 +150,11 @@ export function recordRound(result: RoundResult): RoundOutcome {
   };
 }
 
+/** La progression telle qu'elle est, hors de React (voir leaderboard.ts). */
+export function readStats(): Stats {
+  return getSnapshot();
+}
+
 export function resetProgress() {
   commit(EMPTY_STATS);
 }

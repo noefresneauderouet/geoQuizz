@@ -17,6 +17,7 @@ import {
 } from '@/constants/categories';
 import { flagEmoji } from '@/lib/countries';
 import { vibrateSuccess } from '@/lib/feedback';
+import { submitRound, type Ranking } from '@/lib/leaderboard';
 import { NO_OUTCOME, recordRound, type RoundOutcome } from '@/lib/progress';
 import { buildRound, expectedAnswer, getQuestionCount, questionKey } from '@/lib/quiz';
 import { newGame, reducer, SOLVED_PAUSE_MS, type Game } from '@/lib/round';
@@ -24,16 +25,25 @@ import { formatDuration, formatSeconds, readWatch } from '@/lib/timer';
 
 import styles from './quiz-game.module.css';
 
-/** Enregistre la manche telle qu'elle se termine à l'instant `now`. */
-function record(game: Game, category: CategoryId, mode: ModeId, now: number): RoundOutcome {
-  return recordRound({
-    category,
-    mode,
-    score: game.found.length,
-    total: game.round.length,
-    durationMs: readWatch(game.watch, now),
-    bestStreak: game.bestStreak,
-  });
+/**
+ * Enregistre la manche telle qu'elle se termine à l'instant `now`, et envoie
+ * son temps au classement si elle est trouvée en entier. La réponse du
+ * classement arrive plus tard, par `onRanking`.
+ */
+function record(
+  game: Game,
+  category: CategoryId,
+  mode: ModeId,
+  now: number,
+  onRanking: (ranking: Ranking) => void,
+): RoundOutcome {
+  const score = game.found.length;
+  const total = game.round.length;
+  const durationMs = readWatch(game.watch, now);
+  if (score === total) {
+    void submitRound({ category, mode, length: total }, durationMs).then(onRanking);
+  }
+  return recordRound({ category, mode, score, total, durationMs, bestStreak: game.bestStreak });
 }
 
 /* ---------------------------------- Écran --------------------------------- */
@@ -74,6 +84,8 @@ function QuizRound() {
   const [endRequestedAt, setEndRequestedAt] = useState<number | null>(null);
   /** Effet de la manche terminée sur les records, lu par l'écran de fin. */
   const [outcome, setOutcome] = useState<RoundOutcome>(NO_OUTCOME);
+  /** Place au classement en ligne, une fois la réponse du serveur arrivée. */
+  const [ranking, setRanking] = useState<Ranking | null>(null);
 
   /*
    * Une réponse trouvée reste affichée un instant, puis la question suivante
@@ -89,7 +101,9 @@ function QuizRound() {
       const now = Date.now();
       // Dernière question trouvée : la manche est complète, et le chronomètre
       // est en pause depuis la réponse.
-      if (game.queue.length === 1) setOutcome(record(game, category.id, mode.id, now));
+      if (game.queue.length === 1) {
+        setOutcome(record(game, category.id, mode.id, now, setRanking));
+      }
       dispatch({ type: 'advance', now });
     }, delay);
     return () => clearTimeout(id);
@@ -101,6 +115,7 @@ function QuizRound() {
   const replay = () => {
     setEndRequestedAt(null);
     setOutcome(NO_OUTCOME);
+    setRanking(null);
     dispatch({ type: 'restart', round: buildRound(category.id, mode.id, count), now: Date.now() });
   };
 
@@ -124,6 +139,7 @@ function QuizRound() {
         modeLabel={mode.label}
         game={game}
         outcome={outcome}
+        ranking={ranking}
         onReplay={replay}
         onBack={() => router.push('/')}
       />
@@ -145,7 +161,7 @@ function QuizRound() {
       return;
     }
     const now = Date.now();
-    setOutcome(record(game, category.id, mode.id, now));
+    setOutcome(record(game, category.id, mode.id, now, setRanking));
     dispatch({ type: 'end', now });
   };
 
@@ -163,7 +179,9 @@ function QuizRound() {
           type="button"
           className={confirmingEnd ? `${styles.giveUp} ${styles.giveUpConfirm}` : styles.giveUp}
           onClick={end}>
-          {confirmingEnd ? 'Appuie encore pour terminer' : 'Terminer la partie et voir les réponses'}
+          {confirmingEnd
+            ? 'Appuie encore pour terminer'
+            : 'Terminer la partie et voir les réponses'}
         </button>
       }
     />
@@ -178,11 +196,13 @@ type SummaryProps = {
   game: Game;
   /** Le record d'avant la manche, et s'il vient d'être battu. */
   outcome: RoundOutcome;
+  /** `null` tant que le classement n'a pas répondu, ou si la manche n'y va pas. */
+  ranking: Ranking | null;
   onReplay: () => void;
   onBack: () => void;
 };
 
-function Summary({ category, modeLabel, game, outcome, onReplay, onBack }: SummaryProps) {
+function Summary({ category, modeLabel, game, outcome, ranking, onReplay, onBack }: SummaryProps) {
   const total = game.round.length;
   const score = game.found.length;
   const complete = game.queue.length === 0;
@@ -254,11 +274,13 @@ function Summary({ category, modeLabel, game, outcome, onReplay, onBack }: Summa
               ? ` · ${comebacks} retrouvée${comebacks > 1 ? 's' : ''} après avoir passé`
               : ''}
           </p>
-          <p className={styles.summaryMeta}>
-            {complete
-              ? 'Tout trouvé : c’est ce temps qui compte au classement.'
-              : 'Seule une manche trouvée en entier laisse un temps au classement.'}
-          </p>
+          {complete ? (
+            <RankingLine ranking={ranking} href={boardHref(category.id, game.round)} />
+          ) : (
+            <p className={styles.summaryMeta}>
+              Seule une manche trouvée en entier laisse un temps au classement.
+            </p>
+          )}
 
           {missed.length > 0 ? (
             <div className={styles.missed}>
@@ -290,5 +312,48 @@ function Summary({ category, modeLabel, game, outcome, onReplay, onBack }: Summa
         </div>
       </div>
     </CategoryBackground>
+  );
+}
+
+/** Le classement de la manche qu'on vient de jouer. */
+function boardHref(category: CategoryId, round: Game['round']): string {
+  return `/classement?category=${category}&mode=${round[0].mode}&length=${round.length}`;
+}
+
+/** Sous le chrono d'une manche complète : où elle place le joueur. */
+function RankingLine({ ranking, href }: { ranking: Ranking | null; href: string }) {
+  if (ranking === null) {
+    return <p className={styles.summaryMeta}>Envoi au classement…</p>;
+  }
+  if (ranking.status === 'guest') {
+    return (
+      <p className={styles.summaryMeta}>
+        <Link href="/compte" className={styles.rankingLink}>
+          Connecte-toi
+        </Link>{' '}
+        pour entrer au{' '}
+        <Link href={href} className={styles.rankingLink}>
+          classement
+        </Link>
+        .
+      </p>
+    );
+  }
+  if (ranking.status === 'queued') {
+    return (
+      <p className={styles.summaryMeta}>
+        Hors ligne : ton temps partira au classement dès le retour du réseau.
+      </p>
+    );
+  }
+  return (
+    <p className={styles.ranking}>
+      <span aria-hidden="true">🏅</span> {ranking.rank === 1 ? '1er' : `${ranking.rank}e`} au
+      classement
+      {ranking.improved ? '' : ` · ton record : ${formatDuration(ranking.bestMs)}`} ·{' '}
+      <Link href={href} className={styles.rankingLink}>
+        Voir
+      </Link>
+    </p>
   );
 }
