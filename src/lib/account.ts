@@ -123,7 +123,14 @@ export async function readAccount(): Promise<Account> {
 /* -------------------------------- Actions -------------------------------- */
 
 export const MIN_NAME_LENGTH = 3;
-export const MIN_PASSWORD_LENGTH = 6;
+export const MIN_PASSWORD_LENGTH = 8;
+
+/**
+ * Lettres latines (accents compris), chiffres, `_` et `-`, mots séparés par
+ * une espace : pas de caractère invisible ni d'inversion du sens d'écriture.
+ * La base applique la même règle (contrainte `profiles_username_charset`).
+ */
+const USERNAME_PATTERN = /^[A-Za-z0-9À-ÖØ-öø-ÿŒœ_-]+( [A-Za-z0-9À-ÖØ-öø-ÿŒœ_-]+)*$/u;
 export { MAX_NAME_LENGTH };
 
 /** Un échec affichable tel quel, ou rien quand tout s'est bien passé. */
@@ -136,14 +143,22 @@ export type SignUpResult =
   /** Un lien de confirmation vient de partir. */
   | { status: 'confirm-email' };
 
+/**
+ * `captchaToken` : la réponse du CAPTCHA (src/components/account/captcha.tsx),
+ * quand il est activé. Supabase Auth la vérifie ; sans CAPTCHA, elle est vide.
+ */
 export async function signUp(
   email: string,
   password: string,
   rawUsername: string,
+  captchaToken?: string,
 ): Promise<SignUpResult> {
   const username = cleanName(rawUsername);
   if (username.length < MIN_NAME_LENGTH) {
     return { error: `Le pseudo doit faire au moins ${MIN_NAME_LENGTH} caractères.` };
+  }
+  if (!USERNAME_PATTERN.test(username)) {
+    return { error: 'Le pseudo ne peut contenir que des lettres, des chiffres, _ et -.' };
   }
   if (password.length < MIN_PASSWORD_LENGTH) {
     return { error: `Le mot de passe doit faire au moins ${MIN_PASSWORD_LENGTH} caractères.` };
@@ -165,6 +180,7 @@ export async function signUp(
       options: {
         data: { username },
         emailRedirectTo: `${globalThis.location.origin}/compte`,
+        captchaToken,
       },
     });
     if (error) return { error: describe(error) };
@@ -185,13 +201,16 @@ export async function signUp(
 }
 
 /** Renvoie le lien de confirmation, s'il s'est perdu ou a expiré. */
-export async function resendConfirmation(email: string): Promise<Failure | null> {
+export async function resendConfirmation(
+  email: string,
+  captchaToken?: string,
+): Promise<Failure | null> {
   try {
     const auth = await getAuth();
     const { error } = await auth.resend({
       type: 'signup',
       email: email.trim(),
-      options: { emailRedirectTo: `${globalThis.location.origin}/compte` },
+      options: { emailRedirectTo: `${globalThis.location.origin}/compte`, captchaToken },
     });
     return error ? { error: describe(error) } : null;
   } catch {
@@ -199,11 +218,19 @@ export async function resendConfirmation(email: string): Promise<Failure | null>
   }
 }
 
-export async function signIn(email: string, password: string): Promise<Failure | null> {
+export async function signIn(
+  email: string,
+  password: string,
+  captchaToken?: string,
+): Promise<Failure | null> {
   try {
     const auth = await getAuth();
     if (!loaded) void load();
-    const { data, error } = await auth.signInWithPassword({ email: email.trim(), password });
+    const { data, error } = await auth.signInWithPassword({
+      email: email.trim(),
+      password,
+      options: { captchaToken },
+    });
     if (error) return { error: describe(error) };
     set(fromSession(data.session));
     return null;
@@ -220,6 +247,22 @@ export async function signOut(): Promise<void> {
   } finally {
     set({ status: 'guest' });
   }
+}
+
+/**
+ * Efface le compte, son pseudo et ses temps (fonction `delete_account` de la
+ * base), puis déconnecte l'appareil.
+ */
+export async function deleteAccount(): Promise<Failure | null> {
+  try {
+    const db = await getDb();
+    const { error } = await db.rpc('delete_account');
+    if (error) return { error: NETWORK_ERROR };
+  } catch {
+    return { error: NETWORK_ERROR };
+  }
+  await signOut();
+  return null;
 }
 
 const NETWORK_ERROR = 'Connexion au serveur impossible. Vérifie ton réseau et réessaie.';
@@ -242,6 +285,8 @@ function describe(error: AuthError): string {
     case 'over_email_send_rate_limit':
     case 'over_request_rate_limit':
       return 'Trop de tentatives. Réessaie dans quelques minutes.';
+    case 'captcha_failed':
+      return 'La vérification anti-robot a échoué. Réessaie.';
     case 'signup_disabled':
       return 'Les inscriptions sont fermées pour le moment.';
     default:

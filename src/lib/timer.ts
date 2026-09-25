@@ -18,6 +18,15 @@ export type Stopwatch = {
   since: number | null;
 };
 
+/**
+ * L'horloge du chronomètre : le temps écoulé depuis l'ouverture de la page,
+ * qui ne suit pas l'heure du système. Reculer l'heure du téléphone en pleine
+ * manche ne retire donc rien au chrono.
+ */
+export function clock(): number {
+  return performance.now();
+}
+
 export const IDLE_WATCH: Stopwatch = { elapsed: 0, since: null };
 
 /** Relance le chronomètre. Sans effet s'il tourne déjà. */

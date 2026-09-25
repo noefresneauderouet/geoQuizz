@@ -15,13 +15,15 @@
  *   tirage), `progress` (une réponse trouvée), `finish` (quelqu'un a tout
  *   trouvé, tout le monde s'arrête) et `reset` (retour en salle d'attente).
  *
- * Chaque client est de confiance : c'est un jeu entre amis, pas un classement
- * public. Rien ici ne dépend de React ; src/components/multi/use-room.ts
+ * C'est un jeu entre amis, pas un classement public : les invités n'ont pas
+ * de compte, et rien ne prouve qui envoie un message. On se contente donc de
+ * vérifier que chaque message reçu est bien formé (`parseStart`…), et les
+ * parties à plusieurs n'entrent jamais au classement. Rien ici ne dépend de React ; src/components/multi/use-room.ts
  * l'enveloppe dans un hook.
  */
 import type { RealtimeChannel, RealtimeClient } from '@supabase/realtime-js';
 
-import type { CategoryId, ModeId } from '@/constants/categories';
+import { categoriesFor, MODES, type CategoryId, type ModeId } from '@/constants/categories';
 import { getItem, setItem } from '@/lib/storage';
 import { isSupabaseConfigured, supabaseKey, supabaseUrl } from '@/lib/supabase';
 
@@ -123,7 +125,7 @@ export function setPlayerName(name: string): void {
 }
 
 export function cleanName(name: string): string {
-  return name.trim().replace(/\s+/g, ' ').slice(0, MAX_NAME_LENGTH);
+  return name.normalize('NFC').trim().replace(/\s+/g, ' ').slice(0, MAX_NAME_LENGTH);
 }
 
 /*
@@ -229,6 +231,87 @@ export type RoomConnection = {
   leave: () => void;
 };
 
+/*
+ * Ce qui arrive du canal vient de n'importe qui connaissant le code : on ne
+ * transmet à l'écran que des messages bien formés, aux valeurs plausibles.
+ * Un message qui ne l'est pas est ignoré.
+ */
+
+const isGame = (value: unknown): value is number =>
+  Number.isInteger(value) && (value as number) >= 0 && (value as number) < 1_000_000;
+
+const isPlayerId = (value: unknown): value is string =>
+  typeof value === 'string' && /^[0-9a-f-]{1,64}$/.test(value);
+
+function isSettings(value: unknown): value is RoomSettings {
+  if (typeof value !== 'object' || value === null) return false;
+  const { category, mode, count, limit } = value as Record<string, unknown>;
+  return (
+    MODES.some((m) => m.id === mode) &&
+    categoriesFor(mode as ModeId).some((c) => c.id === category) &&
+    Number.isInteger(count) &&
+    (count as number) >= 1 &&
+    (count as number) <= 50 &&
+    TIME_LIMITS.some((l) => l === limit)
+  );
+}
+
+function parseStart(payload: unknown): StartMessage | null {
+  const m = payload as Partial<StartMessage> | null;
+  return m && isGame(m.game) && Number.isInteger(m.seed) && isSettings(m.settings)
+    ? { game: m.game, seed: m.seed as number, settings: m.settings }
+    : null;
+}
+
+function parseFinish(payload: unknown): FinishMessage | null {
+  const m = payload as Partial<FinishMessage> | null;
+  return m && isGame(m.game) && isPlayerId(m.playerId) ? { game: m.game, playerId: m.playerId } : null;
+}
+
+function parseReset(payload: unknown): ResetMessage | null {
+  const m = payload as Partial<ResetMessage> | null;
+  return m && isGame(m.game) ? { game: m.game } : null;
+}
+
+function parseProgress(payload: unknown): ProgressMessage | null {
+  const m = payload as Partial<ProgressMessage> | null;
+  return m &&
+    isGame(m.game) &&
+    isPlayerId(m.playerId) &&
+    Number.isInteger(m.found) &&
+    (m.found as number) >= 0 &&
+    (m.found as number) <= 50 &&
+    typeof m.reachedMs === 'number' &&
+    Number.isFinite(m.reachedMs) &&
+    m.reachedMs >= 0
+    ? { game: m.game, playerId: m.playerId, found: m.found as number, reachedMs: m.reachedMs }
+    : null;
+}
+
+/** Un état de joueur publié dans la salle, nettoyé ; `null` s'il est mal formé. */
+function parsePlayer(value: unknown): PlayerState | null {
+  const p = value as Partial<PlayerState> | null;
+  if (!p || !isPlayerId(p.id) || typeof p.name !== 'string') return null;
+  if (!['lobby', 'playing', 'done'].includes(p.status as string) || !isGame(p.game)) return null;
+  return {
+    id: p.id,
+    name: cleanName(p.name),
+    host: p.host === true,
+    joinedAt: typeof p.joinedAt === 'number' && Number.isFinite(p.joinedAt) ? p.joinedAt : 0,
+    status: p.status as PlayerStatus,
+    game: p.game,
+    settings: isSettings(p.settings) ? p.settings : undefined,
+  };
+}
+
+/** Appelle `handler` avec le message, s'il est valable. */
+function when<T>(parse: (payload: unknown) => T | null, handler: (message: T) => void) {
+  return ({ payload }: { payload: unknown }) => {
+    const message = parse(payload);
+    if (message) handler(message);
+  };
+}
+
 /** Vrai si le projet Supabase est configuré dans cette construction. */
 export const isMultiplayerConfigured = isSupabaseConfigured;
 
@@ -275,18 +358,15 @@ export function joinRoom(code: string, self: PlayerState, handlers: RoomHandlers
       // Un même joueur peut apparaître deux fois le temps d'une reconnexion :
       // on garde sa publication la plus récente.
       const players: PlayerState[] = Object.values(state)
-        .map((entries) => entries[entries.length - 1])
-        .filter(Boolean);
+        .map((entries) => parsePlayer(entries[entries.length - 1]))
+        .filter((player) => player !== null)
+        .slice(0, MAX_PLAYERS * 2);
       handlers.onPlayers(players);
     })
-      .on('broadcast', { event: 'start' }, ({ payload }) => handlers.onStart(payload as StartMessage))
-      .on('broadcast', { event: 'finish' }, ({ payload }) =>
-        handlers.onFinish(payload as FinishMessage),
-      )
-      .on('broadcast', { event: 'reset' }, ({ payload }) => handlers.onReset(payload as ResetMessage))
-      .on('broadcast', { event: 'progress' }, ({ payload }) =>
-        handlers.onProgress(payload as ProgressMessage),
-      )
+      .on('broadcast', { event: 'start' }, when(parseStart, handlers.onStart))
+      .on('broadcast', { event: 'finish' }, when(parseFinish, handlers.onFinish))
+      .on('broadcast', { event: 'reset' }, when(parseReset, handlers.onReset))
+      .on('broadcast', { event: 'progress' }, when(parseProgress, handlers.onProgress))
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
           subscribed = true;

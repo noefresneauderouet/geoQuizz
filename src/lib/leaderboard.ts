@@ -3,20 +3,18 @@
  * longueur de manche — le même chiffre que le record du profil (voir
  * progress.ts), seulement pour les manches trouvées en entier.
  *
- * Lecture et écriture passent chacune par **une** fonction de la base
- * (supabase/migrations) : un seul aller-retour, sur un index déjà trié.
+ * La lecture passe par **une** fonction de la base (supabase/migrations) :
+ * un seul aller-retour, sur un index déjà trié. L'écriture en demande deux,
+ * une à chaque bout de la manche, pour que la base en mesure la durée.
  *
- * Côté appareil :
- * - les temps à envoyer attendent dans une file locale. Une manche finie hors
- *   ligne, ou pendant une panne de Supabase, part au retour du réseau ;
- * - le dernier classement lu est gardé : il s'affiche aussitôt à la visite
- *   suivante, pendant qu'on va chercher le frais, et reste lisible hors ligne.
+ * Le dernier classement lu est gardé sur l'appareil : il s'affiche aussitôt à
+ * la visite suivante, pendant qu'on va chercher le frais, et reste lisible
+ * hors ligne.
  *
  * Rien ici ne dépend de React.
  */
 import type { CategoryId, ModeId } from '@/constants/categories';
-import { onSignedIn, readAccount } from '@/lib/account';
-import type { Stats } from '@/lib/progress';
+import { readAccount } from '@/lib/account';
 import { getItem, setItem } from '@/lib/storage';
 import { getDb, hasStoredSession, isSupabaseConfigured } from '@/lib/supabase';
 
@@ -111,83 +109,37 @@ export async function fetchBoard(key: BoardKey, viewer: string | null): Promise<
 
 /* -------------------------------- Écriture -------------------------------- */
 
-const QUEUE_KEY = 'geolearn.leaderboard.pending.v1';
+/**
+ * Le temps ne vient pas du navigateur seul : la base ouvre la manche
+ * (`start_round`), note l'heure, et compare à la fin le temps annoncé au temps
+ * réellement écoulé (`finish_round`, supabase/migrations). Le chronomètre ne
+ * doit donc partir qu'une fois la manche ouverte.
+ *
+ * Conséquence voulue : une manche jouée hors ligne ne compte pas au
+ * classement. Elle reste un record sur l'appareil.
+ */
 
-type Pending = BoardKey & { ms: number };
+const START_TIMEOUT_MS = 5000;
 
-function readQueue(): Pending[] {
-  try {
-    return JSON.parse(getItem(QUEUE_KEY) ?? '[]') as Pending[];
-  } catch {
-    return [];
-  }
-}
-
-function writeQueue(queue: Pending[]) {
-  setItem(QUEUE_KEY, JSON.stringify(queue));
-}
-
-/** Ajoute des temps à la file, en ne gardant que le meilleur par classement. */
-function enqueue(items: Pending[]) {
-  const byId = new Map(readQueue().map((item) => [boardId(item), item]));
-  for (const item of items) {
-    const previous = byId.get(boardId(item));
-    if (!previous || item.ms < previous.ms) byId.set(boardId(item), item);
-  }
-  writeQueue([...byId.values()]);
-}
-
-type Submitted = BoardKey & { bestMs: number; rank: number; improved: boolean };
-
-let flushing: Promise<Submitted[] | null> | null = null;
+/** Une manche ouverte au classement : son identifiant côté base. */
+export type RankedRound = { id: string; key: BoardKey };
 
 /**
- * Envoie toute la file en une requête. `null` si rien n'est parti (hors
- * ligne, déconnecté, Supabase en panne) : la file reste pour la prochaine fois.
+ * Ouvre une manche classée, ou rend `null` : invité, pas de Supabase, hors
+ * ligne, ou refus de la base. Un invité ne charge rien.
  */
-function flush(): Promise<Submitted[] | null> {
-  // `finally` sur la promesse, pas dans la fonction : une file vide se règle
-  // aussitôt, et remettrait `flushing` à zéro avant qu'il soit assigné.
-  flushing ??= send().finally(() => {
-    flushing = null;
-  });
-  return flushing;
-}
-
-async function send(): Promise<Submitted[] | null> {
+export async function startRankedRound(key: BoardKey): Promise<RankedRound | null> {
+  if (!isSupabaseConfigured() || !hasStoredSession()) return null;
   try {
-    const queue = readQueue();
-    if (queue.length === 0) return [];
     const account = await readAccount();
     if (account.status !== 'signed-in') return null;
-
     const db = await getDb();
-    const { data, error } = await db.rpc('submit_scores', { p_scores: queue });
-    if (error) return null;
-
-    // Ce qui a été ajouté pendant l'envoi reste dans la file.
-    const sent = new Set(queue.map((item) => `${boardId(item)}:${item.ms}`));
-    writeQueue(readQueue().filter((item) => !sent.has(`${boardId(item)}:${item.ms}`)));
-
-    type RawSubmitted = {
-      category: CategoryId;
-      mode: ModeId;
-      length: number;
-      best_ms: number;
-      rank: number;
-      improved: boolean;
-    };
-    const results = ((data ?? []) as RawSubmitted[]).map((row) => ({
-      category: row.category,
-      mode: row.mode,
-      length: row.length,
-      bestMs: row.best_ms,
-      rank: Number(row.rank),
-      improved: row.improved,
-    }));
-    // Les classements touchés sont à relire.
-    if (cache) for (const row of results) delete cache[boardId(row)];
-    return results;
+    // Un réseau qui traîne ne doit pas bloquer la partie : passé ce délai, on
+    // joue hors classement.
+    const { data, error } = await db
+      .rpc('start_round', { p_category: key.category, p_mode: key.mode, p_length: key.length })
+      .abortSignal(AbortSignal.timeout(START_TIMEOUT_MS));
+    return error || typeof data !== 'string' ? null : { id: data, key };
   } catch {
     return null;
   }
@@ -199,63 +151,40 @@ export type Ranking =
   | { status: 'guest' }
   /** Temps retenu ; `improved` si c'est un nouveau record en ligne. */
   | { status: 'saved'; rank: number; bestMs: number; improved: boolean }
-  /** Pas de réseau : le temps partira tout seul plus tard. */
-  | { status: 'queued' };
+  /** La manche n'a pas pu s'ouvrir ou se fermer (réseau) : hors classement. */
+  | { status: 'offline' }
+  /** La base a refusé le temps. */
+  | { status: 'rejected' };
+
+type RawSubmitted = { best_ms: number; rank: number; improved: boolean };
 
 /**
- * Envoie le temps d'une manche trouvée en entier.
- *
- * Appelée à la fin de chaque manche complète. Un invité ne charge rien : on
- * regarde seulement si une session existe sur l'appareil.
+ * Ferme une manche trouvée en entier. `round` vaut `null` quand elle n'a pas
+ * pu s'ouvrir : on dit alors pourquoi elle ne compte pas.
  */
-export async function submitRound(key: BoardKey, durationMs: number): Promise<Ranking> {
+export async function finishRankedRound(
+  round: RankedRound | null,
+  durationMs: number,
+): Promise<Ranking> {
   if (!isSupabaseConfigured() || !hasStoredSession()) return { status: 'guest' };
-  const ms = Math.round(durationMs);
-  enqueue([{ ...key, ms }]);
-  // Un envoi déjà en route (celui du démarrage) ne contient pas ce temps.
-  if (flushing) await flushing;
-  const results = await flush();
-  if (results === null) return { status: 'queued' };
-  const mine = results.find((row) => boardId(row) === boardId(key));
-  // Refusé par la base (temps impossible) : on n'en dit rien.
-  if (!mine) return { status: 'guest' };
-  return { status: 'saved', rank: mine.rank, bestMs: mine.bestMs, improved: mine.improved };
-}
-
-/* ------------------------------- Au démarrage ------------------------------ */
-
-const importedKey = (userId: string) => `geolearn.leaderboard.imported.${userId}`;
-
-/**
- * À la première connexion d'un compte sur cet appareil, les records déjà
- * faits ici rejoignent le classement. La base ne garde que le meilleur : les
- * renvoyer ne ferait rien de mal, mais on ne le fait qu'une fois.
- */
-function importLocalRecords(userId: string, stats: Stats) {
-  if (getItem(importedKey(userId))) return;
-  const items = Object.entries(stats.bestTime).flatMap(([id, ms]) => {
-    const [category, mode, length] = id.split(':');
-    return ms === undefined
-      ? []
-      : [{ category: category as CategoryId, mode: mode as ModeId, length: Number(length), ms }];
-  });
-  if (items.length > 0) enqueue(items);
-  setItem(importedKey(userId), '1');
-}
-
-let started = false;
-
-/**
- * Relance la file au chargement, à chaque connexion et au retour du réseau.
- * `readStats` est passé par l'appelant : progress.ts porte des hooks React, et
- * ce module n'en dépend pas.
- */
-export function startLeaderboardSync(readStats: () => Stats): void {
-  if (started || !isSupabaseConfigured()) return;
-  started = true;
-  onSignedIn((account) => {
-    importLocalRecords(account.id, readStats());
-    void flush();
-  });
-  globalThis.addEventListener?.('online', () => void flush());
+  if (round === null) return { status: 'offline' };
+  try {
+    const db = await getDb();
+    const { data, error } = await db.rpc('finish_round', {
+      p_round: round.id,
+      p_ms: Math.round(durationMs),
+    });
+    if (error) return { status: 'offline' };
+    const row = ((data ?? []) as RawSubmitted[])[0];
+    if (!row) return { status: 'rejected' };
+    if (cache) delete cache[boardId(round.key)];
+    return {
+      status: 'saved',
+      rank: Number(row.rank),
+      bestMs: row.best_ms,
+      improved: row.improved,
+    };
+  } catch {
+    return { status: 'offline' };
+  }
 }

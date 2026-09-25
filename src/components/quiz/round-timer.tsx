@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
-import { formatDuration, readWatch, type Stopwatch } from '@/lib/timer';
+import { clock, formatDuration, readWatch, type Stopwatch } from '@/lib/timer';
 
 import styles from './round-timer.module.css';
 
@@ -26,7 +26,7 @@ type Props = {
  * dans le `Stopwatch` passé en accessoire — ce composant ne fait que le lire.
  */
 export function RoundTimer({ watch, deadline = null }: Props) {
-  const read = () => (deadline === null ? readWatch(watch, Date.now()) : deadline - Date.now());
+  const read = () => (deadline === null ? readWatch(watch, clock()) : deadline - Date.now());
   const [ms, setMs] = useState(read);
 
   useEffect(() => {
