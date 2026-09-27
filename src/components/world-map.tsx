@@ -68,6 +68,31 @@ const ZOOM_PADDING = 0.40;
  */
 const ZOOM_REFERENCE = '218';
 
+/**
+ * Les États insulaires des Caraïbes zoomés un cran plus fort que l'étalon.
+ *
+ * À l'échelle de l'Équateur, la Grenade ou Saint-Christophe ne sont qu'un point
+ * au milieu des Antilles. Le plafond est relevé pour eux seuls : Cuba, assez
+ * grande pour tenir sous le plafond, ne bouge pas, puisque le cadrage la
+ * borne toujours à la même part de l'écran.
+ */
+const CARIBBEAN_ISLANDS = new Set([
+  '028', // Antigua-et-Barbuda
+  '044', // Bahamas
+  '052', // Barbade
+  '192', // Cuba
+  '212', // Dominique
+  '214', // République dominicaine
+  '308', // Grenade
+  '332', // Haïti
+  '388', // Jamaïque
+  '659', // Saint-Christophe-et-Niévès
+  '662', // Sainte-Lucie
+  '670', // Saint-Vincent-et-les-Grenadines
+  '780', // Trinité-et-Tobago
+]);
+const CARIBBEAN_ZOOM = 1.5;
+
 
 /**
  * Un pays plus petit que ce seuil (en pixels) reçoit un cercle de repérage.
@@ -490,7 +515,11 @@ export function WorldMap({ country, category, zoomed, scope }: Props) {
     if (!size) return null;
     const position = lonLat(country);
     const target = DETAILED_BY_ID.get(country.numeric);
-    const scaleBounds = zoomBounds(size);
+    const [minScale, maxScale] = zoomBounds(size);
+    const scaleBounds: [number, number] = [
+      minScale,
+      CARIBBEAN_ISLANDS.has(country.numeric) ? maxScale * CARIBBEAN_ZOOM : maxScale,
+    ];
 
     // Un pays absent du fond de carte : on cadre sur ses coordonnées et
     // l'anneau fait tout le travail. Les 196 en ont une depuis le passage au
