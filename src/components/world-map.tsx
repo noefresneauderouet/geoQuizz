@@ -69,7 +69,7 @@ const ZOOM_PADDING = 0.40;
 const ZOOM_REFERENCE = '218';
 
 /**
- * Les États insulaires des Caraïbes zoomés un cran plus fort que l'étalon.
+ * Les États insulaires des Caraïbes zoomés trois fois plus fort que l'étalon.
  *
  * À l'échelle de l'Équateur, la Grenade ou Saint-Christophe ne sont qu'un point
  * au milieu des Antilles. Le plafond est relevé pour eux seuls : Cuba, assez
@@ -91,7 +91,7 @@ const CARIBBEAN_ISLANDS = new Set([
   '670', // Saint-Vincent-et-les-Grenadines
   '780', // Trinité-et-Tobago
 ]);
-const CARIBBEAN_ZOOM = 1.5;
+const CARIBBEAN_ZOOM = 3;
 
 
 /**
