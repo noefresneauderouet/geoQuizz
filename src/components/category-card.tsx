@@ -15,6 +15,8 @@ type Props = {
   total: number;
   mode: ModeId;
   count: QuestionCount;
+  /** Zone de la dernière partie, dans ce mode : elle porte une pastille. */
+  last?: boolean;
   /** La carte « Monde » occupe toute la largeur et sert d'entrée principale. */
   featured?: boolean;
 };
@@ -33,19 +35,21 @@ export function CategoryCard({
   total,
   mode,
   count,
+  last = false,
   featured = false,
 }: Props) {
   return (
     <Link
       href={`/quiz?category=${category.id}&mode=${mode}&count=${count}`}
       className={`${styles.card} ${featured ? styles.featured : styles.tile}`}
-      aria-label={`${category.label}, ${meta} — ${category.tagline}`}>
+      aria-label={`${category.label}, ${meta} — ${category.tagline}${last ? ' (dernière partie)' : ''}`}>
       <CategoryBackground category={category} className={styles.background}>
         <div className={styles.content}>
           <div className={styles.topRow}>
             <span className={styles.emoji} aria-hidden="true">
               {category.emoji}
             </span>
+            {last ? <span className={styles.badge}>Dernière partie</span> : null}
           </div>
 
           <div className={styles.bottom}>

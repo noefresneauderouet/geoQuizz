@@ -7,6 +7,7 @@ import { CategoryCard } from '@/components/category-card';
 import { CountSelector } from '@/components/count-selector';
 import { ModeSelector } from '@/components/mode-selector';
 import { JoinDialog } from '@/components/multi/join-dialog';
+import { useLastGame } from '@/components/use-last-game';
 import {
   CATEGORIES,
   isRegionSet,
@@ -41,8 +42,17 @@ function sizeLabel(id: CategoryId): string {
  * l'hydratation, sans que la page ait jamais été vide.
  */
 export function ZonePicker() {
-  const [mode, setMode] = useState<ModeId>('drapeau');
-  const [count, setCount] = useState<QuestionCount>(DEFAULT_QUESTION_COUNT);
+  /*
+   * Tant qu'on n'a rien touché, l'accueil reprend les réglages de la dernière
+   * partie. Ils ne sont connus qu'après l'hydratation (useLastGame) : les
+   * garder à part, plutôt que de les recopier dans l'état par un effet,
+   * laisse le premier rendu identique au HTML compilé.
+   */
+  const last = useLastGame();
+  const [chosenMode, setMode] = useState<ModeId | null>(null);
+  const [chosenCount, setCount] = useState<QuestionCount | null>(null);
+  const mode = chosenMode ?? last?.mode ?? 'drapeau';
+  const count = chosenCount ?? last?.count ?? DEFAULT_QUESTION_COUNT;
   const stats = useStats();
 
   const activeMode = MODES.find((m) => m.id === mode) ?? MODES[0];
@@ -62,6 +72,7 @@ export function ZonePicker() {
       total={lengthOf(category.id)}
       mode={mode}
       count={count}
+      last={last?.mode === mode && last.category === category.id}
     />
   );
 
