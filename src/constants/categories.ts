@@ -46,11 +46,10 @@ const PHOTOS: Record<CategoryId, string | null> = {
   asie: '/categories/asie.jpg',
   europe: '/categories/europe.jpg',
   oceanie: '/categories/oceanie.jpg',
-  // Pas encore de photo : ces pays jouent sur leur dégradé.
-  'etats-unis': null,
-  france: null,
-  espagne: null,
-  chine: null,
+  'etats-unis': '/categories/etats-unis.jpg',
+  france: '/categories/france.jpg',
+  espagne: '/categories/espagne.jpg',
+  chine: '/categories/chine.jpg',
 };
 
 export const CATEGORIES: readonly Category<ZoneId>[] = [
