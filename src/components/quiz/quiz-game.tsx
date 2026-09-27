@@ -23,6 +23,7 @@ import {
   type RankedRound,
   type Ranking,
 } from '@/lib/leaderboard';
+import { saveLastGame } from '@/lib/last-game';
 import { NO_OUTCOME, recordRound, type RoundOutcome } from '@/lib/progress';
 import { buildRound, expectedAnswer, getQuestionCount, poolSize, questionKey } from '@/lib/quiz';
 import { newGame, reducer, SOLVED_PAUSE_MS, type Game } from '@/lib/round';
@@ -105,6 +106,11 @@ function QuizRound() {
       setPreparing(false);
     });
   };
+
+  // L'accueil reprendra ces réglages au retour (src/lib/last-game.ts).
+  useEffect(() => {
+    saveLastGame({ category: category.id, mode: mode.id, count });
+  }, [category.id, mode.id, count]);
 
   // Une fois, à l'ouverture : les réglages viennent de l'URL et ne changent pas.
   useEffect(() => {
