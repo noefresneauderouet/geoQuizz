@@ -150,6 +150,18 @@ const DETAILED_BY_ID = new Map(DETAILED.map((s) => [s.id, s]));
 /** Au-delà de cette échelle, le 110m devient visiblement anguleux. */
 const DETAIL_ABOVE_SCALE = 300;
 
+/**
+ * Le 110m complété des États qu'il ignore, pris au 50m.
+ *
+ * C'est le fond de la vue zoomée sous DETAIL_ABOVE_SCALE. Le 110m seul y
+ * effaçait les voisins d'une île : clavier ouvert, le cadre perd la moitié de
+ * sa hauteur, l'échelle retombe sous le seuil, et Samoa, Tuvalu ou la Grenade,
+ * absents du 110m, disparaissaient autour de Tonga ou de Saint-Vincent. Ces
+ * petits États pèsent peu : les ajouter ne coûte presque rien.
+ */
+const COARSE_IDS = new Set(COARSE.map((s) => s.id));
+const COARSE_COMPLETE = [...COARSE, ...DETAILED.filter((s) => !COARSE_IDS.has(s.id))];
+
 
 const ALL_LAND: GeoJSON.GeoJsonObject = {
   type: 'FeatureCollection',
@@ -303,6 +315,9 @@ type Framing = {
    * autour du pays n'est que du contexte, et le pays cherché, lui, vient
    * toujours du 50m. Elle couvre un continent entier : le 50m y coûterait
    * 30 ms de projection et 200 ko de tracés à chaque question.
+   *
+   * Sous le seuil, la vue zoomée garde les petits États (COARSE_COMPLETE) :
+   * autour d'une île, ses voisines sont le seul repère.
    */
   detail?: boolean;
 };
@@ -380,7 +395,12 @@ function project(
   const path = geoPath(projection);
 
   const land: string[] = [];
-  for (const shape of detail && projection.scale() > DETAIL_ABOVE_SCALE ? DETAILED : COARSE) {
+  const base = !detail
+    ? COARSE
+    : projection.scale() > DETAIL_ABOVE_SCALE
+      ? DETAILED
+      : COARSE_COMPLETE;
+  for (const shape of base) {
     if (shape.id === target) continue;
     const d = path(shape.geometry as never);
     if (d) land.push(d);
