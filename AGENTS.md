@@ -68,6 +68,8 @@ passe, pseudo) et **Postgres**, appelés depuis le navigateur.
   question) et `finish_round` la ferme en confrontant le temps annoncé au
   temps écoulé côté base. Ne réintroduis pas d'envoi de temps sans manche
   ouverte : c'était la faille de `submit_scores`, supprimée.
+  Une manche qui ne sera pas trouvée en entier (arrêtée, écran quitté) est
+  effacée par `cancel_round` ; la base nettoie celles de plus de deux heures.
 - Les classements permis sont dans la table `boards`. Une nouvelle zone ou
   une nouvelle longueur de manche demande une migration qui les y ajoute.
 - Retirer un tricheur : `select public.ban_player('Pseudo');` dans le SQL
