@@ -145,6 +145,18 @@ export async function startRankedRound(key: BoardKey): Promise<RankedRound | nul
   }
 }
 
+/**
+ * Efface une manche ouverte qui ne sera pas trouvée en entier : arrêtée en
+ * cours de route, ou écran quitté. Sans réponse attendue ; ce qui échoue ici
+ * (hors ligne) est nettoyé plus tard par la base.
+ */
+export function cancelRankedRound(round: RankedRound | null): void {
+  if (round === null) return;
+  void getDb()
+    .then((db) => db.rpc('cancel_round', { p_round: round.id }))
+    .catch(() => undefined);
+}
+
 /** Ce que l'écran de fin affiche sous le chrono. */
 export type Ranking =
   /** Pas de compte sur cet appareil (ou pas de Supabase) : rien n'est envoyé. */

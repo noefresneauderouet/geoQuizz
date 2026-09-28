@@ -18,6 +18,7 @@ import {
 import { flagEmoji } from '@/lib/countries';
 import { vibrateSuccess } from '@/lib/feedback';
 import {
+  cancelRankedRound,
   finishRankedRound,
   startRankedRound,
   type RankedRound,
@@ -34,8 +35,8 @@ import styles from './quiz-game.module.css';
 
 /**
  * Enregistre la manche telle qu'elle se termine à l'instant `now`, et ferme
- * la manche classée si elle est trouvée en entier. La réponse du classement
- * arrive plus tard, par `onRanking`.
+ * la manche classée : elle compte si elle est trouvée en entier, sinon elle
+ * est effacée. La réponse du classement arrive plus tard, par `onRanking`.
  */
 function record(
   game: Game,
@@ -50,6 +51,8 @@ function record(
   const durationMs = readWatch(game.watch, now);
   if (score === total) {
     void finishRankedRound(ranked, durationMs).then(onRanking);
+  } else {
+    cancelRankedRound(ranked);
   }
   return recordRound({ category, mode, score, total, durationMs, bestStreak: game.bestStreak });
 }
@@ -95,12 +98,17 @@ function QuizRound() {
    */
   const [preparing, setPreparing] = useState(() => hasStoredSession());
   const ranked = useRef<RankedRound | null>(null);
+  /** L'écran est quitté : une manche qui s'ouvre après ne sert plus. */
+  const left = useRef(false);
   const length = Math.min(count, poolSize(category.id, mode.id));
 
   /** Ouvre la manche classée, puis lance le chrono sur une manche neuve. */
   const open = (isCancelled: () => boolean) => {
     void startRankedRound({ category: category.id, mode: mode.id, length }).then((round) => {
-      if (isCancelled()) return;
+      if (isCancelled()) {
+        cancelRankedRound(round);
+        return;
+      }
       ranked.current = round;
       dispatch({ type: 'restart', round: buildRound(category.id, mode.id, count), now: clock() });
       setPreparing(false);
@@ -122,6 +130,17 @@ function QuizRound() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Quitter l'écran en pleine partie efface la manche classée encore ouverte.
+  useEffect(() => {
+    left.current = false;
+    return () => {
+      left.current = true;
+      cancelRankedRound(ranked.current);
+      ranked.current = null;
+    };
+  }, []);
+
   /** Question sur laquelle l'arrêt a été demandé, en attente de confirmation. */
   const [endRequestedAt, setEndRequestedAt] = useState<number | null>(null);
   /** Effet de la manche terminée sur les records, lu par l'écran de fin. */
@@ -145,6 +164,7 @@ function QuizRound() {
       // est en pause depuis la réponse.
       if (game.queue.length === 1) {
         setOutcome(record(game, category.id, mode.id, now, ranked.current, setRanking));
+        ranked.current = null;
       }
       dispatch({ type: 'advance', now });
     }, delay);
@@ -161,7 +181,7 @@ function QuizRound() {
     ranked.current = null;
     if (hasStoredSession() && length > 0) {
       setPreparing(true);
-      open(() => false);
+      open(() => left.current);
     } else {
       dispatch({ type: 'restart', round: buildRound(category.id, mode.id, count), now: clock() });
     }
@@ -218,6 +238,7 @@ function QuizRound() {
     }
     const now = clock();
     setOutcome(record(game, category.id, mode.id, now, ranked.current, setRanking));
+    ranked.current = null;
     dispatch({ type: 'end', now });
   };
 
