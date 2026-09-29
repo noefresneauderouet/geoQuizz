@@ -16,8 +16,8 @@
  *     montrera peut-être jamais — environ 0,6 Mo en 640 px. Ils traversent
  *     les versions : une mise à jour ne télécharge que ceux qui manquent.
  *     Leur précache ne fait pas échouer l'installation : un drapeau raté est
- *     repris à sa première vue, et d'ici là l'emoji le remplace. Ensuite, ils
- *     sont servis en stale-while-revalidate ;
+ *     repris dès qu'une partie redemande les drapeaux (src/lib/flags.ts).
+ *     Ensuite, ils sont servis en stale-while-revalidate ;
  *
  *   - les photos de fond des catégories (public/categories/), sur le même
  *     modèle : un cache qui traverse les versions, un précache qui ne bloque
@@ -186,10 +186,13 @@ async function serveAsset(request) {
  * Drapeaux : on rend immédiatement la copie en cache, et on rafraîchit en
  * arrière-plan. Un drapeau ne change pour ainsi dire jamais ; l'attente
  * réseau, elle, se verrait à chaque question.
+ *
+ * La page les demande par `fetch()` (src/lib/flags.ts), avec d'autres
+ * en-têtes que le précache : on cherche par URL seule, comme les photos.
  */
 async function serveFlag(request) {
   const cache = await caches.open(FLAG_CACHE);
-  const cached = await cache.match(request);
+  const cached = await cache.match(request, { ignoreVary: true });
 
   const refresh = fetchFlag(cache, request)
     .then(async (response) => {
@@ -201,7 +204,7 @@ async function serveFlag(request) {
   if (cached) return cached;
 
   const fresh = await refresh;
-  /* Ni cache ni réseau : l'échec fait basculer FlagView sur l'emoji. */
+  /* Ni cache ni réseau : FlagView affiche que le drapeau manque. */
   return fresh ?? new Response('', { status: 504, statusText: 'Hors ligne' });
 }
 

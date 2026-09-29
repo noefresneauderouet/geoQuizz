@@ -11,15 +11,20 @@
   box-shadow: var(--shadow-card);
 }
 
+/* Tout le cadre : flag-view.tsx y centre le drapeau. */
 .image {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
 }
 
-.emoji {
-  font-size: 90px;
-  line-height: 1;
+.missing {
+  margin: 0;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink-soft);
 }
 
 /*
@@ -32,9 +37,5 @@
   .frame {
     height: clamp(200px, 38dvh, 460px);
     padding: var(--space-3);
-  }
-
-  .emoji {
-    font-size: 200px;
   }
 }

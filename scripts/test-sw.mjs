@@ -204,11 +204,11 @@ check('l’installation précache toute la coquille', async () => {
 });
 
 check('l’installation précache le drapeau de chaque pays, à la largeur affichée', async () => {
-  /* La largeur est relue dans FlagView : si elle change sans que le build
-     suive, le précache rangerait des URL que l'app ne demande jamais. */
-  const view = readFileSync(join(ROOT, 'src', 'components', 'quiz', 'flag-view.tsx'), 'utf8');
-  const width = view.match(/flagUrl\(code, (\d+)\)/)?.[1];
-  assert.ok(width, 'appel `flagUrl(code, <largeur>)` introuvable dans flag-view.tsx');
+  /* La largeur est relue dans src/lib/flags.ts : si elle change sans que le
+     build suive, le précache rangerait des URL que l'app ne demande jamais. */
+  const loader = readFileSync(join(ROOT, 'src', 'lib', 'flags.ts'), 'utf8');
+  const width = loader.match(/flagUrl\(code, (\d+)\)/)?.[1];
+  assert.ok(width, 'appel `flagUrl(code, <largeur>)` introuvable dans src/lib/flags.ts');
 
   const countries = JSON.parse(readFileSync(join(ROOT, 'src', 'data', 'countries.json'), 'utf8'));
   const flags = await caches.open('geolearn-flags-v1');

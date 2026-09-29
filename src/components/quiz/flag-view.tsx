@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
-import { flagEmoji, flagUrl } from '@/lib/countries';
+import { flagImage } from '@/lib/flags';
 
 import styles from './flag-view.module.css';
 
@@ -11,30 +11,84 @@ type Props = { code: string };
 /**
  * Drapeau du pays.
  *
- * L'image est la seule ressource distante de l'application. Le service worker
- * télécharge tous les drapeaux dès son installation, à cette largeur de 640
- * px (voir scripts/build-sw.mjs) : ils restent affichés hors ligne. Si l'un
- * d'eux manque, on retombe sur l'emoji drapeau, toujours lisible. `key` sur
- * le code remet l'état à zéro d'une question à l'autre : sans lui, un échec
- * de chargement condamnerait tous les drapeaux suivants.
+ * Il est dessiné dans un <canvas> : la page ne porte ni adresse d'image, ni
+ * nom de fichier, ni emoji qui trahiraient le pays (voir src/lib/flags.ts).
+ * Le canvas prend tout le cadre, quelle que soit la forme du drapeau, pour
+ * que ses dimensions ne disent rien non plus ; le drapeau y est centré, sans
+ * dépasser sa taille naturelle, comme l'image qu'il remplace.
+ *
+ * Le service worker précache tous les drapeaux à son installation : ils
+ * s'affichent hors ligne. S'il en manque un quand même, un message le dit, et
+ * la question suivante le fera retenter. L'écran de jeu remonte ce composant
+ * à chaque question (`key` dans quiz-board.tsx) : un échec ne se reporte pas
+ * sur la suivante.
  */
 export function FlagView({ code }: Props) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    let bitmap: ImageBitmap | null = null;
+    let active = true;
+
+    /* Redessiné à chaque changement de taille : fixer `width` efface le canvas. */
+    const draw = () => {
+      const context = canvas.getContext('2d');
+      if (!bitmap || !context) return;
+      const ratio = window.devicePixelRatio || 1;
+      const box = { width: canvas.clientWidth, height: canvas.clientHeight };
+      canvas.width = Math.round(box.width * ratio);
+      canvas.height = Math.round(box.height * ratio);
+      const scale =
+        Math.min(1, box.width / bitmap.width, box.height / bitmap.height) * ratio;
+      const width = bitmap.width * scale;
+      const height = bitmap.height * scale;
+      context.imageSmoothingQuality = 'high';
+      context.drawImage(
+        bitmap,
+        (canvas.width - width) / 2,
+        (canvas.height - height) / 2,
+        width,
+        height
+      );
+    };
+
+    const observer = new ResizeObserver(draw);
+    observer.observe(canvas);
+
+    void flagImage(code)
+      .then((blob) => (blob ? createImageBitmap(blob) : null))
+      .catch(() => null)
+      .then((decoded) => {
+        if (!active) {
+          decoded?.close();
+        } else if (!decoded) {
+          setFailed(true);
+        } else {
+          bitmap = decoded;
+          draw();
+        }
+      });
+
+    return () => {
+      active = false;
+      observer.disconnect();
+      bitmap?.close();
+    };
+  }, [code]);
 
   return (
     <div className={styles.frame}>
       {failed ? (
-        <span className={styles.emoji} role="img" aria-label="Drapeau à identifier">
-          {flagEmoji(code)}
-        </span>
+        <p className={styles.missing}>Ce drapeau n’a pas pu se charger.</p>
       ) : (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          key={code}
+        <canvas
+          ref={canvasRef}
           className={styles.image}
-          src={flagUrl(code, 640)}
-          alt="Drapeau à identifier"
-          onError={() => setFailed(true)}
+          role="img"
+          aria-label="Drapeau à identifier"
         />
       )}
     </div>
