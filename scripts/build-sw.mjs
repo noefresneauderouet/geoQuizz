@@ -24,9 +24,10 @@ const TEMPLATE = join(ROOT, 'scripts', 'service-worker.js');
 const COUNTRIES = join(ROOT, 'src', 'data', 'countries.json');
 
 /*
- * Largeur des drapeaux précachés. Elle doit être celle que demande FlagView
- * (`flagUrl(code, 640)`) : une autre largeur est une autre URL, et le
- * précache ne servirait à rien. `npm test` vérifie la correspondance.
+ * Largeur des drapeaux précachés. Elle doit être celle que demande
+ * src/lib/flags.ts (`flagUrl(code, 640)`) : une autre largeur est une autre
+ * URL, et le précache ne servirait à rien. `npm test` vérifie la
+ * correspondance.
  */
 const FLAG_WIDTH = 640;
 

@@ -160,8 +160,10 @@ vue continentale. Tuvalu, absent même du fond 1:50m, est repéré à partir de 
 coordonnées : l'anneau est alors sa seule représentation.
 
 Les drapeaux viennent de flagcdn.com. Le service worker les télécharge tous à
-son installation. Si l'un d'eux n'a pas pu l'être, l'emoji drapeau prend le
-relais.
+son installation. En jeu, ils sont dessinés dans un `<canvas>`, après avoir été
+chargés tous les 196 ensemble : ni l'adresse d'une image ni le réseau ne
+donnent la réponse (voir [src/lib/flags.ts](src/lib/flags.ts)). Si l'un d'eux
+manque, un message le dit et la question suivante le retente.
 
 ### Les régions du mode États
 
@@ -207,8 +209,8 @@ Seuls les **drapeaux** viennent du réseau (flagcdn.com). Les 196 sont
 téléchargés dès l'installation du service worker, y compris ceux qu'on ne
 croisera peut-être jamais, soit environ 0,6 Mo en plus. Une mise à jour ne
 retélécharge que ceux qui manquent. Si flagcdn est injoignable à ce moment-là,
-l'installation aboutit quand même : chaque drapeau manquant est récupéré à sa
-première vue en ligne, et l'emoji le remplace d'ici là.
+l'installation aboutit quand même : chaque drapeau manquant est récupéré à la
+première partie de drapeaux en ligne.
 
 Les **photos de fond** des catégories (`public/categories/`) suivent le même
 régime : téléchargées à l'installation dans un cache qui survit aux mises à

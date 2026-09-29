@@ -84,6 +84,10 @@ passe, pseudo) et **Postgres**, appelés depuis le navigateur.
   jamais du réseau.
 - Le chronomètre lit `clock()` (src/lib/timer.ts, `performance.now()`), jamais
   `Date.now()` : l'heure du système se change à la main.
+- Rien dans la page ne doit nommer la réponse de la question affichée. Un
+  drapeau passe par `src/lib/flags.ts` et se dessine dans un canvas : pas
+  d'`<img>` flagcdn (le code du pays est dans l'adresse), pas d'emoji drapeau
+  (ses deux lettres sont ce code).
 - `vercel.json` porte les en-têtes de sécurité (CSP). Un nouveau domaine
   appelé par le navigateur doit y être ajouté.
 
