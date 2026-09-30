@@ -36,9 +36,10 @@ const FLAG_WIDTH = 640;
  *
  * Les cartes de source ne servent qu'au débogage, et les fichiers de données
  * de route de Next (.txt) accompagnent une navigation client dont on n'a pas
- * l'usage ici : les trois pages sont déjà précachées en entier.
+ * l'usage ici : les trois pages sont déjà précachées en entier. Le sitemap et
+ * robots.txt (écarté avec les .txt) ne servent qu'aux moteurs de recherche.
  */
-const EXCLUDED = [/^sw\.js$/, /\.map$/, /\.txt$/];
+const EXCLUDED = [/^sw\.js$/, /\.map$/, /\.txt$/, /^sitemap\.xml$/];
 
 /*
  * Les photos de fond ont leur propre cache, qui traverse les versions (voir
