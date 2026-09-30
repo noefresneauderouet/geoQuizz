@@ -12,6 +12,8 @@ Il n'y a plus ni Expo, ni React Native, ni cible mobile : ne réintroduis pas
 - Le style passe par des **CSS Modules** et les variables de
   `src/constants/theme.ts`, seule définition de la palette. N'écris pas une
   couleur en dur dans un `.module.css` : utilise `var(--green)`, `var(--sand)`…
+- `src/app/sitemap.ts` liste les pages que Google doit trouver (robots.txt
+  l'annonce) : une nouvelle page publique s'y ajoute.
 - `src/lib/` ne dépend pas de React, sauf `progress.ts` et `pwa.ts`, qui
   exposent des hooks et portent `'use client'`.
 - Tout composant qui lit `localStorage` ou l'état du navigateur doit fournir un
