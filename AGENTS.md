@@ -49,6 +49,12 @@ depuis le navigateur : canaux Broadcast + Presence, sans table ni serveur.
   (boîte « Rejoindre une partie », sur l'accueil). Rien ne doit donc supposer
   que l'URL les contient : ils viennent de la Presence de l'hôte, et le
   message `start` les porte de toute façon.
+- Une salle peut être **publique** (choix à la création, `public=1` dans
+  l'URL de l'hôte). Son hôte l'annonce par Presence sur le canal `hall` tant
+  qu'on peut y entrer (salle d'attente, place libre), et « Partie aléatoire »,
+  sur l'accueil, lit ce canal pour en rejoindre une au hasard. L'annonce ne
+  porte que le code et les réglages, et ne change que deux ou trois fois par
+  partie : la même limite de fréquence s'y applique.
 - `src/lib/round.ts` est la mécanique d'une manche, partagée par le solo et le
   multijoueur ; `src/components/quiz/quiz-board.tsx` en est l'écran commun.
 - Même quiz pour tous : la graine du lancement passe à `buildRound` via

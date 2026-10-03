@@ -70,9 +70,14 @@ export type RoomSettings = {
   limit: TimeLimit;
 };
 
-export function roomPath(code: string, settings: RoomSettings): string {
+/**
+ * `isPublic` ne sert qu'à l'hôte : c'est par son URL qu'il sait, même après
+ * un rechargement, qu'il doit annoncer sa salle (voir « Parties publiques »).
+ */
+export function roomPath(code: string, settings: RoomSettings, isPublic = false): string {
   const { category, mode, count, limit } = settings;
-  return `/salle?code=${code}&category=${category}&mode=${mode}&count=${count}&limit=${limit}`;
+  const visibility = isPublic ? '&public=1' : '';
+  return `/salle?code=${code}&category=${category}&mode=${mode}&count=${count}&limit=${limit}${visibility}`;
 }
 
 /**
@@ -316,18 +321,31 @@ function when<T>(parse: (payload: unknown) => T | null, handler: (message: T) =>
 export const isMultiplayerConfigured = isSupabaseConfigured;
 
 let client: RealtimeClient | null = null;
+let loading: Promise<RealtimeClient> | null = null;
 
 /**
  * Le client n'est chargé qu'ici, par import dynamique : le jeu solo n'en
  * embarque pas une ligne.
+ *
+ * Une seule connexion par onglet, même demandée deux fois d'un coup (la salle
+ * et son annonce dans le hall) : chaque client ouvre la sienne, et elles
+ * comptent toutes dans la limite du service.
  */
-async function getClient(): Promise<RealtimeClient> {
-  if (client) return client;
-  const { RealtimeClient } = await import('@supabase/realtime-js');
-  client = new RealtimeClient(`${supabaseUrl().replace(/^http/, 'ws')}/realtime/v1`, {
-    params: { apikey: supabaseKey() },
-  });
-  return client;
+function getClient(): Promise<RealtimeClient> {
+  loading ??= import('@supabase/realtime-js').then(
+    ({ RealtimeClient }) => {
+      client = new RealtimeClient(`${supabaseUrl().replace(/^http/, 'ws')}/realtime/v1`, {
+        params: { apikey: supabaseKey() },
+      });
+      return client;
+    },
+    (error: unknown) => {
+      // Hors ligne, le module peut manquer : on le redemandera la fois suivante.
+      loading = null;
+      throw error;
+    },
+  );
+  return loading;
 }
 
 /**
@@ -403,4 +421,137 @@ export function joinRoom(code: string, self: PlayerState, handlers: RoomHandlers
       channel = null;
     },
   };
+}
+
+/* ---------------------------- Parties publiques --------------------------- */
+
+/*
+ * Une salle publique s'annonce sur un canal commun à toutes, `hall`, que lit
+ * le bouton « Partie aléatoire » de l'accueil. Son hôte seul l'y annonce, par
+ * Presence : l'annonce disparaît d'elle-même quand il ferme l'onglet ou perd
+ * le réseau, sans rien à nettoyer.
+ *
+ * Elle n'y figure que tant qu'on peut y entrer (salle d'attente, place
+ * libre) : elle n'en change que deux ou trois fois par partie, ce que
+ * Presence supporte.
+ *
+ * Comme le reste, une annonce peut venir de n'importe qui. Une fausse mène à
+ * une salle vide, que la salle d'attente signale déjà (« Personne ici »).
+ */
+const HALL = 'hall';
+
+/**
+ * Le client ne tient qu'un canal par nom : quitter le hall prend un aller-retour,
+ * et on ne le rejoint pas avant que ce soit fait.
+ */
+let leavingHall: Promise<unknown> = Promise.resolve();
+
+/** Ce qu'une salle publique annonce : son code, et ce qu'elle fait jouer. */
+export type PublicRoom = { code: string; settings: RoomSettings };
+
+function parsePublicRoom(value: unknown): PublicRoom | null {
+  const r = value as Partial<PublicRoom> | null;
+  return r && isRoomCode(r.code) && isSettings(r.settings)
+    ? { code: r.code, settings: r.settings }
+    : null;
+}
+
+export type PublicListing = {
+  /** Annonce la salle, ou la retire du hall. Sans effet si rien ne change. */
+  setOpen: (open: boolean) => void;
+  stop: () => void;
+};
+
+/** Annonce une salle dans le hall, tant que l'écran le demande (`setOpen`). */
+export function listPublicRoom(room: PublicRoom): PublicListing {
+  let channel: RealtimeChannel | null = null;
+  let stopped = false;
+  let subscribed = false;
+  /** Ce que l'écran demande, et ce qui est publié. */
+  let wanted = false;
+  let shown = false;
+
+  const apply = () => {
+    if (!channel || !subscribed || wanted === shown) return;
+    shown = wanted;
+    void (wanted ? channel.track(room) : channel.untrack());
+  };
+
+  void leavingHall.then(getClient).then((realtime) => {
+    if (stopped) return;
+    const ch = realtime.channel(HALL, {
+      config: { presence: { key: room.code, enabled: true } },
+    });
+    channel = ch;
+    ch.subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        // Après une coupure, le serveur a oublié l'annonce : on la refait.
+        subscribed = true;
+        shown = false;
+        apply();
+      } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        subscribed = false;
+      }
+    });
+  });
+
+  return {
+    setOpen: (open) => {
+      wanted = open;
+      apply();
+    },
+    stop: () => {
+      stopped = true;
+      if (channel && client) leavingHall = client.removeChannel(channel).catch(() => undefined);
+      channel = null;
+    },
+  };
+}
+
+/** Le temps laissé pour atteindre le hall, puis pour en recevoir la liste. */
+const HALL_CONNECT_MS = 10_000;
+const HALL_LIST_MS = 2_000;
+
+/**
+ * Une salle publique ouverte, tirée au hasard ; `null` s'il n'y en a aucune.
+ * Rejette si le hall est injoignable (hors ligne, service coupé).
+ */
+export async function findPublicRoom(): Promise<PublicRoom | null> {
+  await leavingHall;
+  const realtime = await getClient();
+
+  return new Promise((resolve, reject) => {
+    const ch = realtime.channel(HALL, { config: { presence: { enabled: true } } });
+    let settled = false;
+    let timer = setTimeout(() => settle(new Error('Hall injoignable')), HALL_CONNECT_MS);
+
+    function settle(result: PublicRoom[] | Error) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      leavingHall = realtime.removeChannel(ch).catch(() => undefined);
+      if (result instanceof Error) reject(result);
+      else resolve(result.length > 0 ? result[randomIndex(result.length)] : null);
+    }
+
+    const listed = () =>
+      Object.values(ch.presenceState())
+        .map((entries) => parsePublicRoom(entries[entries.length - 1]))
+        .filter((room) => room !== null);
+
+    // Le premier `sync` porte la liste entière : vide, il n'y a personne.
+    ch.on('presence', { event: 'sync' }, () => settle(listed())).subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        // Une liste qui tarde est une liste vide.
+        clearTimeout(timer);
+        timer = setTimeout(() => settle(listed()), HALL_LIST_MS);
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        settle(new Error('Hall injoignable'));
+      }
+    });
+  });
+}
+
+function randomIndex(length: number): number {
+  return crypto.getRandomValues(new Uint32Array(1))[0] % length;
 }

@@ -7,6 +7,7 @@ import { CategoryCard } from '@/components/category-card';
 import { CountSelector } from '@/components/count-selector';
 import { ModeSelector } from '@/components/mode-selector';
 import { JoinDialog } from '@/components/multi/join-dialog';
+import { RandomJoin } from '@/components/multi/random-join';
 import { useLastGame } from '@/components/use-last-game';
 import {
   CATEGORIES,
@@ -88,14 +89,15 @@ export function ZonePicker() {
       <ModeSelector value={mode} onChange={setMode} accent={MONDE.accent} />
       <CountSelector value={count} onChange={setCount} accent={MONDE.accent} />
 
-      {/* Les deux entrées du multijoueur : on ouvre une salle, ou on rejoint
-          celle d'un ami. La création reprend le mode et la longueur choisis
-          ci-dessus ; la zone se choisit ensuite. */}
+      {/* Les entrées du multijoueur : on ouvre une salle, on rejoint celle
+          d'un ami, ou une salle publique au hasard. La création reprend le
+          mode et la longueur choisis ci-dessus ; la zone se choisit ensuite. */}
       <div className={styles.multiplayer}>
         <Link href={`/salle?mode=${mode}&count=${count}`} className={styles.challenge}>
           <span aria-hidden="true">👥</span> Créer une partie
         </Link>
         <JoinDialog />
+        <RandomJoin />
       </div>
 
       {mode === 'etats' ? (
