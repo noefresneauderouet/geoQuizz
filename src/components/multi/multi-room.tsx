@@ -5,7 +5,7 @@ import { useEffect, useReducer, useRef, useState } from 'react';
 
 import { CategoryBackground } from '@/components/category-background';
 import { QrDialog } from '@/components/multi/qr-dialog';
-import { useRoom } from '@/components/multi/use-room';
+import { usePublicListing, useRoom } from '@/components/multi/use-room';
 import { QuizBoard } from '@/components/quiz/quiz-board';
 import { getCategory, getMode, type Category, type Mode } from '@/constants/categories';
 import { vibrateSuccess } from '@/lib/feedback';
@@ -51,6 +51,8 @@ type Props = {
   name: string;
   /** Ceux du lien ; `null` quand on est entré avec le code seul. */
   settings: RoomSettings | null;
+  /** L'hôte a ouvert la salle à tous : « Partie aléatoire » peut y mener. */
+  isPublic: boolean;
 };
 
 /**
@@ -60,7 +62,7 @@ type Props = {
  * reste — la manche elle-même, son chronomètre — tourne ici, sur chaque
  * appareil, à partir de la même graine.
  */
-export function MultiRoom({ code, name, settings: fromLink }: Props) {
+export function MultiRoom({ code, name, settings: fromLink, isPublic }: Props) {
   const host = isHostOf(code);
   /**
    * Ce que ce joueur publie dans la salle (Presence). Son avancée n'y est pas :
@@ -201,6 +203,16 @@ export function MultiRoom({ code, name, settings: fromLink }: Props) {
     .findIndex((p) => p.id === me.id);
 
   /*
+   * Une salle publique ne figure dans le hall que tant qu'on peut y entrer :
+   * en salle d'attente, avec une place libre. C'est son hôte qui l'annonce,
+   * avec les réglages de sa création.
+   */
+  usePublicListing(
+    host && isPublic && fromLink ? { code, settings: fromLink } : null,
+    room.status === 'connected' && phase.kind === 'lobby' && connected.length < MAX_PLAYERS,
+  );
+
+  /*
    * Les participants de la partie en cours, avec leur avancée. La sienne vient
    * de sa propre manche, jamais du réseau ; celle des autres, de leurs
    * derniers messages `progress`.
@@ -310,6 +322,7 @@ export function MultiRoom({ code, name, settings: fromLink }: Props) {
       category={category}
       mode={mode}
       settings={settings}
+      isPublic={isPublic}
       self={me}
       players={connected}
       onStart={(played) => {
@@ -329,12 +342,13 @@ type LobbyProps = {
   mode: Mode;
   /** `null` tant que l'hôte ne s'est pas présenté : on ne sait pas encore ce qui se jouera. */
   settings: RoomSettings | null;
+  isPublic: boolean;
   self: PlayerState;
   players: KnownPlayer[];
   onStart: (settings: RoomSettings) => void;
 };
 
-function Lobby({ code, category, mode, settings, self, players, onStart }: LobbyProps) {
+function Lobby({ code, category, mode, settings, isPublic, self, players, onStart }: LobbyProps) {
   const [copied, setCopied] = useState(false);
   // Sa propre présence peut avoir un temps de retard sur un retour en salle
   // d'attente : on ne se compte jamais soi-même comme « en partie ».
@@ -392,6 +406,11 @@ function Lobby({ code, category, mode, settings, self, players, onStart }: Lobby
               'Réglages de l’hôte…'
             )}
           </p>
+          {/* Seul l'hôte sait que sa salle est publique : c'est lui qui
+              l'annonce aux joueurs de « Partie aléatoire ». */}
+          {self.host && isPublic ? (
+            <p className={styles.visibility}>🌍 Partie publique, ouverte à tous</p>
+          ) : null}
 
           <div className={styles.shareRow}>
             <button type="button" className={styles.share} onClick={share}>

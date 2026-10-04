@@ -69,6 +69,13 @@
   text-align: center;
 }
 
+.visibility {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--brown);
+  text-align: center;
+}
+
 .title {
   font-size: 24px;
   font-weight: 800;

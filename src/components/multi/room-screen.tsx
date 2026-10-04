@@ -92,7 +92,9 @@ function RoomRouter() {
     return <NameStep title="Rejoindre la partie" subtitle={roomSummary(code, settings)} onSubmit={setName} />;
   }
 
-  return <MultiRoom code={code} name={name} settings={settings} />;
+  return (
+    <MultiRoom code={code} name={name} settings={settings} isPublic={params.get('public') === '1'} />
+  );
 }
 
 /** Ce qu'on peut annoncer de la partie avant d'être entré : tout, ou le code seul. */
@@ -112,6 +114,7 @@ function CreateRoom({ onName }: { onName: (name: string) => void }) {
   const [mode, setMode] = useState(getMode(params.get('mode') ?? undefined).id);
   const [count, setCount] = useState<QuestionCount>(getQuestionCount(params.get('count')));
   const [limit, setLimit] = useState<TimeLimit>(getTimeLimit(params.get('limit')));
+  const [isPublic, setPublic] = useState(false);
   const [choice, setCategory] = useState<CategoryId>('monde');
   const [draft, setDraft] = useState(getPlayerName);
   const accent = CATEGORIES[0].accent;
@@ -128,7 +131,7 @@ function CreateRoom({ onName }: { onName: (name: string) => void }) {
     onName(pseudo);
     const code = newRoomCode();
     markAsHost(code);
-    router.replace(roomPath(code, { category, mode, count, limit }));
+    router.replace(roomPath(code, { category, mode, count, limit }, isPublic));
   };
 
   return (
@@ -150,6 +153,7 @@ function CreateRoom({ onName }: { onName: (name: string) => void }) {
         <ModeSelector value={mode} onChange={setMode} accent={accent} />
         <CountSelector value={count} onChange={setCount} accent={accent} />
         <LimitSelector value={limit} onChange={setLimit} accent={accent} />
+        <VisibilitySelector value={isPublic} onChange={setPublic} accent={accent} />
 
         <h2 className="sectionTitle">{mode === 'etats' ? 'Pays' : 'Zone'}</h2>
         <div
@@ -214,6 +218,52 @@ function LimitSelector({ value, onChange, accent }: LimitSelectorProps) {
                 selected ? `${selectorStyles.option} ${selectorStyles.active}` : selectorStyles.option
               }>
               {limit === 0 ? '∞' : `${limit / 60}′`}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+type VisibilitySelectorProps = {
+  value: boolean;
+  onChange: (isPublic: boolean) => void;
+  accent: string;
+};
+
+/**
+ * Privée : on n'y entre qu'avec le lien ou le code. Publique : « Partie
+ * aléatoire », sur l'accueil, peut aussi y mener des inconnus.
+ */
+function VisibilitySelector({ value, onChange, accent }: VisibilitySelectorProps) {
+  const options = [
+    { isPublic: false, label: '🔒 Privée' },
+    { isPublic: true, label: '🌍 Publique' },
+  ];
+  return (
+    <div className={selectorStyles.row}>
+      <span className={selectorStyles.caption} id="visibility-caption">
+        Partie
+      </span>
+      <div
+        className={selectorStyles.track}
+        role="radiogroup"
+        aria-labelledby="visibility-caption"
+        style={{ '--accent': accent } as CSSProperties}>
+        {options.map((option) => {
+          const selected = option.isPublic === value;
+          return (
+            <button
+              key={option.label}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              onClick={() => onChange(option.isPublic)}
+              className={
+                selected ? `${selectorStyles.option} ${selectorStyles.active}` : selectorStyles.option
+              }>
+              {option.label}
             </button>
           );
         })}

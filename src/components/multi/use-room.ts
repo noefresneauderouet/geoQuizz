@@ -4,10 +4,13 @@ import { useEffect, useRef, useState } from 'react';
 
 import {
   joinRoom,
+  listPublicRoom,
   type FinishMessage,
   type KnownPlayer,
   type PlayerState,
   type ProgressMessage,
+  type PublicListing,
+  type PublicRoom,
   type ResetMessage,
   type RoomConnection,
   type StartMessage,
@@ -91,4 +94,33 @@ export function useRoom(code: string, self: PlayerState, events: RoomEvents) {
     reset: (message: ResetMessage) => connection.current?.reset(message),
     progress: (message: ProgressMessage) => connection.current?.progress(message),
   };
+}
+
+/**
+ * Annonce une salle publique dans le hall tant que `open` est vrai. `room`
+ * est `null` pour une salle privée, ou pour qui n'en est pas l'hôte.
+ *
+ * Ses réglages ne changent pas : seul le code relance l'annonce.
+ */
+export function usePublicListing(room: PublicRoom | null, open: boolean) {
+  const listing = useRef<PublicListing | null>(null);
+  const openRef = useRef(open);
+
+  useEffect(() => {
+    openRef.current = open;
+    listing.current?.setOpen(open);
+  }, [open]);
+
+  const code = room?.code ?? null;
+  useEffect(() => {
+    if (!room) return;
+    const current = listPublicRoom(room);
+    current.setOpen(openRef.current);
+    listing.current = current;
+    return () => {
+      current.stop();
+      listing.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [code]);
 }
