@@ -6,6 +6,7 @@ import { useEffect, useReducer, useRef, useState } from 'react';
 
 import { CategoryBackground } from '@/components/category-background';
 import { QuizBoard } from '@/components/quiz/quiz-board';
+import { useFlagEmoji } from '@/components/use-flag-emoji';
 import { useInBrowser } from '@/components/use-in-browser';
 import {
   getCategory,
@@ -287,6 +288,7 @@ function Summary({ category, modeLabel, game, outcome, ranking, onReplay, onBack
   const durationMs = game.watch.elapsed;
   const comebacks = game.found.filter((i) => game.skipped.includes(i)).length;
   const missed = game.queue.map((i) => game.round[i]);
+  const flags = useFlagEmoji();
 
   const ratio = score / total;
   const { previousBestMs, newRecord } = outcome;
@@ -366,7 +368,7 @@ function Summary({ category, modeLabel, game, outcome, ranking, onReplay, onBack
                 {missed.map((q) => (
                   <li key={questionKey(q)} className={styles.missedChip}>
                     {/* Des régions d'un même pays porteraient toutes le même drapeau. */}
-                    {q.mode === 'etats' ? null : (
+                    {!flags || q.mode === 'etats' ? null : (
                       <span aria-hidden="true">{flagEmoji(q.country.code)}</span>
                     )}
                     {expectedAnswer(q)}

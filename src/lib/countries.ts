@@ -31,7 +31,7 @@ export function countriesOf(category: ZoneId): Country[] {
   return COUNTRIES.filter((c) => c.continent === category);
 }
 
-/** Emoji drapeau dérivé du code ISO (fallback si l'image ne charge pas). */
+/** Emoji drapeau dérivé du code ISO ; Windows l'écrit en deux lettres (voir use-flag-emoji.ts). */
 export function flagEmoji(code: string): string {
   return String.fromCodePoint(
     ...code.toUpperCase().split('').map((ch) => 0x1f1e6 + ch.charCodeAt(0) - 65)

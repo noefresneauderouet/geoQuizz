@@ -9,6 +9,7 @@ import { FeedbackBanner } from '@/components/quiz/feedback-banner';
 import { FlagView } from '@/components/quiz/flag-view';
 import { RoundTimer } from '@/components/quiz/round-timer';
 import { RegionMap } from '@/components/region-map';
+import { useFlagEmoji } from '@/components/use-flag-emoji';
 import { usePhoneLayout } from '@/components/use-phone-layout';
 import { WorldMap } from '@/components/world-map';
 import type { Category, Mode } from '@/constants/categories';
@@ -69,6 +70,7 @@ export function QuizBoard({
    */
   const phone = usePhoneLayout();
   const zoomed = !game.solved && phone !== game.zoomToggled;
+  const flags = useFlagEmoji();
 
   /*
    * Le bouton de zoom ne ferme pas le clavier. Un appui sort le focus du
@@ -165,9 +167,11 @@ export function QuizBoard({
 
             {question.mode === 'capitale' ? (
               <p className={styles.countryChip}>
-                <span className={styles.chipIcon} aria-hidden="true">
-                  {flagEmoji(question.country.code)}
-                </span>
+                {flags ? (
+                  <span className={styles.chipIcon} aria-hidden="true">
+                    {flagEmoji(question.country.code)}
+                  </span>
+                ) : null}
                 <span className={styles.countryName}>{question.country.name}</span>
               </p>
             ) : null}
