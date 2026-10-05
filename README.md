@@ -59,6 +59,12 @@ nombre de questions trouvées, puis au temps mis pour y arriver.
 5 minutes). La partie s'arrête alors pour tout le monde à l'échéance, si
 personne n'a tout trouvé avant ; le classement suit la même règle.
 
+Sans recréer la salle, l'hôte change ses réglages (mode, nombre de questions,
+temps, zone, partie publique ou privée) depuis la salle d'attente, avant la
+première partie comme entre deux : **Modifier les réglages**, puis
+**Enregistrer**. Les joueurs déjà là voient aussitôt les nouveaux, et le lien
+de la salle les porte désormais.
+
 Il faut internet, et un projet [Supabase](https://supabase.com) (gratuit) :
 
 1. Crée le projet, puis relève dans *Project Settings → API* l'URL du projet

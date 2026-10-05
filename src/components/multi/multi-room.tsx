@@ -5,6 +5,7 @@ import { useEffect, useReducer, useRef, useState } from 'react';
 
 import { CategoryBackground } from '@/components/category-background';
 import { QrDialog } from '@/components/multi/qr-dialog';
+import { describeSettings, draftOf, SettingsEditor } from '@/components/multi/room-settings';
 import { usePublicListing, useRoom } from '@/components/multi/use-room';
 import { QuizBoard } from '@/components/quiz/quiz-board';
 import { getCategory, getMode, type Category, type Mode } from '@/constants/categories';
@@ -18,6 +19,8 @@ import {
   isHostOf,
   MAX_PLAYERS,
   rankPlayers,
+  roomPath,
+  sameSettings,
   type Contender,
   type FinishMessage,
   type KnownPlayer,
@@ -62,8 +65,10 @@ type Props = {
  * reste — la manche elle-même, son chronomètre — tourne ici, sur chaque
  * appareil, à partir de la même graine.
  */
-export function MultiRoom({ code, name, settings: fromLink, isPublic }: Props) {
+export function MultiRoom({ code, name, settings: fromLink, isPublic: publicLink }: Props) {
   const host = isHostOf(code);
+  /** L'hôte peut ouvrir ou fermer sa salle entre deux parties. */
+  const [isPublic, setPublic] = useState(publicLink);
   /**
    * Ce que ce joueur publie dans la salle (Presence). Son avancée n'y est pas :
    * elle se lit dans sa manche, et part aux autres par des messages `progress`.
@@ -76,12 +81,14 @@ export function MultiRoom({ code, name, settings: fromLink, isPublic }: Props) {
     status: 'lobby',
     game: 0,
     // L'hôte arrive toujours depuis l'écran de création : ses réglages sont
-    // dans son URL, et il est le seul à les publier.
+    // dans son URL, et il est le seul à les publier. Il les change ensuite
+    // entre deux parties (`changeSettings`).
     settings: host ? (fromLink ?? undefined) : undefined,
   }));
   /**
-   * Les réglages du lancement. Ils l'emportent sur ce que l'URL et la salle
-   * d'attente annonçaient : c'est ce que l'hôte envoie qui se joue.
+   * Les réglages du dernier lancement. En partie, ils l'emportent sur ce que
+   * l'URL et la salle d'attente annonçaient : c'est ce que l'hôte envoie qui
+   * se joue.
    */
   const [launched, setLaunched] = useState<RoomSettings | null>(null);
   const [phase, setPhase] = useState<Phase>({ kind: 'lobby' });
@@ -137,13 +144,36 @@ export function MultiRoom({ code, name, settings: fromLink, isPublic }: Props) {
   });
 
   /*
-   * Ce que la salle fait jouer, par ordre d'autorité : le lancement, puis le
-   * lien qu'on a ouvert, puis ce que l'hôte publie — la seule source quand on
-   * est entré avec le code seul. Tout cela s'accorde : une salle fait jouer ce
-   * que son hôte a choisi à la création.
+   * Ce que la salle fait jouer. En partie, le lancement fait foi : c'est ce
+   * que l'hôte a envoyé à tous. En salle d'attente, ce que l'hôte publie, car
+   * il peut le changer entre deux parties ; à défaut — sa présence n'est pas
+   * encore arrivée —, la partie d'avant, puis le lien qu'on a ouvert. Entré
+   * avec le code seul, on attend la présence de l'hôte.
    */
-  const published = room.players.find((p) => p.host)?.settings ?? null;
-  const settings = launched ?? fromLink ?? published;
+  const chosen = host ? me.settings : room.players.find((p) => p.host)?.settings;
+  const settings =
+    (phase.kind === 'lobby' ? (chosen ?? launched) : (launched ?? chosen)) ?? fromLink;
+
+  /*
+   * L'hôte a validé de nouveaux réglages. Une seule publication pour tout le
+   * changement, et aucune s'il n'a rien changé : Presence est limité.
+   */
+  const changeSettings = (next: RoomSettings, nextPublic: boolean) => {
+    if (!sameSettings(next, me.settings)) update({ settings: next });
+    setPublic(nextPublic);
+  };
+
+  /*
+   * L'adresse suit les réglages : le lien partagé, le QR code et un
+   * rechargement mènent à la partie telle qu'elle se jouera, plus à celle de
+   * la création.
+   */
+  const path = settings ? roomPath(code, settings, host && isPublic) : null;
+  useEffect(() => {
+    if (path && path !== window.location.pathname + window.location.search) {
+      window.history.replaceState(null, '', path);
+    }
+  }, [path]);
 
   const mode = getMode(settings?.mode);
   const category = getCategory(settings?.category, mode.id);
@@ -205,12 +235,11 @@ export function MultiRoom({ code, name, settings: fromLink, isPublic }: Props) {
   /*
    * Une salle publique ne figure dans le hall que tant qu'on peut y entrer :
    * en salle d'attente, avec une place libre. C'est son hôte qui l'annonce,
-   * avec les réglages de sa création.
+   * avec ses derniers réglages.
    */
-  usePublicListing(
-    host && isPublic && fromLink ? { code, settings: fromLink } : null,
-    room.status === 'connected' && phase.kind === 'lobby' && connected.length < MAX_PLAYERS,
-  );
+  const open =
+    room.status === 'connected' && phase.kind === 'lobby' && connected.length < MAX_PLAYERS;
+  usePublicListing(host && isPublic ? code : null, open ? (me.settings ?? null) : null);
 
   /*
    * Les participants de la partie en cours, avec leur avancée. La sienne vient
@@ -325,6 +354,7 @@ export function MultiRoom({ code, name, settings: fromLink, isPublic }: Props) {
       isPublic={isPublic}
       self={me}
       players={connected}
+      onChangeSettings={changeSettings}
       onStart={(played) => {
         const message = { game: me.game + 1, seed: newSeed(), settings: played };
         room.start(message);
@@ -345,11 +375,24 @@ type LobbyProps = {
   isPublic: boolean;
   self: PlayerState;
   players: KnownPlayer[];
+  /** L'hôte seul : il change les réglages sans recréer la salle. */
+  onChangeSettings: (settings: RoomSettings, isPublic: boolean) => void;
   onStart: (settings: RoomSettings) => void;
 };
 
-function Lobby({ code, category, mode, settings, isPublic, self, players, onStart }: LobbyProps) {
+function Lobby({
+  code,
+  category,
+  mode,
+  settings,
+  isPublic,
+  self,
+  players,
+  onChangeSettings,
+  onStart,
+}: LobbyProps) {
   const [copied, setCopied] = useState(false);
+  const [editing, setEditing] = useState(false);
   // Sa propre présence peut avoir un temps de retard sur un retour en salle
   // d'attente : on ne se compte jamais soi-même comme « en partie ».
   const inGame = players.filter(
@@ -388,6 +431,22 @@ function Lobby({ code, category, mode, settings, isPublic, self, players, onStar
   else if (self.host) hint = waiting.length < 2 ? 'Attends au moins un adversaire.' : '';
   else hint = 'En attente de l’hôte…';
 
+  if (editing) {
+    return (
+      <SettingsEditor
+        code={code}
+        initial={draftOf(settings, isPublic)}
+        onSave={(next, nextPublic) => {
+          onChangeSettings(next, nextPublic);
+          setEditing(false);
+        }}
+        onCancel={() => setEditing(false)}
+      />
+    );
+  }
+
+  const summary = settings ? describeSettings(settings) : 'Réglages de l’hôte…';
+
   return (
     <CategoryBackground category={category} className={styles.screen}>
       <div className={styles.centered}>
@@ -396,20 +455,22 @@ function Lobby({ code, category, mode, settings, isPublic, self, players, onStar
           <p className={styles.code} aria-label={`Code de la salle : ${code.split('').join(' ')}`}>
             {code}
           </p>
-          <p className={styles.settings}>
-            {settings ? (
-              <>
-                {category.emoji} {category.label} · {mode.emoji} {mode.label} · {settings.count}{' '}
-                questions{settings.limit ? ` · ⏳ ${formatTimeLimit(settings.limit)}` : ''}
-              </>
-            ) : (
-              'Réglages de l’hôte…'
-            )}
+          {/* L'hôte peut les changer : la ligne réapparaît en fondu à chaque
+              changement, et un lecteur d'écran l'annonce. */}
+          <p className={styles.settings} aria-live="polite">
+            <span key={summary} className={styles.fresh}>
+              {summary}
+            </span>
           </p>
           {/* Seul l'hôte sait que sa salle est publique : c'est lui qui
               l'annonce aux joueurs de « Partie aléatoire ». */}
           {self.host && isPublic ? (
             <p className={styles.visibility}>🌍 Partie publique, ouverte à tous</p>
+          ) : null}
+          {self.host ? (
+            <button type="button" className={styles.edit} onClick={() => setEditing(true)}>
+              ⚙️ Modifier les réglages
+            </button>
           ) : null}
 
           <div className={styles.shareRow}>

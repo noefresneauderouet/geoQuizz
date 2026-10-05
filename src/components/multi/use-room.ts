@@ -10,9 +10,9 @@ import {
   type PlayerState,
   type ProgressMessage,
   type PublicListing,
-  type PublicRoom,
   type ResetMessage,
   type RoomConnection,
+  type RoomSettings,
   type StartMessage,
 } from '@/lib/room';
 
@@ -97,30 +97,30 @@ export function useRoom(code: string, self: PlayerState, events: RoomEvents) {
 }
 
 /**
- * Annonce une salle publique dans le hall tant que `open` est vrai. `room`
- * est `null` pour une salle privée, ou pour qui n'en est pas l'hôte.
+ * Annonce une salle publique dans le hall. `code` est `null` pour une salle
+ * privée, ou pour qui n'en est pas l'hôte ; `settings` est `null` tant qu'on
+ * ne peut pas y entrer.
  *
- * Ses réglages ne changent pas : seul le code relance l'annonce.
+ * Des réglages changés mettent l'annonce à jour ; seul le code relance la
+ * connexion au hall.
  */
-export function usePublicListing(room: PublicRoom | null, open: boolean) {
+export function usePublicListing(code: string | null, settings: RoomSettings | null) {
   const listing = useRef<PublicListing | null>(null);
-  const openRef = useRef(open);
+  const settingsRef = useRef(settings);
 
   useEffect(() => {
-    openRef.current = open;
-    listing.current?.setOpen(open);
-  }, [open]);
+    settingsRef.current = settings;
+    listing.current?.show(settings);
+  }, [settings]);
 
-  const code = room?.code ?? null;
   useEffect(() => {
-    if (!room) return;
-    const current = listPublicRoom(room);
-    current.setOpen(openRef.current);
+    if (!code) return;
+    const current = listPublicRoom(code);
+    current.show(settingsRef.current);
     listing.current = current;
     return () => {
       current.stop();
       listing.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code]);
 }

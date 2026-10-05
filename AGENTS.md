@@ -44,17 +44,22 @@ depuis le navigateur : canaux Broadcast + Presence, sans table ni serveur.
   quelques secondes, Supabase ferme le canal du joueur (« Client presence rate
   limit exceeded »). N'y publie que ce qui change deux ou trois fois par
   partie (pseudo, statut, et les réglages pour le seul hôte). Tout ce qui
-  bouge en jeu — l'avancée — passe par Broadcast (`progress`).
+  bouge en jeu — l'avancée — passe par Broadcast (`progress`). L'hôte change
+  ses réglages en salle d'attente : ils ne partent qu'à « Enregistrer », en
+  une seule publication, jamais à chaque choix du formulaire.
 - On entre par le lien, qui porte les réglages, **ou par le code seul**
   (boîte « Rejoindre une partie », sur l'accueil). Rien ne doit donc supposer
   que l'URL les contient : ils viennent de la Presence de l'hôte, et le
-  message `start` les porte de toute façon.
+  message `start` les porte de toute façon. En salle d'attente, la Presence
+  de l'hôte l'emporte sur le lien (il a pu changer les réglages), et chaque
+  joueur réécrit son adresse avec ce que la salle fait jouer.
 - Une salle peut être **publique** (choix à la création, `public=1` dans
   l'URL de l'hôte). Son hôte l'annonce par Presence sur le canal `hall` tant
   qu'on peut y entrer (salle d'attente, place libre), et « Partie aléatoire »,
   sur l'accueil, lit ce canal pour en rejoindre une au hasard. L'annonce ne
-  porte que le code et les réglages, et ne change que deux ou trois fois par
-  partie : la même limite de fréquence s'y applique.
+  porte que le code et les réglages, qu'elle suit quand l'hôte les change, et
+  ne change que deux ou trois fois par partie : la même limite de fréquence
+  s'y applique.
 - `src/lib/round.ts` est la mécanique d'une manche, partagée par le solo et le
   multijoueur ; `src/components/quiz/quiz-board.tsx` en est l'écran commun.
 - Même quiz pour tous : la graine du lancement passe à `buildRound` via

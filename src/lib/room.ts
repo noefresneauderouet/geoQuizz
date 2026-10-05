@@ -61,7 +61,10 @@ export function parseRoomCode(value: string): string | null {
   return isRoomCode(code) ? code : null;
 }
 
-/** Ce que la salle fait jouer. Tout est dans le lien : on l'affiche avant même d'être connecté. */
+/**
+ * Ce que la salle fait jouer. Le lien le porte, pour qu'on l'affiche avant
+ * même d'être connecté ; l'hôte peut le changer entre deux parties.
+ */
 export type RoomSettings = {
   category: CategoryId;
   mode: ModeId;
@@ -69,6 +72,17 @@ export type RoomSettings = {
   /** Temps imparti en secondes ; 0 : pas de limite, la partie finit au premier qui a tout trouvé. */
   limit: TimeLimit;
 };
+
+/** Vrai si les deux désignent la même partie ; deux absences sont égales. */
+export function sameSettings(
+  a: RoomSettings | null | undefined,
+  b: RoomSettings | null | undefined,
+): boolean {
+  if (!a || !b) return !a && !b;
+  return (
+    a.category === b.category && a.mode === b.mode && a.count === b.count && a.limit === b.limit
+  );
+}
 
 /**
  * `isPublic` ne sert qu'à l'hôte : c'est par son URL qu'il sait, même après
@@ -170,8 +184,10 @@ export type PlayerState = {
   /** Numéro de la partie dans la salle : il avance à chaque « Rejouer ». */
   game: number;
   /**
-   * Publié par le seul hôte, et jamais modifié ensuite : c'est ainsi que
-   * celui qui est entré avec le code seul apprend ce que la salle fait jouer.
+   * Publié par le seul hôte : c'est ainsi que celui qui est entré avec le
+   * code seul apprend ce que la salle fait jouer, et que tous voient les
+   * réglages changés entre deux parties. Il ne change qu'à la validation
+   * d'un changement : Presence est limité.
    */
   settings?: RoomSettings;
 };
@@ -432,7 +448,8 @@ export function joinRoom(code: string, self: PlayerState, handlers: RoomHandlers
  * le réseau, sans rien à nettoyer.
  *
  * Elle n'y figure que tant qu'on peut y entrer (salle d'attente, place
- * libre) : elle n'en change que deux ou trois fois par partie, ce que
+ * libre), avec les derniers réglages de l'hôte : elle ne change que deux ou
+ * trois fois par partie, et à chaque changement de réglages validé, ce que
  * Presence supporte.
  *
  * Comme le reste, une annonce peut venir de n'importe qui. Une fausse mène à
@@ -457,37 +474,41 @@ function parsePublicRoom(value: unknown): PublicRoom | null {
 }
 
 export type PublicListing = {
-  /** Annonce la salle, ou la retire du hall. Sans effet si rien ne change. */
-  setOpen: (open: boolean) => void;
+  /**
+   * Annonce la salle avec ces réglages, ou la retire du hall (`null`). Sans
+   * effet si rien ne change : chaque annonce compte dans la limite de Presence.
+   */
+  show: (settings: RoomSettings | null) => void;
   stop: () => void;
 };
 
-/** Annonce une salle dans le hall, tant que l'écran le demande (`setOpen`). */
-export function listPublicRoom(room: PublicRoom): PublicListing {
+/** Annonce une salle dans le hall, tant que l'écran le demande (`show`). */
+export function listPublicRoom(code: string): PublicListing {
   let channel: RealtimeChannel | null = null;
   let stopped = false;
   let subscribed = false;
-  /** Ce que l'écran demande, et ce qui est publié. */
-  let wanted = false;
-  let shown = false;
+  /** Ce que l'écran demande, et ce qui est publié : les réglages annoncés, ou `null` hors du hall. */
+  let wanted: RoomSettings | null = null;
+  let shown: RoomSettings | null = null;
 
   const apply = () => {
-    if (!channel || !subscribed || wanted === shown) return;
+    if (!channel || !subscribed || sameSettings(wanted, shown)) return;
     shown = wanted;
-    void (wanted ? channel.track(room) : channel.untrack());
+    const room: PublicRoom | null = wanted ? { code, settings: wanted } : null;
+    void (room ? channel.track(room) : channel.untrack());
   };
 
   void leavingHall.then(getClient).then((realtime) => {
     if (stopped) return;
     const ch = realtime.channel(HALL, {
-      config: { presence: { key: room.code, enabled: true } },
+      config: { presence: { key: code, enabled: true } },
     });
     channel = ch;
     ch.subscribe((status) => {
       if (status === 'SUBSCRIBED') {
         // Après une coupure, le serveur a oublié l'annonce : on la refait.
         subscribed = true;
-        shown = false;
+        shown = null;
         apply();
       } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
         subscribed = false;
@@ -496,8 +517,8 @@ export function listPublicRoom(room: PublicRoom): PublicListing {
   });
 
   return {
-    setOpen: (open) => {
-      wanted = open;
+    show: (settings) => {
+      wanted = settings;
       apply();
     },
     stop: () => {
