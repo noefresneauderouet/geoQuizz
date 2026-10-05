@@ -104,6 +104,20 @@ passe, pseudo) et **Postgres**, appelés depuis le navigateur.
 - `vercel.json` porte les en-têtes de sécurité (CSP). Un nouveau domaine
   appelé par le navigateur doit y être ajouté.
 
+## La traduction du navigateur
+
+Le site reste en français, mais un visiteur anglophone le lit souvent traduit
+par Chrome ou Edge.
+
+- Les noms anglais des pays et des capitales sont acceptés en réponse :
+  `scripts/english-names.mjs`, fusionné aux alias par `npm run
+  generate-countries`. Une saisie qui nomme exactement un autre pays (ou une
+  autre capitale, une autre région) n'est jamais prise pour une faute de
+  frappe : `checkAnswer`, src/lib/quiz.ts.
+- La traduction remplace les nœuds texte de la page. src/app/layout.tsx
+  empêche React de planter dessus ; un texte qui change en jeu s'écrit quand
+  même d'un seul tenant (`{`${n}/${total}`}`), sans quoi il resterait figé.
+
 ## Le service worker
 
 `scripts/service-worker.js` est un **modèle**. `npm run build` y injecte la

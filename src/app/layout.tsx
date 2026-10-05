@@ -71,6 +71,30 @@ try {
 } catch (error) {}
 `;
 
+/**
+ * La traduction du navigateur (Chrome, Edge…) remplace les textes de la page
+ * par les siens. React garde l'ancien nœud texte, et dès qu'il veut le retirer
+ * ou insérer quelque chose devant, le DOM lève une erreur qui vide l'écran.
+ * On laisse alors passer l'opération plutôt que de planter : au pire, un texte
+ * reste figé jusqu'à l'écran suivant, ou un élément s'ajoute en fin de bloc
+ * au lieu de sa place exacte. Un texte qui change en jeu s'écrit donc
+ * d'un seul tenant (`{`${n}/${total}`}`), que React remplace en entier.
+ */
+const surviveTranslation = `
+(function () {
+  var remove = Node.prototype.removeChild;
+  Node.prototype.removeChild = function (child) {
+    if (child.parentNode !== this) return child;
+    return remove.apply(this, arguments);
+  };
+  var insert = Node.prototype.insertBefore;
+  Node.prototype.insertBefore = function (node, reference) {
+    if (reference && reference.parentNode !== this) return insert.call(this, node, null);
+    return insert.apply(this, arguments);
+  };
+})();
+`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     // `data-theme` est posé par `applyTheme` avant l'hydratation : React ne
@@ -78,6 +102,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="fr" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: applyTheme }} />
+        <script dangerouslySetInnerHTML={{ __html: surviveTranslation }} />
         {/* La palette part dans le HTML statique : les couleurs s'appliquent
             dès la première image, sans attendre le JavaScript. */}
         <style dangerouslySetInnerHTML={{ __html: paletteVariables() }} />

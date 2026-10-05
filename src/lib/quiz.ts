@@ -1,5 +1,5 @@
 import { isRegionSet, type CategoryId, type ModeId, type RegionSetId } from '@/constants/categories';
-import { countriesOf, type Country } from '@/lib/countries';
+import { COUNTRIES, countriesOf, type Country } from '@/lib/countries';
 import { matchAnswer, type MatchResult } from '@/lib/normalize';
 import type { Random } from '@/lib/random';
 import { regionSet, type Region } from '@/lib/regions';
@@ -115,18 +115,28 @@ function acceptedAnswers(q: Question): string[] {
     : [q.country.name, ...q.country.nameAliases];
 }
 
+/** Les réponses des autres questions du même genre : d'autres régions, d'autres pays. */
+function rivalAnswers(q: Question): string[][] {
+  if (q.mode === 'etats') {
+    const others = regionSet(q.set).regions.filter((r) => r.code !== q.region.code);
+    return others.map((r) => [r.name, ...r.nameAliases]);
+  }
+  const others = COUNTRIES.filter((c) => c.code !== q.country.code);
+  return q.mode === 'capitale'
+    ? others.map((c) => [c.capital, ...c.capitalAliases])
+    : others.map((c) => [c.name, ...c.nameAliases]);
+}
+
 /** Vérification complète, fautes de frappe tolérées : la touche Entrée. */
 export function checkAnswer(q: Question, input: string): MatchResult {
   const result = matchAnswer(input, acceptedAnswers(q));
-  if (q.mode !== 'etats' || result.exact || !result.correct) return result;
+  if (result.exact || !result.correct) return result;
 
-  // Hubei et Hebei, Hunan et Henan, Shanxi et Shaanxi ne diffèrent que d'une
-  // lettre : la tolérance aux fautes prendrait l'une pour l'autre. Une saisie
-  // qui nomme exactement une autre région du pays n'est donc pas une faute de
-  // frappe, c'est une erreur.
-  const namesAnother = regionSet(q.set).regions.some(
-    (r) => r.code !== q.region.code && matchAnswer(input, [r.name, ...r.nameAliases]).exact,
-  );
+  // Hubei et Hebei, Irlande et Islande, Chile et Chine ne diffèrent que d'une
+  // lettre : la tolérance aux fautes prendrait l'un pour l'autre. Une saisie
+  // qui nomme exactement une autre région, un autre pays ou une autre capitale
+  // n'est donc pas une faute de frappe, c'est une erreur.
+  const namesAnother = rivalAnswers(q).some((answers) => matchAnswer(input, answers).exact);
   return namesAnother ? { correct: false, exact: false } : result;
 }
 

@@ -1,6 +1,7 @@
 /**
  * Génère src/data/countries.json à partir de `world-countries` (npm) :
- * nom FR corrigé, capitale FR, continent, alias acceptés, coordonnées.
+ * nom FR corrigé, capitale FR, continent, alias acceptés (dont les noms
+ * anglais, voir english-names.mjs), coordonnées.
  *
  * Les 196 pays sont jouables dans les trois modes. En mode « Pays », ceux qui
  * sont trop petits pour se voir sur la carte reçoivent un cercle de repérage,
@@ -12,6 +13,8 @@ import { writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
 import { feature } from 'topojson-client';
+
+import { CAPITALS_EN, NAMES_EN } from './english-names.mjs';
 
 const require = createRequire(import.meta.url);
 const world = require('world-countries');
@@ -135,9 +138,9 @@ const countries = world
       code: c.cca2,
       numeric: NUMERIC_OVERRIDES[c.cca2] ?? c.ccn3,
       name,
-      nameAliases: NAME_ALIASES[c.cca2] ?? [],
+      nameAliases: [...(NAME_ALIASES[c.cca2] ?? []), ...(NAMES_EN[c.cca2] ?? [])],
       capital,
-      capitalAliases: CAPITAL_ALIASES[c.cca2] ?? [],
+      capitalAliases: [...(CAPITAL_ALIASES[c.cca2] ?? []), ...(CAPITALS_EN[c.cca2] ?? [])],
       continent: REGION_TO_CONTINENT[c.region],
       latlng: c.latlng,
       area: c.area,
