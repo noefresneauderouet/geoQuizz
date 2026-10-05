@@ -95,6 +95,12 @@ passe, pseudo) et **Postgres**, appelés depuis le navigateur.
 - Une manche jouée hors ligne ne compte pas au classement (elle reste un
   record local), et le dernier classement lu est gardé : le solo ne dépend
   jamais du réseau.
+- Connecté, le profil et l'écran de fin affichent le record **du
+  classement** (`useMyBests`, lu dans `scores`), pas celui de l'appareil :
+  `progress.ts` compte aussi les manches que la base n'a pas chronométrées et
+  se partage entre les comptes d'un navigateur. Un temps de l'appareil plus
+  rapide reste affiché, marqué hors classement ; il ne remonte jamais vers la
+  base.
 - Le chronomètre lit `clock()` (src/lib/timer.ts, `performance.now()`), jamais
   `Date.now()` : l'heure du système se change à la main.
 - Rien dans la page ne doit nommer la réponse de la question affichée. Un

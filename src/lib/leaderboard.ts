@@ -121,8 +121,8 @@ export async function fetchBoard(key: BoardKey, viewer: string | null): Promise<
 
 const START_TIMEOUT_MS = 5000;
 
-/** Une manche ouverte au classement : son identifiant côté base. */
-export type RankedRound = { id: string; key: BoardKey };
+/** Une manche ouverte au classement : son identifiant côté base, et le compte qui la joue. */
+export type RankedRound = { id: string; key: BoardKey; viewer: string };
 
 /**
  * Ouvre une manche classée, ou rend `null` : invité, pas de Supabase, hors
@@ -139,7 +139,7 @@ export async function startRankedRound(key: BoardKey): Promise<RankedRound | nul
     const { data, error } = await db
       .rpc('start_round', { p_category: key.category, p_mode: key.mode, p_length: key.length })
       .abortSignal(AbortSignal.timeout(START_TIMEOUT_MS));
-    return error || typeof data !== 'string' ? null : { id: data, key };
+    return error || typeof data !== 'string' ? null : { id: data, key, viewer: account.id };
   } catch {
     return null;
   }
@@ -190,6 +190,7 @@ export async function finishRankedRound(
     const row = ((data ?? []) as RawSubmitted[])[0];
     if (!row) return { status: 'rejected' };
     if (cache) delete cache[boardId(round.key)];
+    keepMyBest(round.viewer, round.key, row.best_ms);
     return {
       status: 'saved',
       rank: Number(row.rank),
@@ -199,4 +200,96 @@ export async function finishRankedRound(
   } catch {
     return { status: 'offline' };
   }
+}
+
+/* ------------------------------ Mes records ------------------------------- */
+
+/**
+ * Les meilleurs temps du compte connecté, un par classement, sous la même clé
+ * que les records de l'appareil (`europe:drapeau:15`, voir progress.ts).
+ *
+ * Connecté, ce sont eux que le profil et l'écran de fin affichent. Le record
+ * de l'appareil ne dit pas la même chose que le classement : il compte les
+ * manches que la base n'a pas chronométrées (sans compte, hors ligne,
+ * refusées), ignore celles jouées sur un autre appareil, et se partage entre
+ * les comptes d'un même navigateur. Il ne remonte jamais vers la base : ce
+ * serait croire le navigateur sur parole.
+ *
+ * Lus dans `scores`, publique en lecture, et gardés sur l'appareil pour
+ * s'afficher aussitôt, et hors ligne.
+ */
+export type MyBests = Partial<Record<string, number>>;
+
+/** `viewer` : le compte à qui ils appartiennent. */
+type Mine = { viewer: string; bests: MyBests; at: number };
+
+const MINE_KEY = 'geolearn.leaderboard.mine.v1';
+
+/** `undefined` tant que le disque n'a pas été lu. */
+let mine: Mine | null | undefined;
+const mineListeners = new Set<() => void>();
+
+function readMine(): Mine | null {
+  if (mine === undefined) {
+    try {
+      mine = JSON.parse(getItem(MINE_KEY) ?? 'null') as Mine | null;
+    } catch {
+      mine = null;
+    }
+  }
+  return mine;
+}
+
+function writeMine(next: Mine) {
+  mine = next;
+  setItem(MINE_KEY, JSON.stringify(next));
+  mineListeners.forEach((listener) => listener());
+}
+
+export function subscribeMyBests(listener: () => void): () => void {
+  mineListeners.add(listener);
+  return () => {
+    mineListeners.delete(listener);
+  };
+}
+
+/** Les records du compte `viewer`, s'ils ont déjà été lus ; `null` sinon. Synchrone. */
+export function myBestsOf(viewer: string): MyBests | null {
+  const current = readMine();
+  return current?.viewer === viewer ? current.bests : null;
+}
+
+type RawBest = { category: CategoryId; mode: ModeId; length: number; best_ms: number };
+
+/**
+ * Relit les records du compte `viewer`, sauf s'ils l'ont été il y a moins de
+ * 30 s. Lève une erreur si le réseau ou Supabase manquent : les précédents
+ * restent alors en place.
+ */
+export async function refreshMyBests(viewer: string): Promise<void> {
+  const current = readMine();
+  if (current?.viewer === viewer && Date.now() - current.at < FRESH_MS) return;
+  const db = await getDb();
+  const { data, error } = await db
+    .from('scores')
+    .select('category, mode, length, best_ms')
+    .eq('user_id', viewer);
+  if (error) throw new Error(error.message);
+  const rows = (data ?? []) as RawBest[];
+  writeMine({
+    viewer,
+    at: Date.now(),
+    bests: Object.fromEntries(rows.map((row) => [boardId(row), row.best_ms])),
+  });
+}
+
+/**
+ * Le meilleur temps que la base vient de rendre (`finish_round`). Rien si les
+ * records de ce compte n'ont jamais été lus : la prochaine lecture les
+ * apportera tous.
+ */
+function keepMyBest(viewer: string, key: BoardKey, bestMs: number) {
+  const current = readMine();
+  if (current?.viewer !== viewer) return;
+  writeMine({ ...current, bests: { ...current.bests, [boardId(key)]: bestMs } });
 }

@@ -8,6 +8,7 @@ import { CategoryBackground } from '@/components/category-background';
 import { QuizBoard } from '@/components/quiz/quiz-board';
 import { useFlagEmoji } from '@/components/use-flag-emoji';
 import { useInBrowser } from '@/components/use-in-browser';
+import { useMyBests } from '@/components/use-my-bests';
 import {
   getCategory,
   getMode,
@@ -22,11 +23,12 @@ import {
   cancelRankedRound,
   finishRankedRound,
   startRankedRound,
+  type MyBests,
   type RankedRound,
   type Ranking,
 } from '@/lib/leaderboard';
 import { saveLastGame } from '@/lib/last-game';
-import { NO_OUTCOME, recordRound, type RoundOutcome } from '@/lib/progress';
+import { NO_OUTCOME, recordRound, scoreKey, type RoundOutcome } from '@/lib/progress';
 import { buildRound, expectedAnswer, getQuestionCount, poolSize, questionKey } from '@/lib/quiz';
 import { newGame, reducer, SOLVED_PAUSE_MS, type Game } from '@/lib/round';
 import { hasStoredSession } from '@/lib/supabase';
@@ -34,10 +36,25 @@ import { clock, formatDuration, formatSeconds, readWatch } from '@/lib/timer';
 
 import styles from './quiz-game.module.css';
 
+/** Le record auquel l'écran de fin compare la manche. */
+type Outcome = RoundOutcome & {
+  /**
+   * Comparée au record du classement, comme sur le profil : la manche n'en
+   * bat un que si la base l'a retenue, ce que dira `Ranking`.
+   */
+  online: boolean;
+};
+
+const NO_RESULT: Outcome = { ...NO_OUTCOME, online: false };
+
 /**
  * Enregistre la manche telle qu'elle se termine à l'instant `now`, et ferme
  * la manche classée : elle compte si elle est trouvée en entier, sinon elle
  * est effacée. La réponse du classement arrive plus tard, par `onRanking`.
+ *
+ * Connecté, `online` porte les records du classement, lus avant que la base
+ * ne remplace celui-ci ; sans eux, la manche se compare au record de
+ * l'appareil.
  */
 function record(
   game: Game,
@@ -45,8 +62,9 @@ function record(
   mode: ModeId,
   now: number,
   ranked: RankedRound | null,
+  online: MyBests | null,
   onRanking: (ranking: Ranking) => void,
-): RoundOutcome {
+): Outcome {
   const score = game.found.length;
   const total = game.round.length;
   const durationMs = readWatch(game.watch, now);
@@ -55,7 +73,20 @@ function record(
   } else {
     cancelRankedRound(ranked);
   }
-  return recordRound({ category, mode, score, total, durationMs, bestStreak: game.bestStreak });
+  const local = recordRound({
+    category,
+    mode,
+    score,
+    total,
+    durationMs,
+    bestStreak: game.bestStreak,
+  });
+  if (online === null) return { ...local, online: false };
+  return {
+    previousBestMs: online[scoreKey(category, mode, total)],
+    newRecord: false,
+    online: true,
+  };
 }
 
 /* ---------------------------------- Écran --------------------------------- */
@@ -99,6 +130,8 @@ function QuizRound() {
    */
   const [preparing, setPreparing] = useState(() => hasStoredSession());
   const ranked = useRef<RankedRound | null>(null);
+  /** Connecté, les records du classement, relus pendant la partie. */
+  const online = useMyBests();
   /** L'écran est quitté : une manche qui s'ouvre après ne sert plus. */
   const left = useRef(false);
   const length = Math.min(count, poolSize(category.id, mode.id));
@@ -145,7 +178,7 @@ function QuizRound() {
   /** Question sur laquelle l'arrêt a été demandé, en attente de confirmation. */
   const [endRequestedAt, setEndRequestedAt] = useState<number | null>(null);
   /** Effet de la manche terminée sur les records, lu par l'écran de fin. */
-  const [outcome, setOutcome] = useState<RoundOutcome>(NO_OUTCOME);
+  const [outcome, setOutcome] = useState<Outcome>(NO_RESULT);
   /** Place au classement en ligne, une fois la réponse du serveur arrivée. */
   const [ranking, setRanking] = useState<Ranking | null>(null);
 
@@ -164,7 +197,7 @@ function QuizRound() {
       // Dernière question trouvée : la manche est complète, et le chronomètre
       // est en pause depuis la réponse.
       if (game.queue.length === 1) {
-        setOutcome(record(game, category.id, mode.id, now, ranked.current, setRanking));
+        setOutcome(record(game, category.id, mode.id, now, ranked.current, online, setRanking));
         ranked.current = null;
       }
       dispatch({ type: 'advance', now });
@@ -177,7 +210,7 @@ function QuizRound() {
 
   const replay = () => {
     setEndRequestedAt(null);
-    setOutcome(NO_OUTCOME);
+    setOutcome(NO_RESULT);
     setRanking(null);
     ranked.current = null;
     if (hasStoredSession() && length > 0) {
@@ -238,7 +271,7 @@ function QuizRound() {
       return;
     }
     const now = clock();
-    setOutcome(record(game, category.id, mode.id, now, ranked.current, setRanking));
+    setOutcome(record(game, category.id, mode.id, now, ranked.current, online, setRanking));
     ranked.current = null;
     dispatch({ type: 'end', now });
   };
@@ -273,7 +306,7 @@ type SummaryProps = {
   modeLabel: string;
   game: Game;
   /** Le record d'avant la manche, et s'il vient d'être battu. */
-  outcome: RoundOutcome;
+  outcome: Outcome;
   /** `null` tant que le classement n'a pas répondu, ou si la manche n'y va pas. */
   ranking: Ranking | null;
   onReplay: () => void;
@@ -291,7 +324,14 @@ function Summary({ category, modeLabel, game, outcome, ranking, onReplay, onBack
   const flags = useFlagEmoji();
 
   const ratio = score / total;
-  const { previousBestMs, newRecord } = outcome;
+  const { previousBestMs } = outcome;
+  // Comparée au classement, la manche ne bat le record que si la base l'a
+  // retenue, et c'est le temps qu'elle garde qui sert d'écart.
+  const saved = ranking?.status === 'saved' ? ranking : null;
+  const newRecord = outcome.online
+    ? saved !== null && saved.improved && previousBestMs !== undefined
+    : outcome.newRecord;
+  const recordMs = outcome.online && saved !== null ? saved.bestMs : durationMs;
   const [medal, title] = complete
     ? comebacks === 0
       ? ['🏆', 'Parfait !']
@@ -310,7 +350,7 @@ function Summary({ category, modeLabel, game, outcome, ranking, onReplay, onBack
                 <span aria-hidden="true">⚡</span> Nouveau record !
               </p>
               <p className={styles.newRecordDetail}>
-                {formatSeconds(previousBestMs - durationMs)} de mieux
+                {formatSeconds(previousBestMs - recordMs)} de mieux
               </p>
             </div>
           ) : null}
@@ -354,7 +394,13 @@ function Summary({ category, modeLabel, game, outcome, ranking, onReplay, onBack
               : ''}
           </p>
           {complete ? (
-            <RankingLine ranking={ranking} href={boardHref(category.id, game.round)} />
+            <RankingLine
+              ranking={ranking}
+              href={boardHref(category.id, game.round)}
+              // Comparée au classement, la manche affiche déjà ce record à
+              // côté du chrono.
+              showBest={!outcome.online}
+            />
           ) : (
             <p className={styles.summaryMeta}>
               Seule une manche trouvée en entier laisse un temps au classement.
@@ -399,8 +445,15 @@ function boardHref(category: CategoryId, round: Game['round']): string {
   return `/classement?category=${category}&mode=${round[0].mode}&length=${round.length}`;
 }
 
+type RankingLineProps = {
+  ranking: Ranking | null;
+  href: string;
+  /** Rappeler le record du classement quand la manche ne le bat pas. */
+  showBest: boolean;
+};
+
 /** Sous le chrono d'une manche complète : où elle place le joueur. */
-function RankingLine({ ranking, href }: { ranking: Ranking | null; href: string }) {
+function RankingLine({ ranking, href, showBest }: RankingLineProps) {
   if (ranking === null) {
     return <p className={styles.summaryMeta}>Envoi au classement…</p>;
   }
@@ -436,7 +489,9 @@ function RankingLine({ ranking, href }: { ranking: Ranking | null; href: string 
     <p className={styles.ranking}>
       <span aria-hidden="true">🏅</span> {ranking.rank === 1 ? '1er' : `${ranking.rank}e`} au
       classement
-      {ranking.improved ? '' : ` · ton record : ${formatDuration(ranking.bestMs)}`} ·{' '}
+      {ranking.improved || !showBest
+        ? ''
+        : ` · ton record : ${formatDuration(ranking.bestMs)}`} ·{' '}
       <Link href={href} className={styles.rankingLink}>
         Voir
       </Link>
