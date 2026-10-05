@@ -481,7 +481,7 @@ function Lobby({
           </div>
 
           <h2 className={styles.listTitle}>
-            Joueurs · {waiting.length}/{MAX_PLAYERS}
+            {`Joueurs · ${waiting.length}/${MAX_PLAYERS}`}
           </h2>
           <ul className={styles.players}>
             {waiting.map((p) => (
@@ -551,7 +551,7 @@ function Opponents({ players, total }: { players: Contender[]; total: number }) 
         <li key={p.id} className={p.connected ? styles.opponent : `${styles.opponent} ${styles.gone}`}>
           <span className={styles.opponentName}>{p.name}</span>
           <span className={styles.opponentScore}>
-            {p.found}/{total}
+            {`${p.found}/${total}`}
           </span>
         </li>
       ))}
@@ -607,7 +607,7 @@ function Ranking({ category, players, selfId, winnerId, total, isHost, onReplay 
                   {!p.connected ? <span className={styles.you}> · déconnecté</span> : null}
                 </span>
                 <span className={styles.rankScore}>
-                  {p.found}/{total}
+                  {`${p.found}/${total}`}
                 </span>
               </li>
             ))}

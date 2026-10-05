@@ -62,6 +62,10 @@ export function QuizBoard({
   const question = game.round[index];
   const total = game.round.length;
   const alreadySkipped = game.skipped.includes(index);
+  // Les textes qui changent en jeu s'écrivent d'un seul tenant : React les
+  // remplace alors en entier, même traduits par le navigateur (voir
+  // src/app/layout.tsx).
+  const remaining = `${game.queue.length} restante${game.queue.length > 1 ? 's' : ''}`;
 
   /*
    * Sur téléphone, la carte est petite : elle s'ouvre zoomée sur le pays, et
@@ -107,14 +111,11 @@ export function QuizBoard({
             <p className={styles.topTitle}>
               {category.emoji} {category.label}
             </p>
-            <p className={styles.topSub}>
-              {mode.emoji} {mode.label} · {game.queue.length} restante
-              {game.queue.length > 1 ? 's' : ''}
-            </p>
+            <p className={styles.topSub}>{`${mode.emoji} ${mode.label} · ${remaining}`}</p>
           </div>
           <RoundTimer watch={game.watch} deadline={deadline} />
           <p className={styles.scorePill} aria-label={`${game.found.length} trouvées sur ${total}`}>
-            {game.found.length}/{total}
+            {`${game.found.length}/${total}`}
           </p>
         </header>
 
