@@ -2,23 +2,20 @@
 
 import Link from 'next/link';
 import { useRouter, useSearchParams, type ReadonlyURLSearchParams } from 'next/navigation';
-import { useState, type CSSProperties, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 
-import { CountSelector } from '@/components/count-selector';
-import { ModeSelector } from '@/components/mode-selector';
 import { MultiRoom, Notice } from '@/components/multi/multi-room';
-import { useInBrowser } from '@/components/use-in-browser';
 import {
-  CATEGORIES,
-  categoriesFor,
-  getCategory,
-  getMode,
-  type CategoryId,
-} from '@/constants/categories';
-import { getQuestionCount, poolSize, type QuestionCount } from '@/lib/quiz';
+  describeSettings,
+  SettingsFields,
+  settingsOf,
+  type SettingsDraft,
+} from '@/components/multi/room-settings';
+import { useInBrowser } from '@/components/use-in-browser';
+import { CATEGORIES, getCategory, getMode } from '@/constants/categories';
+import { DEFAULT_QUESTION_COUNT, getQuestionCount, poolSize, QUESTION_COUNTS } from '@/lib/quiz';
 import {
   cleanName,
-  formatTimeLimit,
   getPlayerName,
   getTimeLimit,
   isMultiplayerConfigured,
@@ -28,12 +25,9 @@ import {
   newRoomCode,
   roomPath,
   setPlayerName,
-  TIME_LIMITS,
   type RoomSettings,
-  type TimeLimit,
 } from '@/lib/room';
 
-import selectorStyles from '../count-selector.module.css';
 import styles from './multi.module.css';
 
 /**
@@ -64,9 +58,20 @@ function urlSettings(params: ReadonlyURLSearchParams): RoomSettings | null {
     category: category.id,
     mode: mode.id,
     // Une zone plus petite que la longueur demandée se joue en entier.
-    count: Math.min(getQuestionCount(params.get('count')), poolSize(category.id, mode.id)),
+    count: Math.min(urlCount(params.get('count')), poolSize(category.id, mode.id)),
     limit: getTimeLimit(params.get('limit')),
   };
+}
+
+/**
+ * La longueur dans l'URL : 10, 15 ou 20, ou déjà ramenée à la taille de sa
+ * zone (14 en Océanie) — la salle réécrit son adresse avec ce qu'elle fait
+ * jouer. Toute autre valeur retombe sur 10.
+ */
+function urlCount(value: string | null): number {
+  const count = Number(value);
+  const longest = Math.max(...QUESTION_COUNTS);
+  return Number.isInteger(count) && count >= 1 && count <= longest ? count : DEFAULT_QUESTION_COUNT;
 }
 
 function RoomRouter() {
@@ -99,11 +104,7 @@ function RoomRouter() {
 
 /** Ce qu'on peut annoncer de la partie avant d'être entré : tout, ou le code seul. */
 function roomSummary(code: string, settings: RoomSettings | null): string {
-  if (!settings) return `Salle ${code}`;
-  const category = getCategory(settings.category, settings.mode);
-  const mode = getMode(settings.mode);
-  const chrono = settings.limit ? ` · ⏳ ${formatTimeLimit(settings.limit)}` : '';
-  return `${category.emoji} ${category.label} · ${mode.emoji} ${mode.label} · ${settings.count} questions${chrono}`;
+  return settings ? describeSettings(settings) : `Salle ${code}`;
 }
 
 /* -------------------------------- Création ------------------------------- */
@@ -111,27 +112,25 @@ function roomSummary(code: string, settings: RoomSettings | null): string {
 function CreateRoom({ onName }: { onName: (name: string) => void }) {
   const params = useSearchParams();
   const router = useRouter();
-  const [mode, setMode] = useState(getMode(params.get('mode') ?? undefined).id);
-  const [count, setCount] = useState<QuestionCount>(getQuestionCount(params.get('count')));
-  const [limit, setLimit] = useState<TimeLimit>(getTimeLimit(params.get('limit')));
-  const [isPublic, setPublic] = useState(false);
-  const [choice, setCategory] = useState<CategoryId>('monde');
-  const [draft, setDraft] = useState(getPlayerName);
+  const [draft, setDraft] = useState<SettingsDraft>(() => ({
+    mode: getMode(params.get('mode') ?? undefined).id,
+    count: getQuestionCount(params.get('count')),
+    limit: getTimeLimit(params.get('limit')),
+    isPublic: false,
+    category: 'monde',
+  }));
+  const [name, setName] = useState(getPlayerName);
   const accent = CATEGORIES[0].accent;
-  // Passer en mode États remplace les zones par les pays : le choix
-  // précédent retombe alors sur le premier de la liste.
-  const choices = categoriesFor(mode);
-  const category = choices.some((c) => c.id === choice) ? choice : choices[0].id;
 
   const create = (event: FormEvent) => {
     event.preventDefault();
-    const pseudo = cleanName(draft);
+    const pseudo = cleanName(name);
     if (!pseudo) return;
     setPlayerName(pseudo);
     onName(pseudo);
     const code = newRoomCode();
     markAsHost(code);
-    router.replace(roomPath(code, { category, mode, count, limit }, isPublic));
+    router.replace(roomPath(code, settingsOf(draft), draft.isPublic));
   };
 
   return (
@@ -147,128 +146,18 @@ function CreateRoom({ onName }: { onName: (name: string) => void }) {
       </header>
 
       <form className={styles.form} onSubmit={create}>
-        <NameField value={draft} onChange={setDraft} />
-
-        <h2 className="sectionTitle">Mode</h2>
-        <ModeSelector value={mode} onChange={setMode} accent={accent} />
-        <CountSelector value={count} onChange={setCount} accent={accent} />
-        <LimitSelector value={limit} onChange={setLimit} accent={accent} />
-        <VisibilitySelector value={isPublic} onChange={setPublic} accent={accent} />
-
-        <h2 className="sectionTitle">{mode === 'etats' ? 'Pays' : 'Zone'}</h2>
-        <div
-          className={styles.zones}
-          role="radiogroup"
-          aria-label={mode === 'etats' ? 'Pays' : 'Zone'}>
-          {choices.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              role="radio"
-              aria-checked={c.id === category}
-              className={c.id === category ? `${styles.zone} ${styles.zoneActive}` : styles.zone}
-              style={c.id === category ? { borderColor: c.accent, color: c.accent } : undefined}
-              onClick={() => setCategory(c.id)}>
-              <span aria-hidden="true">{c.emoji}</span> {c.label}
-            </button>
-          ))}
-        </div>
+        <NameField value={name} onChange={setName} />
+        <SettingsFields value={draft} onChange={setDraft} accent={accent} />
 
         <button
           type="submit"
           className={styles.primary}
           style={{ backgroundColor: accent }}
-          disabled={!cleanName(draft)}>
+          disabled={!cleanName(name)}>
           Créer la salle
         </button>
       </form>
     </main>
-  );
-}
-
-type LimitSelectorProps = {
-  value: TimeLimit;
-  onChange: (limit: TimeLimit) => void;
-  accent: string;
-};
-
-/** Même présentation que le choix du nombre de questions, juste au-dessus. */
-function LimitSelector({ value, onChange, accent }: LimitSelectorProps) {
-  return (
-    <div className={selectorStyles.row}>
-      <span className={selectorStyles.caption} id="limit-caption">
-        Temps
-      </span>
-      <div
-        className={`${selectorStyles.track} ${styles.limitTrack}`}
-        role="radiogroup"
-        aria-labelledby="limit-caption"
-        style={{ '--accent': accent } as CSSProperties}>
-        {TIME_LIMITS.map((limit) => {
-          const selected = limit === value;
-          return (
-            <button
-              key={limit}
-              type="button"
-              role="radio"
-              aria-checked={selected}
-              aria-label={limit === 0 ? 'Sans limite de temps' : `${limit / 60} minutes`}
-              onClick={() => onChange(limit)}
-              className={
-                selected ? `${selectorStyles.option} ${selectorStyles.active}` : selectorStyles.option
-              }>
-              {limit === 0 ? '∞' : `${limit / 60}′`}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-type VisibilitySelectorProps = {
-  value: boolean;
-  onChange: (isPublic: boolean) => void;
-  accent: string;
-};
-
-/**
- * Privée : on n'y entre qu'avec le lien ou le code. Publique : « Partie
- * aléatoire », sur l'accueil, peut aussi y mener des inconnus.
- */
-function VisibilitySelector({ value, onChange, accent }: VisibilitySelectorProps) {
-  const options = [
-    { isPublic: false, label: '🔒 Privée' },
-    { isPublic: true, label: '🌍 Publique' },
-  ];
-  return (
-    <div className={selectorStyles.row}>
-      <span className={selectorStyles.caption} id="visibility-caption">
-        Partie
-      </span>
-      <div
-        className={selectorStyles.track}
-        role="radiogroup"
-        aria-labelledby="visibility-caption"
-        style={{ '--accent': accent } as CSSProperties}>
-        {options.map((option) => {
-          const selected = option.isPublic === value;
-          return (
-            <button
-              key={option.label}
-              type="button"
-              role="radio"
-              aria-checked={selected}
-              onClick={() => onChange(option.isPublic)}
-              className={
-                selected ? `${selectorStyles.option} ${selectorStyles.active}` : selectorStyles.option
-              }>
-              {option.label}
-            </button>
-          );
-        })}
-      </div>
-    </div>
   );
 }
 

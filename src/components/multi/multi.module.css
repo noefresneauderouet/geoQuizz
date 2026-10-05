@@ -76,6 +76,28 @@
   text-align: center;
 }
 
+/* La ligne des réglages, remplacée à chaque changement : elle réapparaît en
+   fondu, pour que les invités voient que l'hôte vient d'y toucher. */
+.fresh {
+  animation: fade-in 500ms ease both;
+}
+
+/* Changer les réglages : sous la ligne qu'il modifie, plus discret que le
+   partage du lien. */
+.edit {
+  padding: 6px var(--space-3);
+  border-radius: var(--radius-pill);
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  color: var(--brown-dark);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.edit:hover {
+  background-color: var(--brown-light);
+}
+
 .title {
   font-size: 24px;
   font-weight: 800;
