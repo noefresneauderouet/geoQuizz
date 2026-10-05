@@ -59,7 +59,7 @@ describe('un invité', () => {
     delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY; // remis par beforeEach
     const { startRankedRound, finishRankedRound } = await openBoard();
     assert.equal(await startRankedRound(KEY), null);
-    assert.deepEqual(await finishRankedRound({ id: 'r1', key: KEY }, 30_000), { status: 'guest' });
+    assert.deepEqual(await finishRankedRound({ id: 'r1', key: KEY, viewer: 'u1' }, 30_000), { status: 'guest' });
     assert.deepEqual(database.calls, []);
   });
 });
@@ -69,7 +69,7 @@ describe('une manche classée', () => {
     signIn();
     answers({ start_round: { data: 'manche-1', error: null } });
     const { startRankedRound } = await openBoard();
-    assert.deepEqual(await startRankedRound(KEY), { id: 'manche-1', key: KEY });
+    assert.deepEqual(await startRankedRound(KEY), { id: 'manche-1', key: KEY, viewer: 'u1' });
     assert.deepEqual(database.callsTo('start_round')[0].args, {
       p_category: 'europe',
       p_mode: 'drapeau',
@@ -94,7 +94,7 @@ describe('une manche classée', () => {
     signIn();
     answers({ finish_round: { data: [{ best_ms: 41_235, rank: '3', improved: true }], error: null } });
     const { finishRankedRound } = await openBoard();
-    assert.deepEqual(await finishRankedRound({ id: 'manche-1', key: KEY }, 41_234.6), {
+    assert.deepEqual(await finishRankedRound({ id: 'manche-1', key: KEY, viewer: 'u1' }, 41_234.6), {
       status: 'saved',
       rank: 3,
       bestMs: 41_235,
@@ -106,7 +106,7 @@ describe('une manche classée', () => {
   it('dit pourquoi un temps ne compte pas', async () => {
     signIn();
     const { finishRankedRound } = await openBoard();
-    const round = { id: 'manche-1', key: KEY };
+    const round = { id: 'manche-1', key: KEY, viewer: 'u1' };
 
     // La manche n'a pas pu s'ouvrir (hors ligne au départ).
     assert.deepEqual(await finishRankedRound(null, 30_000), { status: 'offline' });
@@ -124,7 +124,7 @@ describe('une manche classée', () => {
     signIn();
     const { cancelRankedRound } = await openBoard();
     cancelRankedRound(null);
-    cancelRankedRound({ id: 'manche-1', key: KEY });
+    cancelRankedRound({ id: 'manche-1', key: KEY, viewer: 'u1' });
     await new Promise((resolve) => setImmediate(resolve));
     assert.deepEqual(
       database.callsTo('cancel_round').map((call) => call.args),
@@ -136,7 +136,7 @@ describe('une manche classée', () => {
     signIn();
     answers({ cancel_round: new TypeError('fetch failed') });
     const { cancelRankedRound } = await openBoard();
-    assert.doesNotThrow(() => cancelRankedRound({ id: 'manche-1', key: KEY }));
+    assert.doesNotThrow(() => cancelRankedRound({ id: 'manche-1', key: KEY, viewer: 'u1' }));
     await new Promise((resolve) => setImmediate(resolve));
   });
 });
@@ -195,7 +195,7 @@ describe('la lecture du classement', () => {
     });
     const { fetchBoard, finishRankedRound, cachedBoard } = await openBoard();
     await fetchBoard(KEY, 'u1');
-    await finishRankedRound({ id: 'manche-1', key: KEY }, 29_000);
+    await finishRankedRound({ id: 'manche-1', key: KEY, viewer: 'u1' }, 29_000);
     assert.equal(cachedBoard(KEY), null);
   });
 
