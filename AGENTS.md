@@ -85,6 +85,11 @@ passe, pseudo) et **Postgres**, appelés depuis le navigateur.
   effacée par `cancel_round` ; la base nettoie celles de plus de deux heures.
 - Les classements permis sont dans la table `boards`. Une nouvelle zone ou
   une nouvelle longueur de manche demande une migration qui les y ajoute.
+- **Google** : `signInWithGoogle` (src/lib/account.ts) part chez Google et
+  revient sur /compte, la session dans l'adresse. Un compte Google naît sans
+  pseudo ni profil (statut `needs-username`) : il le choisit sur /compte
+  (`claim_username`, une seule fois) et reste hors classement jusque-là. Le
+  nom que donne Google ne sert jamais de pseudo.
 - Retirer un tricheur : `select public.ban_player('Pseudo');` dans le SQL
   Editor. Le classement se lit par `get_leaderboard`, en un seul appel.
 - `src/lib/supabase.ts` charge `@supabase/auth-js` et `@supabase/postgrest-js`

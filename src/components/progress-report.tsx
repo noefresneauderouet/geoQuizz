@@ -113,6 +113,11 @@ function AccountLink() {
           </span>
           <span className={styles.accountAction}>Mon compte</span>
         </>
+      ) : account.status === 'needs-username' ? (
+        <>
+          <span>Choisis ton pseudo pour entrer au classement.</span>
+          <span className={styles.accountAction}>Choisir</span>
+        </>
       ) : (
         <>
           <span>Crée un compte pour entrer au classement.</span>

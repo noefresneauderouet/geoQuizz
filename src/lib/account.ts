@@ -1,5 +1,6 @@
 /**
- * Le compte du joueur : inscription, connexion, déconnexion.
+ * Le compte du joueur : inscription, connexion (e-mail ou Google),
+ * déconnexion.
  *
  * Un compte ne sert qu'au classement : on joue sans. L'état tient dans un
  * petit store externe, comme la progression ; src/components/use-account.ts
@@ -8,7 +9,7 @@
  * Tant qu'aucune session n'est enregistrée sur l'appareil, le client Auth
  * n'est pas chargé : l'invité reste invité sans télécharger une ligne.
  */
-import type { AuthError, Session } from '@supabase/auth-js';
+import type { AuthError, Session, User } from '@supabase/auth-js';
 
 import { cleanName, MAX_NAME_LENGTH } from '@/lib/room';
 import { getAuth, getDb, hasStoredSession, isSupabaseConfigured } from '@/lib/supabase';
@@ -19,12 +20,19 @@ export type Account =
   /** Supabase n'est pas configuré dans cette construction. */
   | { status: 'unavailable' }
   | { status: 'guest' }
-  | { status: 'signed-in'; id: string; email: string; username: string };
+  | { status: 'signed-in'; id: string; email: string; username: string }
+  /**
+   * Connecté avec Google pour la première fois : le pseudo du classement
+   * reste à choisir (`chooseUsername`). Hors classement d'ici là.
+   */
+  | { status: 'needs-username'; id: string; email: string };
 
 export const LOADING: Account = { status: 'loading' };
 
 let snapshot: Account = LOADING;
 let started = false;
+/** L'échec d'un retour vers le site, lu dans l'adresse au chargement. */
+let redirectError: string | null = null;
 const listeners = new Set<() => void>();
 const signInListeners = new Set<(account: Extract<Account, { status: 'signed-in' }>) => void>();
 
@@ -35,17 +43,20 @@ function set(next: Account) {
 }
 
 function fromSession(session: Session | null): Account {
-  if (!session) return { status: 'guest' };
-  const { user } = session;
-  return {
-    status: 'signed-in',
-    id: user.id,
-    email: user.email ?? '',
-    // Le pseudo part dans les métadonnées à l'inscription : la session le
-    // porte, sans requête de plus. La table `profiles` en garde la copie
-    // publique, celle que lit le classement.
-    username: String(user.user_metadata?.username ?? ''),
-  };
+  return fromUser(session?.user ?? null);
+}
+
+function fromUser(user: User | null): Account {
+  if (!user) return { status: 'guest' };
+  const id = user.id;
+  const email = user.email ?? '';
+  // Le pseudo part dans les métadonnées à l'inscription (ou quand un compte
+  // Google le choisit) : la session le porte, sans requête de plus. La table
+  // `profiles` en garde la copie publique, celle que lit le classement.
+  const username = String(user.user_metadata?.username ?? '');
+  return username
+    ? { status: 'signed-in', id, email, username }
+    : { status: 'needs-username', id, email };
 }
 
 /**
@@ -59,10 +70,12 @@ function start() {
     set({ status: 'unavailable' });
     return;
   }
-  // Le lien de confirmation d'e-mail arrive avec la session dans l'adresse :
-  // c'est le seul cas où il faut charger le client sans session enregistrée.
-  const fromEmailLink = /access_token=|[?&]code=/.test(globalThis.location?.href ?? '');
-  if (!hasStoredSession() && !fromEmailLink) {
+  redirectError = readRedirectError();
+  // Le lien de confirmation d'e-mail et le retour de Google arrivent avec la
+  // session dans l'adresse : c'est le seul cas où il faut charger le client
+  // sans session enregistrée.
+  const fromRedirect = /access_token=|[?&]code=/.test(globalThis.location?.href ?? '');
+  if (!hasStoredSession() && !fromRedirect) {
     set({ status: 'guest' });
     return;
   }
@@ -86,7 +99,35 @@ function load(): Promise<void> {
 }
 
 function sameAccount(a: Account, b: Account): boolean {
-  return a.status === 'signed-in' && b.status === 'signed-in' && a.id === b.id;
+  return 'id' in a && 'id' in b && a.id === b.id;
+}
+
+/**
+ * Un retour qui a échoué (Google refusé, lien d'e-mail expiré) revient avec
+ * l'erreur dans l'adresse, après `?` et après `#`. On la garde pour l'écran
+ * Compte, et on l'efface de l'adresse : un rechargement ne la remontre pas.
+ */
+function readRedirectError(): string | null {
+  const location = globalThis.location;
+  if (!location || !/[?#&]error=/.test(location.href)) return null;
+  const params = new URLSearchParams(`${location.search.slice(1)}&${location.hash.slice(1)}`);
+  const url = new URL(location.href);
+  for (const key of ['error', 'error_code', 'error_description']) url.searchParams.delete(key);
+  url.hash = '';
+  history.replaceState(history.state, '', url);
+  if (params.get('error_code') === 'otp_expired') {
+    return 'Ce lien a expiré ou a déjà servi : essaie de te connecter.';
+  }
+  if (params.get('error') === 'access_denied') return 'Connexion avec Google annulée.';
+  return 'La connexion a échoué. Réessaie, ou passe par ton adresse e-mail.';
+}
+
+/**
+ * L'erreur rapportée par le dernier retour vers le site, jusqu'à la
+ * prochaine tentative de connexion.
+ */
+export function getRedirectError(): string | null {
+  return redirectError;
 }
 
 export function subscribeAccount(listener: () => void): () => void {
@@ -136,6 +177,18 @@ export { MAX_NAME_LENGTH };
 /** Un échec affichable tel quel, ou rien quand tout s'est bien passé. */
 export type Failure = { error: string };
 
+const USERNAME_TAKEN = 'Ce pseudo est déjà pris.';
+const USERNAME_CHARSET = 'Le pseudo ne peut contenir que des lettres, des chiffres, _ et -.';
+
+/** Ce qui ne va pas dans un pseudo déjà nettoyé (`cleanName`), s'il y a lieu. */
+function checkUsername(username: string): Failure | null {
+  if (username.length < MIN_NAME_LENGTH) {
+    return { error: `Le pseudo doit faire au moins ${MIN_NAME_LENGTH} caractères.` };
+  }
+  if (!USERNAME_PATTERN.test(username)) return { error: USERNAME_CHARSET };
+  return null;
+}
+
 export type SignUpResult =
   | Failure
   /** Connecté tout de suite : la confirmation d'e-mail est désactivée. */
@@ -153,13 +206,10 @@ export async function signUp(
   rawUsername: string,
   captchaToken?: string,
 ): Promise<SignUpResult> {
+  redirectError = null;
   const username = cleanName(rawUsername);
-  if (username.length < MIN_NAME_LENGTH) {
-    return { error: `Le pseudo doit faire au moins ${MIN_NAME_LENGTH} caractères.` };
-  }
-  if (!USERNAME_PATTERN.test(username)) {
-    return { error: 'Le pseudo ne peut contenir que des lettres, des chiffres, _ et -.' };
-  }
+  const invalid = checkUsername(username);
+  if (invalid) return invalid;
   if (password.length < MIN_PASSWORD_LENGTH) {
     return { error: `Le mot de passe doit faire au moins ${MIN_PASSWORD_LENGTH} caractères.` };
   }
@@ -171,7 +221,7 @@ export async function signUp(
       p_username: username,
     });
     if (checkError) return { error: NETWORK_ERROR };
-    if (available === false) return { error: 'Ce pseudo est déjà pris.' };
+    if (available === false) return { error: USERNAME_TAKEN };
 
     const auth = await getAuth();
     const { data, error } = await auth.signUp({
@@ -223,6 +273,7 @@ export async function signIn(
   password: string,
   captchaToken?: string,
 ): Promise<Failure | null> {
+  redirectError = null;
   try {
     const auth = await getAuth();
     if (!loaded) void load();
@@ -233,6 +284,69 @@ export async function signIn(
     });
     if (error) return { error: describe(error) };
     set(fromSession(data.session));
+    return null;
+  } catch {
+    return { error: NETWORK_ERROR };
+  }
+}
+
+/**
+ * Part chez Google, qui ramène sur /compte avec la session dans l'adresse,
+ * comme le lien de confirmation d'e-mail : rien ne revient ici quand tout va
+ * bien, la page change. La première fois, le compte est créé sans pseudo, et
+ * l'écran Compte le demande (`needs-username`).
+ *
+ * Une adresse Gmail déjà inscrite par e-mail, et confirmée, retrouve son
+ * compte et son pseudo : Supabase relie les deux façons de se connecter.
+ */
+export async function signInWithGoogle(): Promise<Failure | null> {
+  redirectError = null;
+  if (globalThis.navigator?.onLine === false) return { error: NETWORK_ERROR };
+  try {
+    const auth = await getAuth();
+    const { error } = await auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${globalThis.location.origin}/compte`,
+        // Laisse choisir le compte Google, au lieu de reprendre en silence
+        // celui dont on vient de se déconnecter.
+        queryParams: { prompt: 'select_account' },
+      },
+    });
+    return error ? { error: describe(error) } : null;
+  } catch {
+    return { error: NETWORK_ERROR };
+  }
+}
+
+/**
+ * Donne son pseudo à un compte venu de Google. La base crée le profil
+ * (`claim_username`, supabase/migrations), puis le pseudo rejoint les
+ * métadonnées du compte, comme à l'inscription par e-mail : la session le
+ * porte.
+ *
+ * Un compte qui a déjà le sien (choisi sur un autre appareil, ou avant une
+ * coupure) le garde : la base rend celui-là, sans erreur.
+ */
+export async function chooseUsername(rawUsername: string): Promise<Failure | null> {
+  const username = cleanName(rawUsername);
+  const invalid = checkUsername(username);
+  if (invalid) return invalid;
+  try {
+    const db = await getDb();
+    const { data: kept, error } = await db.rpc('claim_username', { p_username: username });
+    if (error) {
+      // Les codes de Postgres : pseudo pris, ou refusé par une contrainte.
+      if (error.code === '23505') return { error: USERNAME_TAKEN };
+      if (error.code === '23514') return { error: USERNAME_CHARSET };
+      return { error: NETWORK_ERROR };
+    }
+    const auth = await getAuth();
+    const { data, error: updateError } = await auth.updateUser({
+      data: { username: String(kept) },
+    });
+    if (updateError) return { error: describe(updateError) };
+    set(fromUser(data.user));
     return null;
   } catch {
     return { error: NETWORK_ERROR };
