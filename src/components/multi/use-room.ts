@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from 'react';
 import {
   joinRoom,
   listPublicRoom,
+  withPresence,
+  withProgress,
   type FinishMessage,
   type KnownPlayer,
   type PlayerState,
@@ -51,27 +53,12 @@ export function useRoom(code: string, self: PlayerState, events: RoomEvents) {
 
   useEffect(() => {
     const room = joinRoom(code, selfRef.current, {
-      onPlayers: (present) =>
-        setPlayers((known) => {
-          const next: Record<string, KnownPlayer> = {};
-          for (const [id, player] of Object.entries(known)) {
-            next[id] = { ...player, connected: false };
-          }
-          for (const player of present) next[player.id] = { ...player, connected: true };
-          return next;
-        }),
+      onPlayers: (present) => setPlayers((known) => withPresence(known, present)),
       onStart: (message) => eventsRef.current.onStart(message),
       onFinish: (message) => eventsRef.current.onFinish(message),
       onReset: (message) => eventsRef.current.onReset(message),
-      onProgress: (message) =>
-        setScores((known) => {
-          const previous = known[message.playerId];
-          // Les messages peuvent se croiser : on ne recule jamais dans une partie.
-          if (previous && previous.game === message.game && previous.found > message.found) {
-            return known;
-          }
-          return { ...known, [message.playerId]: message };
-        }),
+      // Les messages peuvent se croiser : on ne recule jamais dans une partie.
+      onProgress: (message) => setScores((known) => withProgress(known, message)),
       onStatus: setStatus,
     });
     connection.current = room;

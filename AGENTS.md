@@ -118,6 +118,21 @@ par Chrome ou Edge.
   empêche React de planter dessus ; un texte qui change en jeu s'écrit quand
   même d'un seul tenant (`{`${n}/${total}`}`), sans quoi il resterait figé.
 
+## Les tests
+
+`npm test` lance les tests unitaires (`npm run test:unit`), puis celui du
+service worker (`npm run test:sw`, qui demande `npm run build` avant).
+
+- Les tests unitaires sont dans `tests/*.test.ts` et tournent avec `node:test`,
+  sans dépendance de plus. scripts/test-loader.mjs apprend à Node à lire src/
+  (TypeScript, alias `@/`, JSON) : n'y ajoute pas d'outil de test.
+- Ils ne touchent jamais au réseau : `@supabase/realtime-js`, `auth-js` et
+  `postgrest-js` y sont remplacés par les faux de `tests/fakes/`.
+- Une règle qui vit dans un composant React ne se teste pas : sors-la dans
+  `src/lib/` (comme `seatOf` ou `contendersOf`, src/lib/room.ts), puis teste-la.
+- Un état gardé en mémoire par un module (progression, compte) se remet à zéro
+  avec `freshImport` (tests/helpers.ts), comme une page qu'on rouvre.
+
 ## Le service worker
 
 `scripts/service-worker.js` est un **modèle**. `npm run build` y injecte la
