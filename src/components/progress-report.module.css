@@ -175,3 +175,9 @@
   color: var(--on-color);
   font-weight: 800;
 }
+
+/* Le record de l'appareil, plus rapide que celui du classement mais hors classement. */
+.unranked {
+  color: var(--ink-soft);
+  font-weight: 700;
+}

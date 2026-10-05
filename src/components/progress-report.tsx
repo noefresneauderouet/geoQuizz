@@ -5,6 +5,7 @@ import { useState } from 'react';
 
 import { ThemeSelector } from '@/components/theme-selector';
 import { useAccount } from '@/components/use-account';
+import { useMyBests } from '@/components/use-my-bests';
 import {
   CATEGORIES,
   MODES,
@@ -15,6 +16,7 @@ import {
   type Mode,
   type ModeId,
 } from '@/constants/categories';
+import type { MyBests } from '@/lib/leaderboard';
 import { resetProgress, useStats, type ScoreKey, type Stats } from '@/lib/progress';
 import { formatDuration, formatSeconds } from '@/lib/timer';
 
@@ -23,6 +25,8 @@ import styles from './progress-report.module.css';
 /** Meilleurs scores, taux de réussite, et le choix du thème. */
 export function ProgressReport() {
   const stats = useStats();
+  /** Connecté, les temps affichés sont ceux du classement (voir recordsOf). */
+  const online = useMyBests();
   const [confirming, setConfirming] = useState(false);
 
   const accuracy = stats.totalAnswers
@@ -35,10 +39,13 @@ export function ProgressReport() {
 
   // Les manches n'ont pas toutes la même longueur : on compare le temps par
   // question des manches trouvées en entier, pas leur durée brute.
-  const paces = Object.entries(stats.bestTime).flatMap(([key, time]) =>
+  const paces = Object.entries(online ?? stats.bestTime).flatMap(([key, time]) =>
     time === undefined ? [] : [time / lengthOf(key)],
   );
   const fastest = paces.length > 0 ? Math.min(...paces) : null;
+  const anyUnranked = Object.keys(stats.bestTime).some(
+    (key) => unrankedTime(stats, online, key) !== undefined,
+  );
 
   /*
    * Effacement en deux temps : le bouton demande confirmation dans son propre
@@ -80,14 +87,31 @@ export function ProgressReport() {
 
       <h2 className="sectionTitle">Meilleurs scores</h2>
       <p className={styles.hint}>
-        Une ligne par longueur de partie. Tant qu’une manche n’est pas trouvée en entier, on
-        affiche le nombre de réponses ; ensuite, seul le chrono compte — c’est lui qui fait le
-        classement.
+        Une ligne par longueur de partie. Tant qu’une manche n’est pas trouvée en entier, on affiche
+        le nombre de réponses ; ensuite, seul le chrono compte — c’est lui qui fait le classement.
+        {online === null
+          ? null
+          : ' Connecté, ce sont tes temps du classement, les mêmes sur tous tes appareils.'}
+        {anyUnranked
+          ? ' Un temps suivi de * a été fait sur cet appareil sans compter au classement : sans compte, hors ligne, ou refusé.'
+          : null}
       </p>
-      <ScoreTable stats={stats} heading="Zone" categories={CATEGORIES} modes={ZONE_MODES} />
+      <ScoreTable
+        stats={stats}
+        online={online}
+        heading="Zone"
+        categories={CATEGORIES}
+        modes={ZONE_MODES}
+      />
 
       <h2 className="sectionTitle">États et régions</h2>
-      <ScoreTable stats={stats} heading="Pays" categories={REGION_SETS} modes={REGION_MODES} />
+      <ScoreTable
+        stats={stats}
+        online={online}
+        heading="Pays"
+        categories={REGION_SETS}
+        modes={REGION_MODES}
+      />
 
       <h2 className="sectionTitle">Thème</h2>
       <p className={styles.hint}>Auto suit le réglage clair ou sombre de ton appareil.</p>
@@ -127,6 +151,7 @@ const REGION_MODES = MODES.filter((m) => m.id === 'etats');
 
 type ScoreTableProps = {
   stats: Stats;
+  online: MyBests | null;
   /** Titre de la première colonne : « Zone », ou « Pays » pour le mode États. */
   heading: string;
   categories: readonly Category[];
@@ -134,7 +159,7 @@ type ScoreTableProps = {
 };
 
 /** Une ligne par catégorie, une colonne par mode, les records dans les cases. */
-function ScoreTable({ stats, heading, categories, modes }: ScoreTableProps) {
+function ScoreTable({ stats, online, heading, categories, modes }: ScoreTableProps) {
   return (
     <div className={styles.tableWrap}>
       <table className={styles.table}>
@@ -155,12 +180,12 @@ function ScoreTable({ stats, heading, categories, modes }: ScoreTableProps) {
                 {cat.emoji} {cat.label}
               </th>
               {modes.map((m) => {
-                const records = recordsOf(stats, cat.id, m.id);
+                const records = recordsOf(stats, online, cat.id, m.id);
                 return (
                   <td key={m.id}>
                     {records.length === 0
                       ? '—'
-                      : records.map(({ length, found, time }) => (
+                      : records.map(({ length, found, time, unranked }) => (
                           <span
                             key={length}
                             className={
@@ -169,7 +194,15 @@ function ScoreTable({ stats, heading, categories, modes }: ScoreTableProps) {
                                 : `${styles.cellLine} ${styles.perfect}`
                             }>
                             <span className={styles.cellLength}>{length} q</span>
-                            {time === undefined ? `${found}/${length}` : formatDuration(time)}
+                            {time !== undefined
+                              ? formatDuration(time)
+                              : unranked === undefined
+                                ? `${found}/${length}`
+                                : null}
+                            {unranked === undefined ? null : (
+                              <span
+                                className={styles.unranked}>{`${formatDuration(unranked)}*`}</span>
+                            )}
                           </span>
                         ))}
                   </td>
@@ -188,17 +221,44 @@ function lengthOf(key: string): number {
   return Number(key.split(':')[2]);
 }
 
-/** Les records d'une case du tableau, de la partie la plus courte à la plus longue. */
-function recordsOf(stats: Stats, category: CategoryId, mode: ModeId) {
+/**
+ * Les records d'une case du tableau, de la partie la plus courte à la plus
+ * longue.
+ *
+ * Connecté (`online`), le temps est celui du classement, et les manches
+ * jouées sur d'autres appareils ont leur ligne. Le temps de l'appareil ne
+ * s'y ajoute que s'il est plus rapide (`unranked`).
+ */
+function recordsOf(stats: Stats, online: MyBests | null, category: CategoryId, mode: ModeId) {
   const prefix = `${category}:${mode}:`;
-  return Object.entries(stats.best)
-    .filter(([key]) => key.startsWith(prefix))
-    .map(([key, found]) => ({
+  const keys = new Set(
+    [...Object.keys(stats.best), ...Object.keys(online ?? {})].filter((key) =>
+      key.startsWith(prefix),
+    ),
+  );
+  return [...keys]
+    .map((key) => ({
       length: lengthOf(key),
-      found: found ?? 0,
-      time: stats.bestTime[key as ScoreKey],
+      // Un temps au classement veut dire une manche trouvée en entier.
+      found: stats.best[key as ScoreKey] ?? lengthOf(key),
+      time: online === null ? stats.bestTime[key as ScoreKey] : online[key],
+      unranked: unrankedTime(stats, online, key),
     }))
     .sort((a, b) => a.length - b.length);
+}
+
+/**
+ * Le record de l'appareil quand il bat, à la seconde affichée près, celui du
+ * classement : une manche que la base n'a pas chronométrée (sans compte, hors
+ * ligne, refusée). Rien pour un invité, dont le record de l'appareil est le
+ * seul.
+ */
+function unrankedTime(stats: Stats, online: MyBests | null, key: string): number | undefined {
+  const local = stats.bestTime[key as ScoreKey];
+  if (online === null || local === undefined) return undefined;
+  const ranked = online[key];
+  const shown = (ms: number) => Math.round(ms / 1000);
+  return ranked === undefined || shown(local) < shown(ranked) ? local : undefined;
 }
 
 function Stat({ value, label, color }: { value: string; label: string; color: string }) {
