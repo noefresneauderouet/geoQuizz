@@ -236,13 +236,38 @@ Sans cela, un déploiement rechargerait la page au milieu d'une question.
 npm run dev        # http://localhost:3000
 npm run lint
 npm run typecheck
+npm run test:unit  # tests unitaires, sans construire
 ```
+
+## Les tests
+
+Les tests unitaires sont dans [tests/](tests/), un fichier par partie du jeu :
+la correction des réponses, le tirage d'une manche, le chronomètre, les
+données des pays, les salles à plusieurs, les records, le compte et le
+classement. Ils tournent avec le lanceur intégré à Node (`node --test`) : il
+n'y a aucun outil de test à installer.
+
+```sh
+npm run test:unit                                   # tous
+npm run test:unit -- --test-name-pattern="salle"    # ceux dont le nom contient « salle »
+```
+
+Node ne sait pas lire src/ tel quel (TypeScript, imports `@/`, fichiers JSON) :
+[scripts/test-loader.mjs](scripts/test-loader.mjs) le lui apprend. Il remplace
+aussi les clients Supabase par les faux de [tests/fakes/](tests/fakes/) : un
+test ne touche jamais au réseau, et le faux Realtime fait jouer l'hôte et ses
+invités dans le même processus.
+
+Ne sont pas couverts : les écrans React (ce qui s'affiche, les clics), le
+dessin des cartes et des drapeaux, et les fonctions SQL de
+[supabase/migrations/](supabase/migrations/), qui vérifient les temps du
+classement dans la base.
 
 ## Construire et déployer
 
 ```sh
 npm run build    # export statique + service worker -> out/
-npm test         # exerce out/sw.js hors navigateur
+npm test         # tests unitaires, puis out/sw.js exercé hors navigateur
 npm run serve    # sert out/ sur http://localhost:8080
 npm run preview  # build + serve
 ```

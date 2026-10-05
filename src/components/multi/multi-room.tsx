@@ -13,6 +13,7 @@ import { vibrateSuccess } from '@/lib/feedback';
 import { buildRound } from '@/lib/quiz';
 import { newSeed, seeded } from '@/lib/random';
 import {
+  contendersOf,
   COUNTDOWN_MS,
   formatTimeLimit,
   getPlayerId,
@@ -20,7 +21,9 @@ import {
   MAX_PLAYERS,
   rankPlayers,
   roomPath,
+  roomSettings,
   sameSettings,
+  seatOf,
   type Contender,
   type FinishMessage,
   type KnownPlayer,
@@ -143,16 +146,9 @@ export function MultiRoom({ code, name, settings: fromLink, isPublic: publicLink
     onReset: backToLobby,
   });
 
-  /*
-   * Ce que la salle fait jouer. En partie, le lancement fait foi : c'est ce
-   * que l'hôte a envoyé à tous. En salle d'attente, ce que l'hôte publie, car
-   * il peut le changer entre deux parties ; à défaut — sa présence n'est pas
-   * encore arrivée —, la partie d'avant, puis le lien qu'on a ouvert. Entré
-   * avec le code seul, on attend la présence de l'hôte.
-   */
+  /* Ce que la salle fait jouer : le lancement en partie, l'hôte en salle d'attente. */
   const chosen = host ? me.settings : room.players.find((p) => p.host)?.settings;
-  const settings =
-    (phase.kind === 'lobby' ? (chosen ?? launched) : (launched ?? chosen)) ?? fromLink;
+  const settings = roomSettings(phase.kind === 'lobby', chosen, launched, fromLink);
 
   /*
    * L'hôte a validé de nouveaux réglages. Une seule publication pour tout le
@@ -228,9 +224,7 @@ export function MultiRoom({ code, name, settings: fromLink, isPublic: publicLink
 
   const connected = room.players.filter((p) => p.connected);
   // Les places vont aux premiers arrivés.
-  const seat = [...connected]
-    .sort((a, b) => a.joinedAt - b.joinedAt || a.id.localeCompare(b.id))
-    .findIndex((p) => p.id === me.id);
+  const seat = seatOf(connected, me.id);
 
   /*
    * Une salle publique ne figure dans le hall que tant qu'on peut y entrer :
@@ -241,26 +235,8 @@ export function MultiRoom({ code, name, settings: fromLink, isPublic: publicLink
     room.status === 'connected' && phase.kind === 'lobby' && connected.length < MAX_PLAYERS;
   usePublicListing(host && isPublic ? code : null, open ? (me.settings ?? null) : null);
 
-  /*
-   * Les participants de la partie en cours, avec leur avancée. La sienne vient
-   * de sa propre manche, jamais du réseau ; celle des autres, de leurs
-   * derniers messages `progress`.
-   */
-  const contenders = (): Contender[] => {
-    const others = room.players
-      .filter((p) => p.id !== me.id)
-      .filter(
-        (p) =>
-          (p.game === me.game && p.status !== 'lobby') || room.scores[p.id]?.game === me.game,
-      )
-      .map((p) => {
-        const score = room.scores[p.id];
-        return score?.game === me.game
-          ? { ...p, found: score.found, reachedMs: score.reachedMs }
-          : { ...p, found: 0, reachedMs: 0 };
-      });
-    return [{ ...me, connected: true, ...scoreOf(game) }, ...others];
-  };
+  /* Les participants de la partie en cours, avec leur avancée. */
+  const contenders = (): Contender[] => contendersOf(me, scoreOf(game), room.players, room.scores);
 
   if (room.status === 'error') {
     return (

@@ -9,7 +9,9 @@
     "preview": "npm run build && npm run serve",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node ./scripts/test-sw.mjs",
+    "test": "npm run test:unit && npm run test:sw",
+    "test:unit": "node ./scripts/test-unit.mjs",
+    "test:sw": "node ./scripts/test-sw.mjs",
     "generate-countries": "node ./scripts/generate-countries.mjs",
     "generate-regions": "node ./scripts/generate-regions.mjs",
     "generate-icons": "node ./scripts/generate-icons.mjs"

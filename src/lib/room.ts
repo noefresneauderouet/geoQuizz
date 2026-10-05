@@ -221,6 +221,93 @@ export function rankPlayers<T extends PlayerState & Score>(players: readonly T[]
   );
 }
 
+/**
+ * La place d'un joueur parmi les présents : les premiers arrivés passent
+ * devant, l'identifiant départage. À partir de MAX_PLAYERS, la salle est
+ * complète pour lui ; -1 tant que sa présence n'est pas arrivée.
+ */
+export function seatOf(connected: readonly PlayerState[], id: string): number {
+  return [...connected]
+    .sort((a, b) => a.joinedAt - b.joinedAt || a.id.localeCompare(b.id))
+    .findIndex((p) => p.id === id);
+}
+
+/**
+ * Les joueurs connus après un relevé de Presence. Ceux qui sont partis ne
+ * sont pas oubliés : ils restent listés, marqués déconnectés, avec leur
+ * dernier état. Un joueur qui perd le réseau en pleine partie garde ainsi sa
+ * place au classement.
+ */
+export function withPresence(
+  known: Record<string, KnownPlayer>,
+  present: readonly PlayerState[],
+): Record<string, KnownPlayer> {
+  const next: Record<string, KnownPlayer> = {};
+  for (const [id, player] of Object.entries(known)) {
+    next[id] = { ...player, connected: false };
+  }
+  for (const player of present) next[player.id] = { ...player, connected: true };
+  return next;
+}
+
+/**
+ * Range la dernière avancée reçue d'un joueur. Les messages peuvent se
+ * croiser : on ne recule jamais dans une partie. `known` est rendu tel quel
+ * quand le message est ignoré.
+ */
+export function withProgress(
+  known: Record<string, ProgressMessage>,
+  message: ProgressMessage,
+): Record<string, ProgressMessage> {
+  const previous = known[message.playerId];
+  if (previous && previous.game === message.game && previous.found > message.found) {
+    return known;
+  }
+  return { ...known, [message.playerId]: message };
+}
+
+/**
+ * Les participants de la partie en cours (`me.game`), avec leur avancée. La
+ * sienne vient de sa propre manche (`mine`), jamais du réseau ; celle des
+ * autres, de leurs derniers messages `progress`. Un joueur resté en salle
+ * d'attente, ou encore dans la partie d'avant, n'en est pas.
+ */
+export function contendersOf(
+  me: PlayerState,
+  mine: Score,
+  players: readonly KnownPlayer[],
+  scores: Record<string, ProgressMessage>,
+): Contender[] {
+  const others = players
+    .filter((p) => p.id !== me.id)
+    .filter(
+      (p) => (p.game === me.game && p.status !== 'lobby') || scores[p.id]?.game === me.game,
+    )
+    .map((p) => {
+      const score = scores[p.id];
+      return score?.game === me.game
+        ? { ...p, found: score.found, reachedMs: score.reachedMs }
+        : { ...p, found: 0, reachedMs: 0 };
+    });
+  return [{ ...me, connected: true, ...mine }, ...others];
+}
+
+/**
+ * Ce que la salle fait jouer. En partie, le lancement fait foi (`launched`) :
+ * c'est ce que l'hôte a envoyé à tous. En salle d'attente, ce que l'hôte
+ * publie (`published`), car il peut le changer entre deux parties ; à défaut
+ * — sa présence n'est pas encore arrivée —, la partie d'avant, puis le lien
+ * qu'on a ouvert. Entré avec le code seul, on attend la présence de l'hôte.
+ */
+export function roomSettings(
+  inLobby: boolean,
+  published: RoomSettings | undefined,
+  launched: RoomSettings | null,
+  fromLink: RoomSettings | null,
+): RoomSettings | null {
+  return (inLobby ? (published ?? launched) : (launched ?? published)) ?? fromLink;
+}
+
 /* --------------------------------- Réseau -------------------------------- */
 
 /**
