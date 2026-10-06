@@ -8,10 +8,11 @@ export const SITE_URL = 'https://geoquizz.games';
 
 /**
  * L'adresse de contact des pages légales : mentions légales, demandes sur les
- * données personnelles, signalement d'un pseudo. Elle doit recevoir le
- * courrier pour de bon : la loi demande qu'on puisse joindre l'éditeur.
+ * données personnelles, signalement d'un pseudo. Celle de l'éditeur, qu'il a
+ * choisi de publier ; elle doit recevoir le courrier pour de bon : la loi
+ * demande qu'on puisse joindre l'éditeur.
  */
-export const CONTACT_EMAIL = 'contact@geoquizz.games';
+export const CONTACT_EMAIL = 'noe.fresneau@gmail.com';
 
 /** Les pages légales, dans l'ordre où le pied de page les cite. */
 export const LEGAL_PAGES = [
