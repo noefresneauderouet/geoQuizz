@@ -28,7 +28,7 @@ export function AppTabs() {
   return (
     <nav className={styles.bar} aria-label="Navigation principale">
       <div className={styles.inner}>
-        <span className={styles.brand}>GeoLearn</span>
+        <span className={styles.brand}>GeoQuizz</span>
         {TABS.map((tab) => {
           const active = pathname === tab.href;
           return (

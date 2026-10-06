@@ -1,5 +1,5 @@
 /**
- * Direction artistique GeoLearn : vert, bleu, jaune, marron clair.
+ * Direction artistique GeoQuizz : vert, bleu, jaune, marron clair.
  *
  * Deux jeux de couleurs, clair et sombre, sous les mêmes noms. Le thème suit
  * le réglage de l'appareil, sauf si le profil en impose un (voir

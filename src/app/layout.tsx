@@ -11,12 +11,12 @@ import './globals.css';
 export const metadata: Metadata = {
   /* `%s` est remplacé par le titre de chaque page ; la racine garde `default`. */
   title: {
-    default: 'GeoLearn — réviser la géographie',
-    template: '%s — GeoLearn',
+    default: 'GeoQuizz — réviser la géographie',
+    template: '%s — GeoQuizz',
   },
   description:
     'Révise les drapeaux, les capitales et les pays du monde. 196 pays, six zones, jouable hors ligne.',
-  applicationName: 'GeoLearn',
+  applicationName: 'GeoQuizz',
   manifest: '/manifest.webmanifest',
   icons: {
     icon: [
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
      l'app installée se règlent uniquement par ces balises. */
   appleWebApp: {
     capable: true,
-    title: 'GeoLearn',
+    title: 'GeoQuizz',
     statusBarStyle: 'default',
   },
 };
@@ -51,11 +51,11 @@ export const viewport: Viewport = {
  * `useInstallPrompt` le récupère ensuite (voir src/lib/pwa.ts).
  */
 const catchInstallPrompt = `
-window.__geolearnInstallPrompt = null;
+window.__geoquizzInstallPrompt = null;
 window.addEventListener('beforeinstallprompt', function (event) {
   event.preventDefault();
-  window.__geolearnInstallPrompt = event;
-  window.dispatchEvent(new Event('geolearn:installable'));
+  window.__geoquizzInstallPrompt = event;
+  window.dispatchEvent(new Event('geoquizz:installable'));
 });
 `;
 

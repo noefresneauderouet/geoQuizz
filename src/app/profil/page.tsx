@@ -4,7 +4,7 @@ import { LegalLinks } from '@/components/legal/legal-links';
 import { ProgressReport } from '@/components/progress-report';
 
 export const metadata: Metadata = {
-  /* Le layout complète en « … — GeoLearn ». */
+  /* Le layout complète en « … — GeoQuizz ». */
   title: 'Ma progression',
 };
 

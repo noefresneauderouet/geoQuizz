@@ -1,5 +1,5 @@
 /**
- * Génère les icônes PWA de GeoLearn.
+ * Génère les icônes PWA de GeoQuizz.
  *
  * L'icône n'est pas un binaire déposé à la main : c'est le fond de carte de
  * l'application, projeté en orthographique et rendu dans la palette du thème.

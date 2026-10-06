@@ -5,7 +5,7 @@ import { useInstallPrompt } from '@/lib/pwa';
 import styles from './install-banner.module.css';
 
 /**
- * Invitation à installer GeoLearn.
+ * Invitation à installer GeoQuizz.
  *
  * Elle ne paraît que si le navigateur accepte réellement l'installation, et
  * disparaît définitivement dès qu'on la refuse : une bannière qui revient à
@@ -28,7 +28,7 @@ export function InstallBanner() {
         <img className={styles.icon} src="/icons/icon-192.png" alt="" width={44} height={44} />
 
         <div className={styles.text}>
-          <p className={styles.title}>Installer GeoLearn</p>
+          <p className={styles.title}>Installer GeoQuizz</p>
           <p className={styles.subtitle}>
             {needsManualSteps
               ? 'Appuie sur Partager, puis « Sur l’écran d’accueil ».'

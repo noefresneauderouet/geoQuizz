@@ -16,6 +16,9 @@ Il n'y a plus ni Expo, ni React Native, ni cible mobile : ne réintroduis pas
   l'annonce) : une nouvelle page publique s'y ajoute.
 - `src/lib/` ne dépend pas de React, sauf `progress.ts` et `pwa.ts`, qui
   exposent des hooks et portent `'use client'`.
+- Le jeu s'appelle **GeoQuizz**. Les clés de stockage (`geolearn.…`) et les
+  caches du service worker (`geolearn-…`) gardent l'ancien nom : les renommer
+  effacerait la progression et les réglages des joueurs.
 - Tout composant qui lit `localStorage` ou l'état du navigateur doit fournir un
   instantané serveur constant à `useSyncExternalStore` : le HTML est produit à
   la compilation, et un écart ferait échouer l'hydratation.

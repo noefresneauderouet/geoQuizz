@@ -21,8 +21,8 @@ export default function manifest(): MetadataRoute.Manifest {
 
   return {
     id: '/',
-    name: 'GeoLearn — révision de géographie',
-    short_name: 'GeoLearn',
+    name: 'GeoQuizz — révision de géographie',
+    short_name: 'GeoQuizz',
     description:
       'Révise les drapeaux, les capitales et les pays du monde. 196 pays, six zones, jouable hors ligne.',
     lang: 'fr',

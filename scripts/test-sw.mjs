@@ -17,7 +17,7 @@ import { runInNewContext } from 'node:vm';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = join(ROOT, 'out');
-const ORIGIN = 'https://geolearn.test';
+const ORIGIN = 'https://geoquizz.test';
 const FLAG = 'https://flagcdn.com/w640/fr.png';
 const BACKGROUND_CACHE = 'geolearn-backgrounds-v1';
 
@@ -272,24 +272,24 @@ check('l’activation supprime les coquilles des versions précédentes', async 
 check('« / » sert index.html', async () => {
   const response = await through('/', { mode: 'navigate' });
   const body = await response.text();
-  assert.match(body, /GeoLearn — réviser la géographie/);
+  assert.match(body, /GeoQuizz — réviser la géographie/);
 });
 
 check('« /profil » sert profil.html', async () => {
   const response = await through('/profil', { mode: 'navigate' });
-  assert.match(await response.text(), /Ma progression — GeoLearn/);
+  assert.match(await response.text(), /Ma progression — GeoQuizz/);
 });
 
 check('« /quiz » avec paramètres sert quiz.html', async () => {
   const response = await through('/quiz?category=monde&mode=drapeau', { mode: 'navigate' });
-  assert.match(await response.text(), /Partie en cours — GeoLearn/);
+  assert.match(await response.text(), /Partie en cours — GeoQuizz/);
 });
 
 check('« /salle » avec paramètres sert salle.html', async () => {
   const response = await through('/salle?code=K7PQX&category=europe&mode=drapeau&count=10', {
     mode: 'navigate',
   });
-  assert.match(await response.text(), /Partie à plusieurs — GeoLearn/);
+  assert.match(await response.text(), /Partie à plusieurs — GeoQuizz/);
 });
 
 check('hors ligne, une route inconnue rend la page « introuvable »', async () => {

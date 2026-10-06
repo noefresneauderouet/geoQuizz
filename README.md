@@ -201,12 +201,12 @@ et sa projection dans `LAYOUTS` ([src/components/region-map.tsx](src/components/
 
 Sur **Chrome / Edge** (ordinateur et Android), une icône d'installation apparaît
 dans la barre d'adresse, et l'app propose elle-même la bannière « Installer
-GeoLearn ». Sur **Safari iOS**, il n'existe aucune API : le geste est
+GeoQuizz ». Sur **Safari iOS**, il n'existe aucune API : le geste est
 _Partager › Sur l'écran d'accueil_, et c'est ce que la bannière explique.
 
 Refusée une fois, la bannière ne revient plus.
 
-Une fois installée, GeoLearn s'ouvre dans sa propre fenêtre, sans barre
+Une fois installée, GeoQuizz s'ouvre dans sa propre fenêtre, sans barre
 d'adresse, et **fonctionne entièrement hors ligne** : les 196 pays, leurs
 capitales et les deux fonds de carte sont embarqués dans le bundle, précaché au
 premier lancement.
