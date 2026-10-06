@@ -8,6 +8,9 @@
  *
  * Le quota et le mode privé sont les deux cas d'échec ; ils sont avalés,
  * l'app reste jouable sans conserver les scores.
+ *
+ * Les clés commencent par `geolearn.`, l'ancien nom du jeu, et le gardent :
+ * en changer ferait perdre à chaque joueur sa progression et ses réglages.
  */
 export function getItem(key: string): string | null {
   try {

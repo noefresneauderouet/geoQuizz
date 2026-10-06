@@ -383,11 +383,11 @@ function Lobby({
     const url = window.location.href;
     const chrono = settings?.limit ? `, ${formatTimeLimit(settings.limit)} chrono` : '';
     const text = settings
-      ? `Viens me défier sur GeoLearn : ${category.label}, ${mode.label.toLowerCase()}, ${settings.count} questions${chrono}.`
-      : `Viens me défier sur GeoLearn, salle ${code}.`;
+      ? `Viens me défier sur GeoQuizz : ${category.label}, ${mode.label.toLowerCase()}, ${settings.count} questions${chrono}.`
+      : `Viens me défier sur GeoQuizz, salle ${code}.`;
     try {
       if (navigator.share) {
-        await navigator.share({ title: 'GeoLearn', text, url });
+        await navigator.share({ title: 'GeoQuizz', text, url });
         return;
       }
       await navigator.clipboard.writeText(url);

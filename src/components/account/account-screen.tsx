@@ -268,6 +268,20 @@ function AuthForms() {
         <button type="submit" className={styles.primary} disabled={busy || waitingForCaptcha}>
           {busy ? 'Un instant…' : signingUp ? 'Créer mon compte' : 'Se connecter'}
         </button>
+
+        {signingUp ? (
+          <p className={styles.note}>
+            En créant ton compte, tu acceptes les{' '}
+            <Link href="/conditions" className={styles.noteLink}>
+              conditions d’utilisation
+            </Link>
+            . La{' '}
+            <Link href="/confidentialite" className={styles.noteLink}>
+              politique de confidentialité
+            </Link>{' '}
+            dit ce que deviennent tes données.
+          </p>
+        ) : null}
       </form>
     </div>
   );

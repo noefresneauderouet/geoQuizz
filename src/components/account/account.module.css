@@ -83,6 +83,14 @@
   color: var(--ink-soft);
 }
 
+/* Les liens des notes (conditions, confidentialité) se voient comme des liens. */
+.noteLink {
+  color: var(--green);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .input {
   padding: 12px var(--space-3);
   border: 2px solid var(--border);

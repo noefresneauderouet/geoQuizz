@@ -33,7 +33,7 @@ import {
 
 const SOURCE_URL =
   'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_admin_1_states_provinces.geojson';
-const SOURCE_FILE = join(tmpdir(), 'geolearn-ne_10m_admin_1_states_provinces.geojson');
+const SOURCE_FILE = join(tmpdir(), 'geoquizz-ne_10m_admin_1_states_provinces.geojson');
 
 /** [code, nom, variantes acceptées, capitale ou null] */
 const US = [

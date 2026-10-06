@@ -1,6 +1,6 @@
 /* eslint-disable no-undef */
 /**
- * Service worker de GeoLearn — modèle.
+ * Service worker de GeoQuizz — modèle.
  *
  * Ce fichier n'est pas livré tel quel : `npm run build` y injecte la liste
  * des fichiers produits et l'empreinte de la version, puis écrit le résultat
@@ -35,6 +35,8 @@ const PRECACHE_URLS = __PRECACHE_URLS__;
 const FLAG_URLS = __FLAG_URLS__;
 const BACKGROUND_URLS = __BACKGROUND_URLS__;
 
+// `geolearn-` est l'ancien nom du jeu. Un autre préfixe laisserait les caches
+// déjà installés orphelins et retéléchargerait les 196 drapeaux.
 const SHELL_CACHE = `geolearn-shell-${BUILD_ID}`;
 const FLAG_CACHE = 'geolearn-flags-v1';
 const FLAG_ORIGIN = 'https://flagcdn.com';

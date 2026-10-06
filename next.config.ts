@@ -1,7 +1,7 @@
 import type { NextConfig } from 'next';
 
 /**
- * GeoLearn est une application installable, pas un site servi.
+ * GeoQuizz est une application installable, pas un site servi.
  *
  * `output: 'export'` produit des fichiers statiques dans out/ : aucun serveur
  * Node à faire tourner, aucun coût d'hébergement, et surtout un jeu de
