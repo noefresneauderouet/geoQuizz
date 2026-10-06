@@ -85,17 +85,17 @@ le réactive depuis le tableau de bord de Supabase.
 
 L'onglet **Classement** montre, pour chaque zone, mode et longueur de manche,
 le meilleur temps de chaque joueur sur une manche trouvée en entier. On joue
-sans compte ; en créer un (pseudo, e-mail, mot de passe, depuis le profil ou
-l'écran de fin) sert seulement à y apparaître. À la première connexion sur un
-appareil, les records déjà faits dessus rejoignent le classement.
+sans compte ; en créer un (pseudo, e-mail, mot de passe, ou un compte Google
+suivi du choix d'un pseudo, depuis le profil ou l'écran de fin) sert
+seulement à y apparaître. À la première connexion sur un appareil, les
+records déjà faits dessus rejoignent le classement.
 
 Même projet Supabase que les salles, avec en plus une base :
 
-1. Dans le *SQL Editor* du projet, exécute
-   `supabase/migrations/20260925170000_leaderboard.sql` (ou `supabase db push`
-   avec la CLI). Il crée les tables `profiles` et `scores`, leurs règles
-   d'accès et les fonctions `submit_scores`, `get_leaderboard` et
-   `username_available`.
+1. Dans le *SQL Editor* du projet, exécute un à un, dans l'ordre, les fichiers
+   de `supabase/migrations/` (ou `supabase db push` avec la CLI). Le premier
+   crée les tables `profiles` et `scores`, leurs règles d'accès et les
+   fonctions du classement ; les suivants le complètent.
 2. Dans *Authentication → Sign In / Providers*, garde *Email* et *Confirm
    email* activés : chaque inscription attend un clic dans un e-mail.
    L'envoi intégré de Supabase est très limité (quelques e-mails par heure) :
@@ -103,6 +103,15 @@ Même projet Supabase que les salles, avec en plus une base :
    Settings* avant d'ouvrir à de vrais joueurs.
 3. Dans *Authentication → URL Configuration*, mets l'adresse de production en
    *Site URL* et ajoute `https://<ton-domaine>/compte` aux *Redirect URLs*.
+4. Pour « Continuer avec Google » (après la migration
+   `20261005180000_connexion_google.sql`) : dans la
+   [Google Cloud Console](https://console.cloud.google.com), *Google Auth
+   Platform*, renseigne l'écran de consentement (application externe, publiée,
+   domaines `<ton-domaine>` et `<projet>.supabase.co`), puis crée un client
+   OAuth *Application Web* : origine `https://<ton-domaine>`, URI de
+   redirection `https://<projet>.supabase.co/auth/v1/callback`. Colle son ID
+   et son secret dans *Authentication → Sign In / Providers → Google*.
+   Sans cela, le bouton mène à une page d'erreur de Supabase.
 
 Si Supabase ne répond pas, le jeu solo continue : un temps fait pendant la
 panne attend sur l'appareil et part au retour du réseau, et le dernier

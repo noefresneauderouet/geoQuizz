@@ -154,6 +154,13 @@ function Leaderboard() {
           </Link>{' '}
           pour apparaître ici : tes records faits sur cet appareil suivront.
         </p>
+      ) : account.status === 'needs-username' ? (
+        <p className={styles.banner}>
+          <Link href="/compte" className={styles.link}>
+            Choisis ton pseudo
+          </Link>{' '}
+          pour apparaître ici.
+        </p>
       ) : null}
 
       <BoardTable board={board} length={length} />
