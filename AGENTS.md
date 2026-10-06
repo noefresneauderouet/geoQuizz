@@ -110,6 +110,16 @@ passe, pseudo) et **Postgres**, appelés depuis le navigateur.
 - `vercel.json` porte les en-têtes de sécurité (CSP). Un nouveau domaine
   appelé par le navigateur doit y être ajouté.
 
+## Les pages légales
+
+`/mentions-legales`, `/confidentialite` et `/conditions` (src/app/), sur le
+gabarit de src/components/legal/. La politique de confidentialité décrit ce
+que le site fait pour de bon : un nouveau service appelé par le navigateur,
+une nouvelle donnée enregistrée (base ou appareil), une durée de conservation
+qui change s'y reportent dans la même PR, et `LEGAL_UPDATED`
+(src/constants/site.ts) avance. L'adresse de contact est `CONTACT_EMAIL`, au
+même endroit.
+
 ## La traduction du navigateur
 
 Le site reste en français, mais un visiteur anglophone le lit souvent traduit

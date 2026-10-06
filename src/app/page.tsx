@@ -1,3 +1,4 @@
+import { LegalLinks } from '@/components/legal/legal-links';
 import { ZonePicker } from '@/components/zone-picker';
 
 /*
@@ -8,6 +9,7 @@ export default function AccueilPage() {
   return (
     <main className="screen">
       <ZonePicker />
+      <LegalLinks />
     </main>
   );
 }
