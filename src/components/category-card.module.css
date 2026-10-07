@@ -4,6 +4,8 @@
   overflow: hidden;
   box-shadow: var(--shadow-card);
   transition: transform 120ms ease, opacity 120ms ease;
+  /* Les marges intérieures suivent la hauteur de la carte (voir en bas). */
+  container-type: size;
 }
 
 .card:hover {
@@ -129,5 +131,14 @@
 
   .meta {
     font-size: 16px;
+  }
+}
+
+/* Une carte basse — l'Océanie sur ordinateur, seule sur sa ligne — resserre
+   ses marges en hauteur : avec 24 px, son emoji touchait son nom. Sur
+   téléphone, les marges valent déjà 16 px, et rien ne change. */
+@container (max-height: 140px) {
+  .content {
+    padding-block: var(--space-3);
   }
 }
