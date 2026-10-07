@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next';
 
-import { SITE_URL } from '@/constants/site';
+import { LEGAL_PAGES, SITE_URL } from '@/constants/site';
 
 /**
  * Le sitemap, généré par Next sous /sitemap.xml et annoncé par robots.txt.
@@ -15,7 +15,13 @@ import { SITE_URL } from '@/constants/site';
  */
 export const dynamic = 'force-static';
 
-const PAGES = ['/', '/classement', '/profil', '/compte'];
+const PAGES = [
+  '/',
+  '/classement',
+  '/profil',
+  '/compte',
+  ...LEGAL_PAGES.map((page) => page.href),
+];
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return PAGES.map((path) => ({ url: `${SITE_URL}${path}` }));

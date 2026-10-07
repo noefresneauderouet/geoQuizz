@@ -101,7 +101,7 @@ createServer((req, res) => {
   if (req.method === 'HEAD') res.end();
   else createReadStream(file).pipe(res);
 }).listen(PORT, () => {
-  console.log(`GeoLearn sur http://localhost:${PORT}`);
+  console.log(`GeoQuizz sur http://localhost:${PORT}`);
   console.log('Installation : icône dans la barre d’adresse (Chrome/Edge),');
   console.log('ou Partager › Sur l’écran d’accueil (Safari iOS).');
 });

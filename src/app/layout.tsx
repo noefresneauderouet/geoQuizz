@@ -51,11 +51,11 @@ export const viewport: Viewport = {
  * `useInstallPrompt` le récupère ensuite (voir src/lib/pwa.ts).
  */
 const catchInstallPrompt = `
-window.__geolearnInstallPrompt = null;
+window.__geoquizzInstallPrompt = null;
 window.addEventListener('beforeinstallprompt', function (event) {
   event.preventDefault();
-  window.__geolearnInstallPrompt = event;
-  window.dispatchEvent(new Event('geolearn:installable'));
+  window.__geoquizzInstallPrompt = event;
+  window.dispatchEvent(new Event('geoquizz:installable'));
 });
 `;
 

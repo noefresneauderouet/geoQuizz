@@ -16,6 +16,9 @@ Il n'y a plus ni Expo, ni React Native, ni cible mobile : ne réintroduis pas
   l'annonce) : une nouvelle page publique s'y ajoute.
 - `src/lib/` ne dépend pas de React, sauf `progress.ts` et `pwa.ts`, qui
   exposent des hooks et portent `'use client'`.
+- Le jeu s'appelle **GeoQuizz**. Les clés de stockage (`geolearn.…`) et les
+  caches du service worker (`geolearn-…`) gardent l'ancien nom : les renommer
+  effacerait la progression et les réglages des joueurs.
 - Tout composant qui lit `localStorage` ou l'état du navigateur doit fournir un
   instantané serveur constant à `useSyncExternalStore` : le HTML est produit à
   la compilation, et un écart ferait échouer l'hydratation.
@@ -85,6 +88,11 @@ passe, pseudo) et **Postgres**, appelés depuis le navigateur.
   effacée par `cancel_round` ; la base nettoie celles de plus de deux heures.
 - Les classements permis sont dans la table `boards`. Une nouvelle zone ou
   une nouvelle longueur de manche demande une migration qui les y ajoute.
+- **Google** : `signInWithGoogle` (src/lib/account.ts) part chez Google et
+  revient sur /compte, la session dans l'adresse. Un compte Google naît sans
+  pseudo ni profil (statut `needs-username`) : il le choisit sur /compte
+  (`claim_username`, une seule fois) et reste hors classement jusque-là. Le
+  nom que donne Google ne sert jamais de pseudo.
 - Retirer un tricheur : `select public.ban_player('Pseudo');` dans le SQL
   Editor. Le classement se lit par `get_leaderboard`, en un seul appel.
 - `src/lib/supabase.ts` charge `@supabase/auth-js` et `@supabase/postgrest-js`
@@ -109,6 +117,16 @@ passe, pseudo) et **Postgres**, appelés depuis le navigateur.
   (ses deux lettres sont ce code).
 - `vercel.json` porte les en-têtes de sécurité (CSP). Un nouveau domaine
   appelé par le navigateur doit y être ajouté.
+
+## Les pages légales
+
+`/mentions-legales`, `/confidentialite` et `/conditions` (src/app/), sur le
+gabarit de src/components/legal/. La politique de confidentialité décrit ce
+que le site fait pour de bon : un nouveau service appelé par le navigateur,
+une nouvelle donnée enregistrée (base ou appareil), une durée de conservation
+qui change s'y reportent dans la même PR, et `LEGAL_UPDATED`
+(src/constants/site.ts) avance. L'adresse de contact est `CONTACT_EMAIL`, au
+même endroit.
 
 ## La traduction du navigateur
 

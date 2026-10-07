@@ -125,8 +125,8 @@ const START_TIMEOUT_MS = 5000;
 export type RankedRound = { id: string; key: BoardKey; viewer: string };
 
 /**
- * Ouvre une manche classée, ou rend `null` : invité, pas de Supabase, hors
- * ligne, ou refus de la base. Un invité ne charge rien.
+ * Ouvre une manche classée, ou rend `null` : invité, compte sans pseudo, pas
+ * de Supabase, hors ligne, ou refus de la base. Un invité ne charge rien.
  */
 export async function startRankedRound(key: BoardKey): Promise<RankedRound | null> {
   if (!isSupabaseConfigured() || !hasStoredSession()) return null;
@@ -161,6 +161,8 @@ export function cancelRankedRound(round: RankedRound | null): void {
 export type Ranking =
   /** Pas de compte sur cet appareil (ou pas de Supabase) : rien n'est envoyé. */
   | { status: 'guest' }
+  /** Compte Google sans pseudo encore : hors classement. */
+  | { status: 'needs-username' }
   /** Temps retenu ; `improved` si c'est un nouveau record en ligne. */
   | { status: 'saved'; rank: number; bestMs: number; improved: boolean }
   /** La manche n'a pas pu s'ouvrir ou se fermer (réseau) : hors classement. */
@@ -179,8 +181,13 @@ export async function finishRankedRound(
   durationMs: number,
 ): Promise<Ranking> {
   if (!isSupabaseConfigured() || !hasStoredSession()) return { status: 'guest' };
-  if (round === null) return { status: 'offline' };
   try {
+    if (round === null) {
+      const account = await readAccount();
+      return account.status === 'needs-username'
+        ? { status: 'needs-username' }
+        : { status: 'offline' };
+    }
     const db = await getDb();
     const { data, error } = await db.rpc('finish_round', {
       p_round: round.id,

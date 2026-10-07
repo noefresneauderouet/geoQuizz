@@ -83,6 +83,14 @@
   color: var(--ink-soft);
 }
 
+/* Les liens des notes (conditions, confidentialité) se voient comme des liens. */
+.noteLink {
+  color: var(--green);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .input {
   padding: 12px var(--space-3);
   border: 2px solid var(--border);
@@ -136,6 +144,56 @@
 
 .ghost:hover {
   background-color: var(--brown-light);
+}
+
+/*
+ * « Continuer avec Google » : le bouton clair des règles de marque de Google,
+ * aux couleurs du thème.
+ */
+.google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: 12px var(--space-3);
+  border-radius: var(--radius-pill);
+  border: 2px solid var(--border);
+  background-color: var(--card);
+  color: var(--ink);
+  font-weight: 800;
+  font-size: 16px;
+}
+
+.google:hover {
+  background-color: var(--sand);
+}
+
+.google:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.googleLogo {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+/* « ou avec ton adresse e-mail », entre deux traits. */
+.separator {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.separator::before,
+.separator::after {
+  content: '';
+  flex: 1;
+  border-top: 1px solid var(--border);
 }
 
 .danger {

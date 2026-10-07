@@ -80,7 +80,7 @@ export function ZonePicker() {
   return (
     <>
       <header>
-        <h1 className={styles.brand}>GeoLearn</h1>
+        <h1 className={styles.brand}>GeoQuizz</h1>
         <p className={styles.subtitle}>
           {activeMode.emoji} Je révise les {activeMode.plural}
         </p>

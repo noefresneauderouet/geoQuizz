@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Suspense } from 'react';
 
 import { LeaderboardScreen } from '@/components/leaderboard/leaderboard-screen';
+import { LegalLinks } from '@/components/legal/legal-links';
 
 export const metadata: Metadata = {
   title: 'Classement',
@@ -18,6 +19,7 @@ export default function ClassementPage() {
       <Suspense fallback={null}>
         <LeaderboardScreen />
       </Suspense>
+      <LegalLinks />
     </main>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Tout ce qui fait de GeoLearn une application installable.
+ * Tout ce qui fait de GeoQuizz une application installable.
  *
  * Trois choses, indépendantes :
  *   - `useInstallPrompt` : proposer l'ajout à l'écran d'accueil ;
@@ -32,11 +32,11 @@ declare global {
      * écouteur posé dans le <head> (voir src/app/layout.tsx) met l'événement
      * de côté ici ; le store le récupère au premier abonnement.
      */
-    __geolearnInstallPrompt?: BeforeInstallPromptEvent | null;
+    __geoquizzInstallPrompt?: BeforeInstallPromptEvent | null;
   }
 }
 
-const INSTALLABLE_EVENT = 'geolearn:installable';
+const INSTALLABLE_EVENT = 'geoquizz:installable';
 const DISMISSED_KEY = 'geolearn.install.dismissed.v1';
 
 /* ------------------------------------------------------------------ */
@@ -83,10 +83,10 @@ function updateInstall(patch: Partial<InstallSnapshot>) {
   installListeners.forEach((listener) => listener());
 }
 
-const onInstallable = () => updateInstall({ prompt: window.__geolearnInstallPrompt ?? null });
+const onInstallable = () => updateInstall({ prompt: window.__geoquizzInstallPrompt ?? null });
 
 const onInstalled = () => {
-  window.__geolearnInstallPrompt = null;
+  window.__geoquizzInstallPrompt = null;
   updateInstall({ prompt: null, silenced: true });
 };
 
@@ -100,7 +100,7 @@ function subscribeInstall(listener: () => void): () => void {
   if (!installStarted) {
     installStarted = true;
     installSnapshot = {
-      prompt: window.__geolearnInstallPrompt ?? null,
+      prompt: window.__geoquizzInstallPrompt ?? null,
       silenced: isStandalone() || getItem(DISMISSED_KEY) !== null,
       manual: isIosSafari(),
     };
@@ -134,7 +134,7 @@ async function runInstall(): Promise<void> {
 
   // Un événement `beforeinstallprompt` ne se rejoue pas : consommé, il est
   // perdu. On le retire des deux côtés pour ne pas laisser un bouton mort.
-  window.__geolearnInstallPrompt = null;
+  window.__geoquizzInstallPrompt = null;
   updateInstall({ prompt: null, silenced: outcome === 'accepted' });
 }
 

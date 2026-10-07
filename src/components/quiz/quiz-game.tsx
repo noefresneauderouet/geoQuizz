@@ -471,6 +471,16 @@ function RankingLine({ ranking, href, showBest }: RankingLineProps) {
       </p>
     );
   }
+  if (ranking.status === 'needs-username') {
+    return (
+      <p className={styles.summaryMeta}>
+        <Link href="/compte" className={styles.rankingLink}>
+          Choisis ton pseudo
+        </Link>{' '}
+        pour entrer au classement.
+      </p>
+    );
+  }
   if (ranking.status === 'offline') {
     return (
       <p className={styles.summaryMeta}>
