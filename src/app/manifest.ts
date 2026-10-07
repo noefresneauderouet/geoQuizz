@@ -21,10 +21,10 @@ export default function manifest(): MetadataRoute.Manifest {
 
   return {
     id: '/',
-    name: 'GeoLearn — révision de géographie',
-    short_name: 'GeoLearn',
+    name: 'GeoQuizz — Jeux de géographie',
+    short_name: 'GeoQuizz',
     description:
-      'Révise les drapeaux, les capitales et les pays du monde. 196 pays, six zones, jouable hors ligne.',
+      'Défis tes amis sur les drapeaux, les capitales et les pays du monde, et les régions de certains pays. Défie tes amis et grimpe au classement, ou Joue seul, même hors ligne.',
     lang: 'fr',
     dir: 'ltr',
     start_url: '/',
@@ -56,6 +56,12 @@ export default function manifest(): MetadataRoute.Manifest {
         name: 'Capitales du monde',
         short_name: 'Capitales',
         url: '/quiz?category=monde&mode=capitale',
+        icons: [{ src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }],
+      },
+      {
+        name: 'Classement',
+        short_name: 'Classement',
+        url: '/classement',
         icons: [{ src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }],
       },
       {

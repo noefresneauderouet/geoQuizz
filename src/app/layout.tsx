@@ -11,12 +11,12 @@ import './globals.css';
 export const metadata: Metadata = {
   /* `%s` est remplacé par le titre de chaque page ; la racine garde `default`. */
   title: {
-    default: 'GeoLearn — réviser la géographie',
-    template: '%s — GeoLearn',
+    default: 'GeoQuizz — Jeux de géographie',
+    template: '%s — GeoQuizz',
   },
   description:
-    'Révise les drapeaux, les capitales et les pays du monde. 196 pays, six zones, jouable hors ligne.',
-  applicationName: 'GeoLearn',
+    'Défis tes amis sur les drapeaux, les capitales et les pays du monde, et les régions de certains pays. Défie tes amis et grimpe au classement, ou Joue seul, même hors ligne.',
+  applicationName: 'GeoQuizz',
   manifest: '/manifest.webmanifest',
   icons: {
     icon: [
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
      l'app installée se règlent uniquement par ces balises. */
   appleWebApp: {
     capable: true,
-    title: 'GeoLearn',
+    title: 'GeoQuizz',
     statusBarStyle: 'default',
   },
 };
