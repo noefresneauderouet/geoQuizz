@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
+import { AppMenu } from '@/components/app-menu';
 import { ModeSelector } from '@/components/mode-selector';
 import { useAccount } from '@/components/use-account';
 import { useInBrowser } from '@/components/use-in-browser';
@@ -109,12 +110,15 @@ function Leaderboard() {
 
   return (
     <>
-      <header>
-        <h1 className={styles.brand}>Classement</h1>
-        <p className={styles.subtitle}>
-          Meilleur temps sur une manche trouvée en entier. À égalité, le premier arrivé passe
-          devant.
-        </p>
+      <header className="pageHeader">
+        <AppMenu />
+        <div>
+          <h1 className={styles.brand}>Classement</h1>
+          <p className={styles.subtitle}>
+            Meilleur temps sur une manche trouvée en entier. À égalité, le premier arrivé passe
+            devant.
+          </p>
+        </div>
       </header>
 
       <ModeSelector value={mode} onChange={chooseMode} accent={current.accent} />

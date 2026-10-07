@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from 'next';
 
-import { AppTabs } from '@/components/app-tabs';
 import { InstallBanner } from '@/components/pwa/install-banner';
 import { StatusPills } from '@/components/pwa/status-pills';
 import { BACKGROUND_COLOR, paletteVariables, THEME_COLOR, THEME_KEY } from '@/constants/theme';
@@ -117,7 +116,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <SpeedInsights />
         <StatusPills />
         <InstallBanner />
-        <AppTabs />
       </body>
     </html>
   );

@@ -1,6 +1,7 @@
-import { getCategory, getMode, type CategoryId, type ModeId } from '@/constants/categories';
+import { getMode, type ModeId, type PlayId } from '@/constants/categories';
 import { getQuestionCount, type QuestionCount } from '@/lib/quiz';
 import { getItem, setItem } from '@/lib/storage';
+import { parsePlay } from '@/lib/zones';
 
 const KEY = 'geolearn.last-game.v1';
 
@@ -9,7 +10,8 @@ const KEY = 'geolearn.last-game.v1';
  * les reprend pour que la suivante se relance sans tout rechoisir.
  */
 export type LastGame = {
-  category: CategoryId;
+  /** Une zone, un pays du mode États, ou plusieurs continents (src/lib/zones.ts). */
+  category: PlayId;
   mode: ModeId;
   count: QuestionCount;
 };
@@ -34,7 +36,7 @@ function parse(raw: string | null): LastGame | null {
     const mode = getMode(String(value.mode));
     return {
       mode: mode.id,
-      category: getCategory(String(value.category), mode.id).id,
+      category: parsePlay(String(value.category), mode.id),
       count: getQuestionCount(String(value.count)),
     };
   } catch {

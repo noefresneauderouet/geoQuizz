@@ -27,6 +27,7 @@ import {
   setPlayerName,
   type RoomSettings,
 } from '@/lib/room';
+import { parsePlay } from '@/lib/zones';
 
 import styles from './multi.module.css';
 
@@ -53,12 +54,12 @@ export function RoomScreen() {
 function urlSettings(params: ReadonlyURLSearchParams): RoomSettings | null {
   if (!params.has('category')) return null;
   const mode = getMode(params.get('mode') ?? undefined);
-  const category = getCategory(params.get('category') ?? undefined, mode.id);
+  const category = parsePlay(params.get('category'), mode.id);
   return {
-    category: category.id,
+    category,
     mode: mode.id,
     // Une zone plus petite que la longueur demandée se joue en entier.
-    count: Math.min(urlCount(params.get('count')), poolSize(category.id, mode.id)),
+    count: Math.min(urlCount(params.get('count')), poolSize(category, mode.id)),
     limit: getTimeLimit(params.get('limit')),
   };
 }
@@ -112,13 +113,17 @@ function roomSummary(code: string, settings: RoomSettings | null): string {
 function CreateRoom({ onName }: { onName: (name: string) => void }) {
   const params = useSearchParams();
   const router = useRouter();
-  const [draft, setDraft] = useState<SettingsDraft>(() => ({
-    mode: getMode(params.get('mode') ?? undefined).id,
-    count: getQuestionCount(params.get('count')),
-    limit: getTimeLimit(params.get('limit')),
-    isPublic: false,
-    category: 'monde',
-  }));
+  // L'accueil y passe ce qu'on y avait choisi : mode, longueur et zones.
+  const [draft, setDraft] = useState<SettingsDraft>(() => {
+    const mode = getMode(params.get('mode') ?? undefined).id;
+    return {
+      mode,
+      count: getQuestionCount(params.get('count')),
+      limit: getTimeLimit(params.get('limit')),
+      isPublic: false,
+      category: parsePlay(params.get('category'), mode),
+    };
+  });
   const [name, setName] = useState(getPlayerName);
   const accent = CATEGORIES[0].accent;
 

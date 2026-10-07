@@ -7,10 +7,19 @@ export type ContinentId = Exclude<ZoneId, 'monde'>;
 /** Les pays du mode « États », dont on cherche les régions (src/data/regions.json). */
 export type RegionSetId = 'etats-unis' | 'france' | 'espagne' | 'chine';
 
-/** Ce qu'on joue : une zone, ou le pays dont on cherche les régions. */
+/** Une zone, ou le pays dont on cherche les régions. */
 export type CategoryId = ZoneId | RegionSetId;
 
-export type Category<Id extends CategoryId = CategoryId> = {
+/**
+ * Plusieurs continents joués ensemble, liés par une virgule dans l'ordre de
+ * CATEGORIES : « afrique,europe » (voir src/lib/zones.ts).
+ */
+export type MixId = `${ContinentId},${string}`;
+
+/** Ce qu'on joue : une catégorie, ou un mélange de continents. */
+export type PlayId = CategoryId | MixId;
+
+export type Category<Id extends PlayId = PlayId> = {
   id: Id;
   label: string;
   /** Sous-titre affiché sur la carte de la catégorie. */
@@ -172,12 +181,12 @@ export const REGION_SETS: readonly Category<RegionSetId>[] = [
   },
 ] as const;
 
-export function isRegionSet(id: CategoryId): id is RegionSetId {
+export function isRegionSet(id: PlayId): id is RegionSetId {
   return REGION_SETS.some((c) => c.id === id);
 }
 
 /** Ce qu'on peut jouer dans un mode : les pays pour « États », les zones sinon. */
-export function categoriesFor(mode: ModeId): readonly Category[] {
+export function categoriesFor(mode: ModeId): readonly Category<CategoryId>[] {
   return mode === 'etats' ? REGION_SETS : CATEGORIES;
 }
 
@@ -185,8 +194,11 @@ export function categoriesFor(mode: ModeId): readonly Category[] {
  * La catégorie d'une adresse. Avec un mode, elle doit lui correspondre — un
  * lien « France » en mode Drapeau retombe sur le monde, un lien « Europe » en
  * mode États sur le premier pays. Sans mode, toutes sont acceptées.
+ *
+ * Un mélange de continents n'en est pas une : il retombe aussi sur le monde.
+ * C'est `parsePlay` (src/lib/zones.ts) qui le lit.
  */
-export function getCategory(id: string | undefined, mode?: ModeId): Category {
+export function getCategory(id: string | undefined, mode?: ModeId): Category<CategoryId> {
   const candidates = mode ? categoriesFor(mode) : [...CATEGORIES, ...REGION_SETS];
   return candidates.find((c) => c.id === id) ?? candidates[0];
 }

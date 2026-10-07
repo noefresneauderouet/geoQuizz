@@ -1,7 +1,7 @@
 /*
  * Les écrans de la salle reprennent ceux du jeu solo : fond de la zone,
- * carte blanche centrée. Pas de barre d'onglets (voir app-tabs.tsx) : on
- * quitte la salle par son propre lien.
+ * carte blanche centrée. Pas de menu (voir app-menu.tsx) : on quitte la
+ * salle par son propre lien.
  */
 .screen {
   min-height: 100dvh;

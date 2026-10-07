@@ -25,10 +25,8 @@
 
   --content-max: 800px;
 
-  /* Hauteur de la barre d'onglets, qui flotte au-dessus du contenu. */
-  --tabbar: 72px;
-  /* Place à réserver en bas d'un écran : la barre, plus la zone système. */
-  --bottom-inset: calc(var(--tabbar) + env(safe-area-inset-bottom, 0px));
+  /* Place à réserver en bas d'un écran : la zone système (barre d'accueil iOS). */
+  --bottom-inset: env(safe-area-inset-bottom, 0px);
 
   --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
     'Apple Color Emoji', 'Segoe UI Emoji';
@@ -102,10 +100,8 @@ img {
 /* ------------------------------------------------------------------ */
 
 /**
- * Colonne centrée commune aux écrans Apprendre et Profil.
- *
- * La marge basse tient compte de la barre d'onglets, qui est en
- * `position: fixed` : sans elle, les dernières lignes passeraient dessous.
+ * Colonne centrée commune aux écrans hors partie : accueil, classement,
+ * profil, compte, pages légales.
  */
 .screen {
   width: 100%;
@@ -117,6 +113,17 @@ img {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+}
+
+/*
+ * L'en-tête d'un écran : le menu (src/components/app-menu.tsx) à gauche, le
+ * titre à côté. C'est ce qui remplace la barre d'onglets.
+ */
+.pageHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
 }
 
 .sectionTitle {

@@ -168,7 +168,9 @@ export type Ranking =
   /** La manche n'a pas pu s'ouvrir ou se fermer (réseau) : hors classement. */
   | { status: 'offline' }
   /** La base a refusé le temps. */
-  | { status: 'rejected' };
+  | { status: 'rejected' }
+  /** Plusieurs continents mélangés (src/lib/zones.ts) : ils n'ont pas de classement. */
+  | { status: 'unranked' };
 
 type RawSubmitted = { best_ms: number; rank: number; improved: boolean };
 

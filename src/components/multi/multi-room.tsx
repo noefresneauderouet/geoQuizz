@@ -8,7 +8,7 @@ import { QrDialog } from '@/components/multi/qr-dialog';
 import { describeSettings, draftOf, SettingsEditor } from '@/components/multi/room-settings';
 import { usePublicListing, useRoom } from '@/components/multi/use-room';
 import { QuizBoard } from '@/components/quiz/quiz-board';
-import { getCategory, getMode, type Category, type Mode } from '@/constants/categories';
+import { getMode, type Category, type Mode } from '@/constants/categories';
 import { vibrateSuccess } from '@/lib/feedback';
 import { buildRound } from '@/lib/quiz';
 import { newSeed, seeded } from '@/lib/random';
@@ -34,6 +34,7 @@ import {
 } from '@/lib/room';
 import { newGame, reducer, SOLVED_PAUSE_MS, type Game } from '@/lib/round';
 import { clock } from '@/lib/timer';
+import { parsePlay, playCategory } from '@/lib/zones';
 
 import styles from './multi.module.css';
 
@@ -172,7 +173,7 @@ export function MultiRoom({ code, name, settings: fromLink, isPublic: publicLink
   }, [path]);
 
   const mode = getMode(settings?.mode);
-  const category = getCategory(settings?.category, mode.id);
+  const category = playCategory(parsePlay(settings?.category, mode.id));
 
   /* Une réponse trouvée reste affichée un instant, comme en solo. */
   useEffect(() => {

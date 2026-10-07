@@ -2,7 +2,7 @@
   position: fixed;
   left: 0;
   right: 0;
-  /* Juste au-dessus de la barre d'onglets, jamais dessous. */
+  /* Au-dessus de la barre d'accueil iOS, jamais dessous. */
   bottom: var(--bottom-inset);
   z-index: 50;
   display: flex;

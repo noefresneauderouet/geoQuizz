@@ -21,9 +21,10 @@
   color: var(--ink-soft);
 }
 
-/* Sur sa propre ligne, sous les boutons. */
+/* Sur sa propre ligne, sous les boutons, qu'ils soient en rangée ou en grille. */
 .message {
   flex-basis: 100%;
+  grid-column: 1 / -1;
   font-size: 14px;
   font-weight: 700;
   color: var(--brown-dark);
