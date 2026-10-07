@@ -1,7 +1,7 @@
 /*
- * Le bouton du menu, à gauche du titre de l'écran (voir `.pageHeader`,
- * globals.css). Pas de fond : comme les icônes d'une barre d'application,
- * il ne s'allume qu'au survol.
+ * Le bouton du menu, au bout de l'en-tête de l'écran, à droite (voir
+ * `.pageHeader`, globals.css). Pas de fond : comme les icônes d'une barre
+ * d'application, il ne s'allume qu'au survol.
  */
 .trigger {
   flex-shrink: 0;
@@ -10,8 +10,13 @@
   justify-content: center;
   width: 44px;
   height: 44px;
-  /* L'icône s'aligne sur le bord de la colonne ; la zone d'appui déborde. */
-  margin-left: -10px;
+  /* Poussé contre le bord droit, même quand l'en-tête n'a pas de titre
+     (/compte). L'icône s'aligne sur le bord de la colonne ; la zone d'appui
+     déborde. */
+  margin-left: auto;
+  margin-right: -10px;
+  /* Face au titre, pas au milieu d'un sous-titre de trois lignes. */
+  align-self: flex-start;
   border-radius: var(--radius-pill);
   color: var(--ink);
   transition: background-color 120ms ease;
@@ -35,13 +40,13 @@
 }
 
 /*
- * Le panneau glisse depuis la gauche, sur toute la hauteur. `dialog` porte
- * sa propre mise en page : la remise à zéro du navigateur le centre, le
- * borde, et limite sa hauteur.
+ * Le panneau glisse depuis la droite, du côté du bouton, sur toute la
+ * hauteur. `dialog` porte sa propre mise en page : la remise à zéro du
+ * navigateur le centre, le borde, et limite sa hauteur.
  */
 .panel {
   position: fixed;
-  inset: 0 auto 0 0;
+  inset: 0 0 0 auto;
   width: min(320px, 85vw);
   max-width: none;
   height: 100dvh;
@@ -49,7 +54,7 @@
   margin: 0;
   padding: 0;
   border: none;
-  border-radius: 0 var(--radius-l) var(--radius-l) 0;
+  border-radius: var(--radius-l) 0 0 var(--radius-l);
   background-color: var(--sand);
   color: var(--ink);
   box-shadow: var(--shadow-card);
@@ -66,7 +71,7 @@
 
 @keyframes slide-in {
   from {
-    transform: translateX(-100%);
+    transform: translateX(100%);
   }
 }
 

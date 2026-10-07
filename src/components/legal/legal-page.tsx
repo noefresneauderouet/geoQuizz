@@ -25,11 +25,11 @@ export function LegalPage({
     <main className="screen">
       <article className={styles.page}>
         <header className="pageHeader">
-          <AppMenu />
           <div className={styles.header}>
             <h1 className={styles.title}>{title}</h1>
             <p className={styles.updated}>Mise à jour le {LEGAL_UPDATED}</p>
           </div>
+          <AppMenu />
         </header>
         {children}
       </article>

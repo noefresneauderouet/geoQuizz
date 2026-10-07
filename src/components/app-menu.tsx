@@ -15,7 +15,7 @@ const LINKS = [
 ] as const;
 
 /**
- * Le menu, en haut à gauche de chaque écran : on apprend, on se compare aux
+ * Le menu, en haut à droite de chaque écran : on apprend, on se compare aux
  * autres, on regarde sa progression, et on choisit le thème.
  *
  * Chaque écran le pose dans son en-tête (classe globale `pageHeader`). Une

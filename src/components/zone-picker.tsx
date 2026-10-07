@@ -84,7 +84,6 @@ export function ZonePicker() {
   return (
     <>
       <header className="pageHeader">
-        <AppMenu />
         <span className={styles.logo} aria-hidden="true">
           🌍
         </span>
@@ -94,6 +93,7 @@ export function ZonePicker() {
               encore le mode (voir src/app/layout.tsx). */}
           <p className={styles.subtitle}>{`Je révise les ${activeMode.plural}`}</p>
         </div>
+        <AppMenu />
       </header>
 
       <ModeSelector value={mode} onChange={setMode} accent={MONDE.accent} />

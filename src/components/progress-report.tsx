@@ -68,7 +68,6 @@ export function ProgressReport() {
   return (
     <>
       <header className="pageHeader">
-        <AppMenu />
         <div>
           <h1 className={styles.brand}>Ma progression</h1>
           <p className={styles.subtitle}>
@@ -77,6 +76,7 @@ export function ProgressReport() {
               : 'Aucune partie pour le moment'}
           </p>
         </div>
+        <AppMenu />
       </header>
 
       <AccountLink />

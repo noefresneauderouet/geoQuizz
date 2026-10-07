@@ -111,7 +111,6 @@ function Leaderboard() {
   return (
     <>
       <header className="pageHeader">
-        <AppMenu />
         <div>
           <h1 className={styles.brand}>Classement</h1>
           <p className={styles.subtitle}>
@@ -119,6 +118,7 @@ function Leaderboard() {
             devant.
           </p>
         </div>
+        <AppMenu />
       </header>
 
       <ModeSelector value={mode} onChange={chooseMode} accent={current.accent} />

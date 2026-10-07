@@ -116,8 +116,8 @@ img {
 }
 
 /*
- * L'en-tête d'un écran : le menu (src/components/app-menu.tsx) à gauche, le
- * titre à côté. C'est ce qui remplace la barre d'onglets.
+ * L'en-tête d'un écran : le titre, puis le menu (src/components/app-menu.tsx)
+ * au bout, à droite. C'est ce qui remplace la barre d'onglets.
  */
 .pageHeader {
   display: flex;
