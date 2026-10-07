@@ -59,6 +59,13 @@
   .grid {
     gap: var(--space-4);
   }
+
+  /* La carte seule sur sa ligne (l'Océanie) a déjà toute la largeur : à la
+     hauteur des autres (200 px), elle prenait autant de place que deux
+     continents. */
+  .grid > :last-child:nth-child(odd) {
+    height: 130px;
+  }
 }
 
 .footnote {
