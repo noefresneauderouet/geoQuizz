@@ -32,6 +32,16 @@ export function AppMenu() {
   const dialog = useRef<HTMLDialogElement>(null);
   const close = () => dialog.current?.close();
 
+  /* `showModal()` donne le focus à la croix, que le navigateur entoure alors
+     de son anneau. Au doigt ou à la souris, il ne sert à rien : on le retire.
+     Au clavier (`detail` à 0), on le garde, pour savoir où l'on est. */
+  const open = (event: MouseEvent<HTMLButtonElement>) => {
+    dialog.current?.showModal();
+    if (event.detail > 0 && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+  };
+
   /* Le panneau n'occupe qu'une bande de l'écran : un clic qui atteint la
      boîte elle-même tombe sur le fond, donc à côté. */
   const clickOutside = (event: MouseEvent<HTMLDialogElement>) => {
@@ -45,7 +55,7 @@ export function AppMenu() {
         className={styles.trigger}
         aria-label="Menu"
         aria-haspopup="dialog"
-        onClick={() => dialog.current?.showModal()}>
+        onClick={open}>
         <svg className={styles.icon} viewBox="0 0 24 24" aria-hidden="true">
           <path d="M4 6.5h16M4 12h16M4 17.5h16" />
         </svg>
@@ -66,7 +76,9 @@ export function AppMenu() {
               className={styles.close}
               aria-label="Fermer le menu"
               onClick={close}>
-              ✕
+              <svg className={styles.icon} viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M5 5l14 14M19 5L5 19" />
+              </svg>
             </button>
           </div>
 

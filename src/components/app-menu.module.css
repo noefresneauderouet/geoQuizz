@@ -100,13 +100,16 @@
   letter-spacing: -0.3px;
 }
 
+/* Même trait et même taille que l'icône du bouton qui ouvre le menu. */
 .close {
-  width: 40px;
-  height: 40px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
   border-radius: var(--radius-pill);
-  font-size: 18px;
-  font-weight: 800;
-  color: var(--ink-soft);
+  color: var(--ink);
 }
 
 .links {
