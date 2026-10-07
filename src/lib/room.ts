@@ -23,9 +23,10 @@
  */
 import type { RealtimeChannel, RealtimeClient } from '@supabase/realtime-js';
 
-import { categoriesFor, MODES, type CategoryId, type ModeId } from '@/constants/categories';
+import { MODES, type ModeId, type PlayId } from '@/constants/categories';
 import { getItem, setItem } from '@/lib/storage';
 import { isSupabaseConfigured, supabaseKey, supabaseUrl } from '@/lib/supabase';
+import { parsePlay } from '@/lib/zones';
 
 /* --------------------------------- Salle --------------------------------- */
 
@@ -66,7 +67,8 @@ export function parseRoomCode(value: string): string | null {
  * même d'être connecté ; l'hôte peut le changer entre deux parties.
  */
 export type RoomSettings = {
-  category: CategoryId;
+  /** Une zone, un pays du mode États, ou plusieurs continents (src/lib/zones.ts). */
+  category: PlayId;
   mode: ModeId;
   count: number;
   /** Temps imparti en secondes ; 0 : pas de limite, la partie finit au premier qui a tout trouvé. */
@@ -356,7 +358,10 @@ function isSettings(value: unknown): value is RoomSettings {
   const { category, mode, count, limit } = value as Record<string, unknown>;
   return (
     MODES.some((m) => m.id === mode) &&
-    categoriesFor(mode as ModeId).some((c) => c.id === category) &&
+    // Une zone du mode, ou un mélange de continents écrit dans l'ordre : ce
+    // que `parsePlay` relit à l'identique.
+    typeof category === 'string' &&
+    parsePlay(category, mode as ModeId) === category &&
     Number.isInteger(count) &&
     (count as number) >= 1 &&
     (count as number) <= 50 &&

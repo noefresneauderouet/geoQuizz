@@ -2,18 +2,19 @@
 
 import { useSyncExternalStore } from 'react';
 
-import type { CategoryId, ModeId } from '@/constants/categories';
+import type { ModeId, PlayId } from '@/constants/categories';
 import { getItem, setItem } from '@/lib/storage';
 
 const KEY = 'geolearn.progress.v1';
 
 /**
  * Un record par zone, mode **et longueur réelle de manche** : un temps sur 20
- * questions ne se compare pas à un temps sur 10.
+ * questions ne se compare pas à un temps sur 10. Un mélange de continents a
+ * les siens (`afrique,europe:drapeau:10`, voir src/lib/zones.ts).
  */
-export type ScoreKey = `${CategoryId}:${ModeId}:${number}`;
+export type ScoreKey = `${PlayId}:${ModeId}:${number}`;
 
-export function scoreKey(category: CategoryId, mode: ModeId, length: number): ScoreKey {
+export function scoreKey(category: PlayId, mode: ModeId, length: number): ScoreKey {
   return `${category}:${mode}:${length}`;
 }
 
@@ -99,7 +100,7 @@ function commit(next: Stats) {
 }
 
 export type RoundResult = {
-  category: CategoryId;
+  category: PlayId;
   mode: ModeId;
   score: number;
   total: number;

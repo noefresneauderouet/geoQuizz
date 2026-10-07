@@ -163,6 +163,15 @@ describe('les messages de la partie', () => {
     assert.deepEqual(guest.box.reset, [{ game: 2 }]);
   });
 
+  it('un lancement sur plusieurs continents passe', async (t) => {
+    const host = await enter(t, HOST_ID, { host: true });
+    const guest = await enter(t, GUEST_ID);
+    const mix: RoomSettings = { category: 'afrique,europe', mode: 'capitale', count: 20, limit: 0 };
+    host.room.start({ game: 1, seed: 9, settings: mix });
+    await settle();
+    assert.deepEqual(guest.box.start, [{ game: 1, seed: 9, settings: mix }]);
+  });
+
   it('les champs en trop ne passent pas', async (t) => {
     const guest = await enter(t, GUEST_ID);
     const intruder = server.device(TOPIC);
@@ -190,6 +199,10 @@ describe('ce qui est mal formé est ignoré', () => {
       { game: 1, seed: 0.5, settings: EUROPE },
       { game: 1, seed: 5, settings: { ...EUROPE, category: 'atlantide' } },
       { game: 1, seed: 5, settings: { ...EUROPE, mode: 'etats' } },
+      // Un mélange s'écrit dans l'ordre, sans le monde, et jamais en mode États.
+      { game: 1, seed: 5, settings: { ...EUROPE, category: 'europe,afrique' } },
+      { game: 1, seed: 5, settings: { ...EUROPE, category: 'monde,europe' } },
+      { game: 1, seed: 5, settings: { ...EUROPE, category: 'afrique,europe', mode: 'etats' } },
       { game: 1, seed: 5, settings: { ...EUROPE, count: 0 } },
       { game: 1, seed: 5, settings: { ...EUROPE, count: 51 } },
       { game: 1, seed: 5, settings: { ...EUROPE, limit: 45 } },

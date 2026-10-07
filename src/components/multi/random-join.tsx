@@ -21,8 +21,10 @@ const MESSAGES: Partial<Record<Search, string>> = {
  * Les salles publiques s'annoncent dans le hall (src/lib/room.ts) ; on y
  * entre comme avec leur lien, réglages compris, pour que l'écran du pseudo
  * dise déjà ce qui se joue.
+ *
+ * `className` remplace l'allure du bouton, comme pour « Rejoindre une partie ».
  */
-export function RandomJoin() {
+export function RandomJoin({ className }: { className?: string }) {
   const router = useRouter();
   const [search, setSearch] = useState<Search>('idle');
 
@@ -50,7 +52,7 @@ export function RandomJoin() {
     <>
       <button
         type="button"
-        className={styles.trigger}
+        className={className ?? styles.trigger}
         onClick={start}
         disabled={search === 'searching'}>
         <span aria-hidden="true">🎲</span>{' '}

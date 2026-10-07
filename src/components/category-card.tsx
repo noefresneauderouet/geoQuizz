@@ -1,8 +1,5 @@
-import Link from 'next/link';
-
 import { CategoryBackground } from '@/components/category-background';
-import type { Category, ModeId } from '@/constants/categories';
-import type { QuestionCount } from '@/lib/quiz';
+import type { Category } from '@/constants/categories';
 
 import styles from './category-card.module.css';
 
@@ -10,55 +7,49 @@ type Props = {
   category: Category;
   /** Ce qu'elle contient : « 196 pays », « 50 États ». */
   meta: string;
-  /** Meilleur score sur ce couple catégorie/mode, ou null si jamais jouée. */
-  best: number | null;
-  total: number;
-  mode: ModeId;
-  count: QuestionCount;
-  /** Zone de la dernière partie, dans ce mode : elle porte une pastille. */
-  last?: boolean;
+  /** Fait partie de la partie qu'on lancera : bordure et coche. */
+  selected: boolean;
+  onSelect: () => void;
   /** La carte « Monde » occupe toute la largeur et sert d'entrée principale. */
   featured?: boolean;
 };
 
 /**
- * Une zone de jeu.
+ * Une zone de jeu, à cocher.
  *
- * C'est un lien, pas un bouton : la partie a une adresse
- * (/quiz?category=europe&mode=drapeau&count=15), donc elle s'ouvre dans un onglet,
- * se met en favori, et se retrouve dans l'historique.
+ * Ce n'est plus un lien : on peut en choisir plusieurs (src/lib/zones.ts),
+ * et c'est le bouton « Jouer », sous les cartes, qui lance la partie. La
+ * coche dit ce qui sera joué.
  */
-export function CategoryCard({
-  category,
-  meta,
-  best,
-  total,
-  mode,
-  count,
-  last = false,
-  featured = false,
-}: Props) {
+export function CategoryCard({ category, meta, selected, onSelect, featured = false }: Props) {
   return (
-    <Link
-      href={`/quiz?category=${category.id}&mode=${mode}&count=${count}`}
-      className={`${styles.card} ${featured ? styles.featured : styles.tile}`}
-      aria-label={`${category.label}, ${meta} — ${category.tagline}${last ? ' (dernière partie)' : ''}`}>
+    <button
+      type="button"
+      aria-pressed={selected}
+      onClick={onSelect}
+      className={[
+        styles.card,
+        featured ? styles.featured : styles.tile,
+        selected ? styles.selected : '',
+      ].join(' ')}
+      aria-label={`${category.label}, ${meta} — ${category.tagline}`}>
       <CategoryBackground category={category} className={styles.background}>
-        <div className={styles.content}>
-          <div className={styles.topRow}>
+        <span className={styles.content}>
+          <span className={styles.topRow}>
             <span className={styles.emoji} aria-hidden="true">
               {category.emoji}
             </span>
-            {last ? <span className={styles.badge}>Dernière partie</span> : null}
-          </div>
+            <span className={styles.check} aria-hidden="true">
+              {selected ? '✓' : null}
+            </span>
+          </span>
 
-          <div className={styles.bottom}>
-            <p className={styles.label}>{category.label}</p>
-            {featured ? <p className={styles.meta}>{category.tagline}</p> : null}
-            <p className={styles.meta}>{meta}</p>
-          </div>
-        </div>
+          <span className={styles.bottom}>
+            <span className={styles.label}>{category.label}</span>
+            <span className={styles.meta}>{meta}</span>
+          </span>
+        </span>
       </CategoryBackground>
-    </Link>
+    </button>
   );
 }

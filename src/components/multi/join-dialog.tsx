@@ -17,8 +17,10 @@ import styles from './join-dialog.module.css';
  * `<dialog>` plutôt qu'un panneau maison : le navigateur se charge du fond
  * assombri, de la fermeture par Échap et du piège à focus, et le HTML exporté
  * la contient déjà, masquée, sans rien afficher avant l'appui.
+ *
+ * `className` remplace l'allure du bouton : l'accueil en fait une case.
  */
-export function JoinDialog() {
+export function JoinDialog({ className }: { className?: string }) {
   const router = useRouter();
   const dialog = useRef<HTMLDialogElement>(null);
   const input = useRef<HTMLInputElement>(null);
@@ -51,8 +53,11 @@ export function JoinDialog() {
 
   return (
     <>
-      <button type="button" className={styles.trigger} onClick={open}>
-        <span aria-hidden="true">🔑</span> Rejoindre une partie
+      <button
+        type="button"
+        className={className ?? styles.trigger}
+        onClick={open}>
+        <span aria-hidden="true">🔗</span> Rejoindre une partie
       </button>
 
       <dialog ref={dialog} className={styles.dialog} onClick={clickOutside}>

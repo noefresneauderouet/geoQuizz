@@ -1,3 +1,4 @@
+import { AppMenu } from '@/components/app-menu';
 import { LegalLinks } from '@/components/legal/legal-links';
 import { CONTACT_EMAIL, LEGAL_UPDATED } from '@/constants/site';
 
@@ -23,9 +24,12 @@ export function LegalPage({
   return (
     <main className="screen">
       <article className={styles.page}>
-        <header className={styles.header}>
-          <h1 className={styles.title}>{title}</h1>
-          <p className={styles.updated}>Mise à jour le {LEGAL_UPDATED}</p>
+        <header className="pageHeader">
+          <div className={styles.header}>
+            <h1 className={styles.title}>{title}</h1>
+            <p className={styles.updated}>Mise à jour le {LEGAL_UPDATED}</p>
+          </div>
+          <AppMenu />
         </header>
         {children}
       </article>

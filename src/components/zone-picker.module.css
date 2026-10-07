@@ -1,5 +1,11 @@
+.logo {
+  flex-shrink: 0;
+  font-size: 40px;
+  line-height: 1;
+}
+
 .brand {
-  font-size: 34px;
+  font-size: 30px;
   font-weight: 800;
   color: var(--green);
   letter-spacing: -0.5px;
@@ -11,28 +17,6 @@
   font-weight: 600;
   color: var(--ink-soft);
   margin-top: 2px;
-}
-
-/* Créer et rejoindre vont de pair ; sur un écran étroit, ils passent l'un
-   sous l'autre plutôt que de se comprimer. */
-.multiplayer {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-}
-
-.challenge {
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-pill);
-  background-color: var(--yellow-light);
-  border: 1px solid var(--yellow);
-  color: var(--brown-dark);
-  font-weight: 800;
-}
-
-.challenge:hover {
-  background-color: var(--yellow);
-  color: var(--on-yellow);
 }
 
 .grid {
@@ -47,7 +31,101 @@
   grid-column: 1 / -1;
 }
 
+/*
+ * « Jouer » suit les cartes, mais celles-ci dépassent souvent l'écran d'un
+ * téléphone : collé au bas de la fenêtre tant que sa place est plus bas, le
+ * bouton reste à portée pendant qu'on coche, puis reprend sa place.
+ */
+.play {
+  position: sticky;
+  bottom: calc(var(--bottom-inset) + var(--space-3));
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+  padding: 14px var(--space-4);
+  border-radius: var(--radius-pill);
+  background-color: var(--green);
+  color: var(--on-color);
+  font-size: 20px;
+  font-weight: 800;
+  box-shadow: var(--shadow-card);
+  transition: transform 120ms ease, opacity 120ms ease;
+}
+
+.play:hover {
+  transform: scale(1.01);
+}
+
+.play:active {
+  transform: scale(0.98);
+  opacity: 0.92;
+}
+
+/* Créer, rejoindre, au hasard : trois cases côte à côte. */
+.multiplayer {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  min-height: 84px;
+  padding: var(--space-2);
+  border-radius: var(--radius-m);
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-card);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  transition: background-color 120ms ease;
+}
+
+.tile:hover:not(:disabled) {
+  background-color: var(--yellow-light);
+}
+
+.tile:disabled {
+  cursor: progress;
+  color: var(--ink-soft);
+}
+
+/* L'icône de chaque case, au-dessus de son libellé. */
+.tile > :first-child {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.plus {
+  color: var(--green);
+  font-weight: 400;
+}
+
+/* Assez de place : l'icône repasse à gauche du libellé. */
+@media (min-width: 600px) {
+  .tile {
+    flex-direction: row;
+    gap: var(--space-2);
+    min-height: 64px;
+    font-size: 15px;
+  }
+}
+
 @media (min-width: 1024px) {
+  .logo {
+    font-size: 52px;
+  }
+
   .brand {
     font-size: 44px;
   }
@@ -66,11 +144,9 @@
   .grid > :last-child:nth-child(odd) {
     height: 130px;
   }
-}
 
-.footnote {
-  text-align: center;
-  font-size: 12px;
-  color: var(--ink-soft);
-  margin-top: var(--space-1);
+  .play {
+    font-size: 22px;
+    padding-block: 16px;
+  }
 }

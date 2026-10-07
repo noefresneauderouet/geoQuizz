@@ -10,12 +10,11 @@ import { useFlagEmoji } from '@/components/use-flag-emoji';
 import { useInBrowser } from '@/components/use-in-browser';
 import { useMyBests } from '@/components/use-my-bests';
 import {
-  getCategory,
   getMode,
   isRegionSet,
   type Category,
-  type CategoryId,
   type ModeId,
+  type PlayId,
 } from '@/constants/categories';
 import { flagEmoji } from '@/lib/countries';
 import { vibrateSuccess } from '@/lib/feedback';
@@ -33,6 +32,7 @@ import { buildRound, expectedAnswer, getQuestionCount, poolSize, questionKey } f
 import { newGame, reducer, SOLVED_PAUSE_MS, type Game } from '@/lib/round';
 import { hasStoredSession } from '@/lib/supabase';
 import { clock, formatDuration, formatSeconds, readWatch } from '@/lib/timer';
+import { isMix, parsePlay, playCategory } from '@/lib/zones';
 
 import styles from './quiz-game.module.css';
 
@@ -54,11 +54,12 @@ const NO_RESULT: Outcome = { ...NO_OUTCOME, online: false };
  *
  * Connecté, `online` porte les records du classement, lus avant que la base
  * ne remplace celui-ci ; sans eux, la manche se compare au record de
- * l'appareil.
+ * l'appareil. Un mélange de continents, qui n'a pas de classement, s'y
+ * compare toujours.
  */
 function record(
   game: Game,
-  category: CategoryId,
+  category: PlayId,
   mode: ModeId,
   now: number,
   ranked: RankedRound | null,
@@ -69,7 +70,8 @@ function record(
   const total = game.round.length;
   const durationMs = readWatch(game.watch, now);
   if (score === total) {
-    void finishRankedRound(ranked, durationMs).then(onRanking);
+    if (isMix(category)) onRanking({ status: 'unranked' });
+    else void finishRankedRound(ranked, durationMs).then(onRanking);
   } else {
     cancelRankedRound(ranked);
   }
@@ -81,7 +83,7 @@ function record(
     durationMs,
     bestStreak: game.bestStreak,
   });
-  if (online === null) return { ...local, online: false };
+  if (online === null || isMix(category)) return { ...local, online: false };
   return {
     previousBestMs: online[scoreKey(category, mode, total)],
     newRecord: false,
@@ -111,48 +113,53 @@ export function QuizGame() {
  *
  * La zone, le mode et la longueur viennent de l'URL
  * (/quiz?category=europe&mode=drapeau&count=15), ce qui rend une partie
- * partageable et permet les raccourcis du manifeste.
+ * partageable et permet les raccourcis du manifeste. Plusieurs continents
+ * s'y écrivent ensemble : category=afrique,europe (src/lib/zones.ts).
  */
 function QuizRound() {
   const params = useSearchParams();
   const mode = getMode(params.get('mode') ?? undefined);
-  const category = getCategory(params.get('category') ?? undefined, mode.id);
+  const play = parsePlay(params.get('category'), mode.id);
+  const category = playCategory(play);
   const count = getQuestionCount(params.get('count'));
   const router = useRouter();
+  /** Un mélange de continents n'a pas de classement : rien à ouvrir côté serveur. */
+  const ranks = !isMix(play);
 
   const [game, dispatch] = useReducer(reducer, null, () =>
-    newGame(buildRound(category.id, mode.id, count), clock()),
+    newGame(buildRound(play, mode.id, count), clock()),
   );
   /*
    * Connecté, la manche s'ouvre d'abord côté serveur (voir leaderboard.ts) :
    * la première question n'apparaît, et le chrono ne part, qu'une fois la
    * réponse arrivée. Un invité n'attend rien.
    */
-  const [preparing, setPreparing] = useState(() => hasStoredSession());
+  const [preparing, setPreparing] = useState(() => ranks && hasStoredSession());
   const ranked = useRef<RankedRound | null>(null);
   /** Connecté, les records du classement, relus pendant la partie. */
   const online = useMyBests();
   /** L'écran est quitté : une manche qui s'ouvre après ne sert plus. */
   const left = useRef(false);
-  const length = Math.min(count, poolSize(category.id, mode.id));
+  const length = Math.min(count, poolSize(play, mode.id));
 
   /** Ouvre la manche classée, puis lance le chrono sur une manche neuve. */
   const open = (isCancelled: () => boolean) => {
-    void startRankedRound({ category: category.id, mode: mode.id, length }).then((round) => {
+    if (isMix(play)) return;
+    void startRankedRound({ category: play, mode: mode.id, length }).then((round) => {
       if (isCancelled()) {
         cancelRankedRound(round);
         return;
       }
       ranked.current = round;
-      dispatch({ type: 'restart', round: buildRound(category.id, mode.id, count), now: clock() });
+      dispatch({ type: 'restart', round: buildRound(play, mode.id, count), now: clock() });
       setPreparing(false);
     });
   };
 
   // L'accueil reprendra ces réglages au retour (src/lib/last-game.ts).
   useEffect(() => {
-    saveLastGame({ category: category.id, mode: mode.id, count });
-  }, [category.id, mode.id, count]);
+    saveLastGame({ category: play, mode: mode.id, count });
+  }, [play, mode.id, count]);
 
   // Une fois, à l'ouverture : les réglages viennent de l'URL et ne changent pas.
   useEffect(() => {
@@ -197,7 +204,7 @@ function QuizRound() {
       // Dernière question trouvée : la manche est complète, et le chronomètre
       // est en pause depuis la réponse.
       if (game.queue.length === 1) {
-        setOutcome(record(game, category.id, mode.id, now, ranked.current, online, setRanking));
+        setOutcome(record(game, play, mode.id, now, ranked.current, online, setRanking));
         ranked.current = null;
       }
       dispatch({ type: 'advance', now });
@@ -213,11 +220,11 @@ function QuizRound() {
     setOutcome(NO_RESULT);
     setRanking(null);
     ranked.current = null;
-    if (hasStoredSession() && length > 0) {
+    if (ranks && hasStoredSession() && length > 0) {
       setPreparing(true);
       open(() => left.current);
     } else {
-      dispatch({ type: 'restart', round: buildRound(category.id, mode.id, count), now: clock() });
+      dispatch({ type: 'restart', round: buildRound(play, mode.id, count), now: clock() });
     }
   };
 
@@ -271,7 +278,7 @@ function QuizRound() {
       return;
     }
     const now = clock();
-    setOutcome(record(game, category.id, mode.id, now, ranked.current, online, setRanking));
+    setOutcome(record(game, play, mode.id, now, ranked.current, online, setRanking));
     ranked.current = null;
     dispatch({ type: 'end', now });
   };
@@ -403,7 +410,9 @@ function Summary({ category, modeLabel, game, outcome, ranking, onReplay, onBack
             />
           ) : (
             <p className={styles.summaryMeta}>
-              Seule une manche trouvée en entier laisse un temps au classement.
+              {isMix(category.id)
+                ? 'Seule une manche trouvée en entier laisse un temps dans tes records.'
+                : 'Seule une manche trouvée en entier laisse un temps au classement.'}
             </p>
           )}
 
@@ -441,7 +450,7 @@ function Summary({ category, modeLabel, game, outcome, ranking, onReplay, onBack
 }
 
 /** Le classement de la manche qu'on vient de jouer. */
-function boardHref(category: CategoryId, round: Game['round']): string {
+function boardHref(category: PlayId, round: Game['round']): string {
   return `/classement?category=${category}&mode=${round[0].mode}&length=${round.length}`;
 }
 
@@ -492,6 +501,13 @@ function RankingLine({ ranking, href, showBest }: RankingLineProps) {
     return (
       <p className={styles.summaryMeta}>
         Ce temps n’a pas pu être vérifié : il ne compte pas au classement.
+      </p>
+    );
+  }
+  if (ranking.status === 'unranked') {
+    return (
+      <p className={styles.summaryMeta}>
+        Plusieurs zones mélangées : le temps reste dans tes records, hors classement.
       </p>
     );
   }

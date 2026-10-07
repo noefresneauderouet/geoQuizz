@@ -1,8 +1,15 @@
-import { isRegionSet, type CategoryId, type ModeId, type RegionSetId } from '@/constants/categories';
+import {
+  isRegionSet,
+  type ModeId,
+  type PlayId,
+  type RegionSetId,
+  type ZoneId,
+} from '@/constants/categories';
 import { COUNTRIES, countriesOf, type Country } from '@/lib/countries';
 import { matchAnswer, type MatchResult } from '@/lib/normalize';
 import type { Random } from '@/lib/random';
 import { regionSet, type Region } from '@/lib/regions';
+import { zonesOf } from '@/lib/zones';
 
 /**
  * Une question porte toujours un pays. En mode « États », c'est celui de la
@@ -32,11 +39,12 @@ function shuffle<T>(items: readonly T[], random: Random): T[] {
 }
 
 /**
- * Toutes les questions qu'une catégorie offre dans un mode : ses pays, ou les
+ * Toutes les questions qu'une catégorie offre dans un mode : ses pays — ceux
+ * de tous ses continents, pour un mélange (src/lib/zones.ts) —, ou les
  * régions du pays en mode « États ». Un couple qui ne va pas ensemble — une
  * zone en mode États — n'en offre aucune.
  */
-function questionsOf(category: CategoryId, mode: ModeId): Question[] {
+function questionsOf(category: PlayId, mode: ModeId): Question[] {
   if (mode === 'etats') {
     if (!isRegionSet(category)) return [];
     const { country, regions } = regionSet(category);
@@ -45,11 +53,13 @@ function questionsOf(category: CategoryId, mode: ModeId): Question[] {
   if (isRegionSet(category)) return [];
   // Tous les pays sont jouables dans tous les modes, y compris sur la carte :
   // ceux qui sont trop petits pour se voir reçoivent un cercle de repérage.
-  return countriesOf(category).map((country) => ({ mode, country }));
+  return zonesOf(category)
+    .flatMap((zone) => countriesOf(zone as ZoneId))
+    .map((country) => ({ mode, country }));
 }
 
 /** Nombre de questions différentes : une manche ne peut pas être plus longue. */
-export function poolSize(category: CategoryId, mode: ModeId): number {
+export function poolSize(category: PlayId, mode: ModeId): number {
   return questionsOf(category, mode).length;
 }
 
@@ -63,7 +73,7 @@ export function poolSize(category: CategoryId, mode: ModeId): number {
  * donne alors la même manche sur chaque appareil.
  */
 export function buildRound(
-  category: CategoryId,
+  category: PlayId,
   mode: ModeId,
   count: number,
   random: Random = Math.random,

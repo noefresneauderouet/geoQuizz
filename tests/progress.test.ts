@@ -72,11 +72,14 @@ describe('les records', () => {
     recordRound({ ...europe, total: 20, score: 20, durationMs: 2000 });
     recordRound({ ...europe, mode: 'capitale', score: 10, durationMs: 3000 });
     recordRound({ category: 'oceanie', mode: 'pays', total: 14, score: 14, durationMs: 4000, bestStreak: 14 });
+    // Un mélange de continents a ses propres records.
+    recordRound({ ...europe, category: 'afrique,europe', score: 10, durationMs: 5000 });
     assert.deepEqual(readStats().bestTime, {
       'europe:drapeau:10': 1000,
       'europe:drapeau:20': 2000,
       'europe:capitale:10': 3000,
       'oceanie:pays:14': 4000,
+      'afrique,europe:drapeau:10': 5000,
     });
   });
 
@@ -149,6 +152,21 @@ describe('la dernière partie', () => {
     local.setItem(LAST_GAME_KEY, JSON.stringify({ category: 'europe', mode: 'etats', count: 12 }));
     const { readLastGame } = await openLastGame();
     assert.deepEqual(readLastGame(), { category: 'etats-unis', mode: 'etats', count: 10 });
+  });
+
+  it('retient plusieurs continents, et retombe sur le monde s’ils ne se lisent pas', async () => {
+    const { readLastGame, saveLastGame } = await openLastGame();
+    saveLastGame({ category: 'afrique,europe', mode: 'drapeau', count: 10 });
+    assert.deepEqual((await openLastGame()).readLastGame(), {
+      category: 'afrique,europe',
+      mode: 'drapeau',
+      count: 10,
+    });
+    assert.equal(readLastGame()?.category, 'afrique,europe');
+
+    const unknown = { category: 'afrique,mars', mode: 'drapeau', count: 10 };
+    local.setItem(LAST_GAME_KEY, JSON.stringify(unknown));
+    assert.equal((await openLastGame()).readLastGame()?.category, 'monde');
   });
 
   it('est oubliée si les données sont abîmées', async () => {

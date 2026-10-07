@@ -4,16 +4,10 @@ import { useState, type CSSProperties, type FormEvent } from 'react';
 
 import { CountSelector } from '@/components/count-selector';
 import { ModeSelector } from '@/components/mode-selector';
-import {
-  CATEGORIES,
-  categoriesFor,
-  getCategory,
-  getMode,
-  type CategoryId,
-  type ModeId,
-} from '@/constants/categories';
+import { CATEGORIES, categoriesFor, getMode, type ModeId, type PlayId } from '@/constants/categories';
 import { DEFAULT_QUESTION_COUNT, poolSize, QUESTION_COUNTS, type QuestionCount } from '@/lib/quiz';
 import { formatTimeLimit, TIME_LIMITS, type RoomSettings, type TimeLimit } from '@/lib/room';
+import { isChosen, parsePlay, playCategory, toggleZone } from '@/lib/zones';
 
 import selectorStyles from '../count-selector.module.css';
 import styles from './multi.module.css';
@@ -27,22 +21,24 @@ export type SettingsDraft = {
   count: QuestionCount;
   limit: TimeLimit;
   isPublic: boolean;
-  /** Le dernier choix de zone : il peut manquer au mode choisi (voir `zoneOf`). */
-  category: CategoryId;
+  /**
+   * Le dernier choix de zone — une ou plusieurs (src/lib/zones.ts) : il peut
+   * manquer au mode choisi (voir `zoneOf`).
+   */
+  category: PlayId;
 };
 
 /**
  * Passer en mode États remplace les zones par les pays : le choix précédent
  * retombe alors sur le premier de la liste, et revient avec le mode d'avant.
  */
-function zoneOf({ mode, category }: SettingsDraft): CategoryId {
-  const choices = categoriesFor(mode);
-  return choices.some((c) => c.id === category) ? category : choices[0].id;
+function zoneOf({ mode, category }: SettingsDraft): PlayId {
+  return parsePlay(category, mode);
 }
 
 /** « 🌍 Monde · 🏳️ Drapeau · 10 questions · ⏳ 2 min » : la partie en une ligne. */
 export function describeSettings(settings: RoomSettings): string {
-  const category = getCategory(settings.category, settings.mode);
+  const category = playCategory(parsePlay(settings.category, settings.mode));
   const mode = getMode(settings.mode);
   const chrono = settings.limit ? ` · ⏳ ${formatTimeLimit(settings.limit)}` : '';
   return `${category.emoji} ${category.label} · ${mode.emoji} ${mode.label} · ${settings.count} questions${chrono}`;
@@ -79,11 +75,16 @@ type FieldsProps = {
   accent: string;
 };
 
-/** Mode, longueur, temps, visibilité et zone : tout ce qui règle une salle, sauf le pseudo. */
+/**
+ * Mode, longueur, temps, visibilité et zone : tout ce qui règle une salle,
+ * sauf le pseudo. Comme à l'accueil, on peut mélanger plusieurs continents ;
+ * en mode États, on choisit un seul pays.
+ */
 export function SettingsFields({ value, onChange, accent }: FieldsProps) {
   const set = (patch: Partial<SettingsDraft>) => onChange({ ...value, ...patch });
   const zone = zoneOf(value);
-  const label = value.mode === 'etats' ? 'Pays' : 'Zone';
+  const several = value.mode !== 'etats';
+  const label = several ? 'Zones' : 'Pays';
 
   return (
     <>
@@ -98,19 +99,25 @@ export function SettingsFields({ value, onChange, accent }: FieldsProps) {
       />
 
       <h2 className="sectionTitle">{label}</h2>
-      <div className={styles.zones} role="radiogroup" aria-label={label}>
-        {categoriesFor(value.mode).map((c) => (
-          <button
-            key={c.id}
-            type="button"
-            role="radio"
-            aria-checked={c.id === zone}
-            className={c.id === zone ? `${styles.zone} ${styles.zoneActive}` : styles.zone}
-            style={c.id === zone ? { borderColor: c.accent, color: c.accent } : undefined}
-            onClick={() => set({ category: c.id })}>
-            <span aria-hidden="true">{c.emoji}</span> {c.label}
-          </button>
-        ))}
+      <div
+        className={styles.zones}
+        role={several ? 'group' : 'radiogroup'}
+        aria-label={label}>
+        {categoriesFor(value.mode).map((c) => {
+          const chosen = isChosen(zone, c.id);
+          return (
+            <button
+              key={c.id}
+              type="button"
+              role={several ? 'checkbox' : 'radio'}
+              aria-checked={chosen}
+              className={chosen ? `${styles.zone} ${styles.zoneActive}` : styles.zone}
+              style={chosen ? { borderColor: c.accent, color: c.accent } : undefined}
+              onClick={() => set({ category: toggleZone(zone, c.id) })}>
+              <span aria-hidden="true">{c.emoji}</span> {c.label}
+            </button>
+          );
+        })}
       </div>
     </>
   );

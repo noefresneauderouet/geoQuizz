@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 
-import { ThemeSelector } from '@/components/theme-selector';
+import { AppMenu } from '@/components/app-menu';
 import { useAccount } from '@/components/use-account';
 import { useMyBests } from '@/components/use-my-bests';
 import {
@@ -12,17 +12,18 @@ import {
   REGION_SETS,
   ZONE_MODES,
   type Category,
-  type CategoryId,
   type Mode,
   type ModeId,
+  type PlayId,
 } from '@/constants/categories';
 import type { MyBests } from '@/lib/leaderboard';
 import { resetProgress, useStats, type ScoreKey, type Stats } from '@/lib/progress';
 import { formatDuration, formatSeconds } from '@/lib/timer';
+import { mixesIn, playCategory } from '@/lib/zones';
 
 import styles from './progress-report.module.css';
 
-/** Meilleurs scores, taux de réussite, et le choix du thème. */
+/** Meilleurs scores et taux de réussite. Le thème se règle dans le menu (app-menu.tsx). */
 export function ProgressReport() {
   const stats = useStats();
   /** Connecté, les temps affichés sont ceux du classement (voir recordsOf). */
@@ -46,6 +47,9 @@ export function ProgressReport() {
   const anyUnranked = Object.keys(stats.bestTime).some(
     (key) => unrankedTime(stats, online, key) !== undefined,
   );
+  // Les mélanges de continents joués sur cet appareil ont leur ligne, sous
+  // les zones : ils n'ont pas de classement, donc rien qu'ici.
+  const zones = [...CATEGORIES, ...mixesIn(Object.keys(stats.best)).map(playCategory)];
 
   /*
    * Effacement en deux temps : le bouton demande confirmation dans son propre
@@ -63,13 +67,16 @@ export function ProgressReport() {
 
   return (
     <>
-      <header>
-        <h1 className={styles.brand}>Ma progression</h1>
-        <p className={styles.subtitle}>
-          {stats.rounds > 0
-            ? `${stats.rounds} partie${stats.rounds > 1 ? 's' : ''} jouée${stats.rounds > 1 ? 's' : ''} · ${formatSeconds(pace)} par réponse`
-            : 'Aucune partie pour le moment'}
-        </p>
+      <header className="pageHeader">
+        <div>
+          <h1 className={styles.brand}>Ma progression</h1>
+          <p className={styles.subtitle}>
+            {stats.rounds > 0
+              ? `${stats.rounds} partie${stats.rounds > 1 ? 's' : ''} jouée${stats.rounds > 1 ? 's' : ''} · ${formatSeconds(pace)} par réponse`
+              : 'Aucune partie pour le moment'}
+          </p>
+        </div>
+        <AppMenu />
       </header>
 
       <AccountLink />
@@ -93,14 +100,14 @@ export function ProgressReport() {
           ? null
           : ' Connecté, ce sont tes temps du classement, les mêmes sur tous tes appareils.'}
         {anyUnranked
-          ? ' Un temps suivi de * a été fait sur cet appareil sans compter au classement : sans compte, hors ligne, ou refusé.'
+          ? ' Un temps suivi de * a été fait sur cet appareil sans compter au classement : sans compte, hors ligne, refusé, ou sur plusieurs zones mélangées.'
           : null}
       </p>
       <ScoreTable
         stats={stats}
         online={online}
         heading="Zone"
-        categories={CATEGORIES}
+        categories={zones}
         modes={ZONE_MODES}
       />
 
@@ -112,10 +119,6 @@ export function ProgressReport() {
         categories={REGION_SETS}
         modes={REGION_MODES}
       />
-
-      <h2 className="sectionTitle">Thème</h2>
-      <p className={styles.hint}>Auto suit le réglage clair ou sombre de ton appareil.</p>
-      <ThemeSelector />
 
       <button type="button" className={styles.reset} onClick={reset}>
         {confirming ? 'Appuie encore pour confirmer' : 'Réinitialiser ma progression'}
@@ -234,7 +237,7 @@ function lengthOf(key: string): number {
  * jouées sur d'autres appareils ont leur ligne. Le temps de l'appareil ne
  * s'y ajoute que s'il est plus rapide (`unranked`).
  */
-function recordsOf(stats: Stats, online: MyBests | null, category: CategoryId, mode: ModeId) {
+function recordsOf(stats: Stats, online: MyBests | null, category: PlayId, mode: ModeId) {
   const prefix = `${category}:${mode}:`;
   const keys = new Set(
     [...Object.keys(stats.best), ...Object.keys(online ?? {})].filter((key) =>

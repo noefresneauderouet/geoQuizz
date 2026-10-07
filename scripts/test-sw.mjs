@@ -272,7 +272,7 @@ check('l’activation supprime les coquilles des versions précédentes', async 
 check('« / » sert index.html', async () => {
   const response = await through('/', { mode: 'navigate' });
   const body = await response.text();
-  assert.match(body, /GeoQuizz — réviser la géographie/);
+  assert.match(body, /GeoQuizz — Jeux de géographie/);
 });
 
 check('« /profil » sert profil.html', async () => {
