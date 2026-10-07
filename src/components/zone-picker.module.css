@@ -41,6 +41,12 @@
   gap: var(--space-3);
 }
 
+/* Une dernière carte seule sur sa ligne prend toute la largeur, comme
+   « Monde », plutôt que de laisser un trou à côté d'elle. */
+.grid > :last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+
 @media (min-width: 1024px) {
   .brand {
     font-size: 44px;

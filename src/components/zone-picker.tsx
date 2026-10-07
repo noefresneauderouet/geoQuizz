@@ -113,8 +113,8 @@ export function ZonePicker() {
 
           {card(MONDE, true)}
 
-          {/* Les continents vont deux par deux ; une grille garde la même largeur
-              de carte même si la dernière ligne est incomplète. */}
+          {/* Les continents vont deux par deux ; le dernier, s'il reste seul
+              (l'Océanie), prend toute la largeur. */}
           <div className={styles.grid}>{CONTINENTS.map((category) => card(category))}</div>
         </>
       )}
