@@ -21,8 +21,7 @@ export default function MentionsLegalesPage() {
         <p>
           GeoQuizz ({SITE_URL.replace('https://', '')}) est un jeu gratuit, sans publicité, édité par
           un particulier à titre non professionnel. Comme la loi pour la confiance dans l’économie
-          numérique le permet dans ce cas, l’éditeur ne publie pas son nom ni son adresse : ils sont
-          connus de l’hébergeur du site, cité plus bas.
+          numérique le permet dans ce cas, l’éditeur ne publie pas son nom ni son adresse.
         </p>
         <p>
           Responsable de la publication : l’éditeur, joignable à <ContactEmail />.

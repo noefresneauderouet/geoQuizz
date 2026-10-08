@@ -55,8 +55,7 @@ export default function ConditionsPage() {
         </p>
         <p>
           Un joueur qui triche est exclu du classement : ses temps sont effacés et il ne peut plus
-          en envoyer. Si tu trouves une faille, signale-la à <ContactEmail /> plutôt que de t’en
-          servir.
+          en envoyer. Si tu trouves une faille, signale-la à <ContactEmail /> nous pourrions ajouter un titre spécial a ton compte sur les classement en ligne.
         </p>
       </Section>
 

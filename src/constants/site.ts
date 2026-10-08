@@ -12,7 +12,7 @@ export const SITE_URL = 'https://geoquizz.games';
  * choisi de publier ; elle doit recevoir le courrier pour de bon : la loi
  * demande qu'on puisse joindre l'éditeur.
  */
-export const CONTACT_EMAIL = 'noe.fresneau@gmail.com';
+export const CONTACT_EMAIL = 'geoquizz.game@gmail.com';
 
 /** Les pages légales, dans l'ordre où le pied de page les cite. */
 export const LEGAL_PAGES = [
@@ -22,4 +22,4 @@ export const LEGAL_PAGES = [
 ] as const;
 
 /** Date de la dernière modification du texte des pages légales. */
-export const LEGAL_UPDATED = '6 octobre 2026';
+export const LEGAL_UPDATED = '8 octobre 2026';
