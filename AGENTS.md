@@ -94,7 +94,9 @@ passe, pseudo) et **Postgres**, appelés depuis le navigateur.
   (`claim_username`, une seule fois) et reste hors classement jusque-là. Le
   nom que donne Google ne sert jamais de pseudo.
 - Retirer un tricheur : `select public.ban_player('Pseudo');` dans le SQL
-  Editor. Le classement se lit par `get_leaderboard`, en un seul appel.
+  Editor. Le classement se lit par `get_leaderboard_with_bests`, en un seul
+  appel : chaque ligne porte aussi les temps du joueur aux autres longueurs
+  de la zone. `get_leaderboard` reste pour les versions déjà installées.
 - `src/lib/supabase.ts` charge `@supabase/auth-js` et `@supabase/postgrest-js`
   par `import()`, comme Realtime : un invité n'en télécharge rien, tant
   qu'aucune session n'est enregistrée sur l'appareil (`hasStoredSession`).

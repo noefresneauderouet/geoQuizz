@@ -25,7 +25,7 @@ import {
 } from '@/lib/leaderboard';
 import { poolSize, QUESTION_COUNTS } from '@/lib/quiz';
 import { isSupabaseConfigured } from '@/lib/supabase';
-import { formatDuration, formatSeconds } from '@/lib/timer';
+import { formatDuration } from '@/lib/timer';
 
 import styles from './leaderboard.module.css';
 
@@ -137,20 +137,6 @@ function Leaderboard() {
         ))}
       </div>
 
-      <div className={styles.chips} role="radiogroup" aria-label="Nombre de questions">
-        {lengths.map((l) => (
-          <button
-            key={l}
-            type="button"
-            role="radio"
-            aria-checked={l === length}
-            className={l === length ? `${styles.chip} ${styles.chipActive}` : styles.chip}
-            onClick={() => setLength(l)}>
-            {l} questions
-          </button>
-        ))}
-      </div>
-
       {account.status === 'guest' ? (
         <p className={styles.banner}>
           <Link href="/compte" className={styles.link}>
@@ -167,7 +153,7 @@ function Leaderboard() {
         </p>
       ) : null}
 
-      <BoardTable board={board} length={length} />
+      <BoardTable board={board} lengths={lengths} length={length} onSort={setLength} />
     </>
   );
 }
@@ -177,44 +163,113 @@ function fromCache(key: BoardKey): Board {
   return cached ? { status: 'ready', rows: cached.rows } : { status: 'loading' };
 }
 
-function BoardTable({ board, length }: { board: Board; length: number }) {
+type BoardTableProps = {
+  board: Board;
+  /** Une colonne par longueur jouable dans la zone. */
+  lengths: number[];
+  /** La longueur qui classe, et dont la colonne est mise en avant. */
+  length: number;
+  onSort: (length: number) => void;
+};
+
+/**
+ * Une ligne par joueur, ses temps à 10, 15 et 20 questions côte à côte. Les
+ * en-têtes de ces colonnes choisissent le classement affiché : la liste ne
+ * montre que les joueurs qui ont un temps à cette longueur.
+ */
+function BoardTable({ board, lengths, length, onSort }: BoardTableProps) {
   if (!isSupabaseConfigured()) {
     return <p className={styles.muted}>Classement indisponible dans cette version.</p>;
   }
-  if (board.status === 'loading') {
-    return <p className={styles.muted}>Chargement du classement…</p>;
-  }
-  const rows = board.rows;
+  const rows = board.status === 'loading' ? null : board.rows;
+  // L'en-tête reste en place pendant qu'un classement se charge : on peut
+  // passer d'une longueur à l'autre sans attendre.
+  const message =
+    board.status === 'loading'
+      ? 'Chargement du classement…'
+      : rows === null
+        ? 'Classement injoignable pour le moment.'
+        : rows.length === 0
+          ? 'Personne pour l’instant. La première place est libre !'
+          : null;
   return (
     <>
-      {board.status === 'offline' ? (
+      {board.status === 'offline' && rows ? (
         <p className={styles.muted} role="status">
-          {rows
-            ? 'Hors ligne : dernier classement connu.'
-            : 'Classement injoignable pour le moment.'}
+          Hors ligne : dernier classement connu.
         </p>
       ) : null}
-      {rows && rows.length === 0 ? (
-        <p className={styles.muted}>Personne pour l’instant. La première place est libre !</p>
-      ) : null}
-      {rows && rows.length > 0 ? (
-        <ol className={styles.list}>
-          {rows.map((row) => (
-            <li
-              key={`${row.rank}-${row.username}`}
-              className={row.isMe ? `${styles.row} ${styles.me}` : styles.row}
-              // Le joueur hors du top est séparé des autres par un trait.
-              data-outside={row.rank > TOP_SIZE ? '' : undefined}>
-              <span className={styles.rank}>{medal(row.rank)}</span>
-              <span className={styles.name}>{row.username}</span>
-              <span className={styles.time}>
-                {formatDuration(row.bestMs)}
-                <span className={styles.pace}>{formatSeconds(row.bestMs / length)} / q</span>
-              </span>
-            </li>
-          ))}
-        </ol>
-      ) : null}
+      <div className={styles.board}>
+        <table className={styles.table}>
+          <thead>
+            <tr>
+              <th scope="col" className={styles.rankCol}>
+                <span className={styles.srOnly}>Rang</span>
+              </th>
+              <th scope="col" className={styles.nameCol}>
+                Joueur
+              </th>
+              {lengths.map((l) => (
+                <th
+                  key={l}
+                  scope="col"
+                  className={styles.timeCol}
+                  aria-sort={l === length ? 'ascending' : undefined}>
+                  <button
+                    type="button"
+                    className={l === length ? `${styles.sort} ${styles.sortActive}` : styles.sort}
+                    aria-label={`${l} questions`}
+                    onClick={() => onSort(l)}>
+                    {`${l} q`}
+                  </button>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {message ? (
+              <tr>
+                <td colSpan={2 + lengths.length} className={styles.message}>
+                  <span role="status">{message}</span>
+                </td>
+              </tr>
+            ) : (
+              rows?.map((row) => (
+                <tr
+                  key={`${row.rank}-${row.username}`}
+                  className={row.isMe ? `${styles.row} ${styles.me}` : styles.row}
+                  // Le joueur hors du top est séparé des autres par un trait.
+                  data-outside={row.rank > TOP_SIZE ? '' : undefined}>
+                  <td className={styles.rank}>{medal(row.rank)}</td>
+                  <th scope="row" className={styles.name}>
+                    {row.username}
+                  </th>
+                  {lengths.map((l) => (
+                    <td
+                      key={l}
+                      className={l === length ? `${styles.time} ${styles.sorted}` : styles.time}>
+                      <BestTime ms={l === length ? row.bestMs : row.bests[l]} />
+                    </td>
+                  ))}
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
+
+/** Un temps, ou un tiret discret quand le joueur n'a pas joué cette longueur. */
+function BestTime({ ms }: { ms: number | undefined }) {
+  if (ms !== undefined) return formatDuration(ms);
+  return (
+    <>
+      <span className={styles.none} aria-hidden="true">
+        —
+      </span>
+      <span className={styles.srOnly}>Pas de temps</span>
     </>
   );
 }

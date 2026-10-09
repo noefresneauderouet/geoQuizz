@@ -26,9 +26,16 @@ export type BoardRow = {
   bestMs: number;
   achievedAt: string;
   isMe: boolean;
+  /**
+   * Ses meilleurs temps dans cette zone et ce mode, par longueur, celle du
+   * classement comprise. Une longueur qu'il n'a jamais jouée manque.
+   */
+  bests: Partial<Record<number, number>>;
 };
 
-const boardId = ({ category, mode, length }: BoardKey) => `${category}:${mode}:${length}`;
+/** Le début commun aux classements d'une zone et d'un mode, toutes longueurs. */
+const zoneId = ({ category, mode }: Omit<BoardKey, 'length'>) => `${category}:${mode}:`;
+const boardId = (key: BoardKey) => `${zoneId(key)}${key.length}`;
 
 /* --------------------------------- Lecture -------------------------------- */
 
@@ -36,7 +43,8 @@ export const TOP_SIZE = 50;
 
 /** Au-delà, on redemande ; en deçà, le classement en mémoire suffit. */
 const FRESH_MS = 30_000;
-const CACHE_KEY = 'geolearn.leaderboard.cache.v1';
+/** v2 : les lignes portent `bests`. */
+const CACHE_KEY = 'geolearn.leaderboard.cache.v2';
 /** Classements gardés sur l'appareil : les derniers consultés. */
 const CACHE_SIZE = 12;
 
@@ -81,6 +89,7 @@ type RawRow = {
   best_ms: number;
   achieved_at: string;
   is_me: boolean;
+  bests: Record<string, number>;
 };
 
 /**
@@ -90,7 +99,7 @@ type RawRow = {
 export async function fetchBoard(key: BoardKey, viewer: string | null): Promise<BoardRow[]> {
   const db = await getDb();
   const { data, error } = await db.rpc(
-    'get_leaderboard',
+    'get_leaderboard_with_bests',
     { p_category: key.category, p_mode: key.mode, p_length: key.length, p_limit: TOP_SIZE },
     // GET : la base l'exécute en lecture seule.
     { get: true },
@@ -102,9 +111,21 @@ export async function fetchBoard(key: BoardKey, viewer: string | null): Promise<
     bestMs: row.best_ms,
     achievedAt: row.achieved_at,
     isMe: row.is_me,
+    bests: row.bests,
   }));
   writeCache(boardId(key), rows, viewer);
   return rows;
+}
+
+/**
+ * Oublie les classements gardés de cette zone et de ce mode : un nouveau temps
+ * compte dans le sien, et s'affiche à côté dans ceux des autres longueurs.
+ */
+function forgetZone(key: BoardKey) {
+  if (!cache) return;
+  for (const id of Object.keys(cache)) {
+    if (id.startsWith(zoneId(key))) delete cache[id];
+  }
 }
 
 /* -------------------------------- Écriture -------------------------------- */
@@ -198,7 +219,7 @@ export async function finishRankedRound(
     if (error) return { status: 'offline' };
     const row = ((data ?? []) as RawSubmitted[])[0];
     if (!row) return { status: 'rejected' };
-    if (cache) delete cache[boardId(round.key)];
+    forgetZone(round.key);
     keepMyBest(round.viewer, round.key, row.best_ms);
     return {
       status: 'saved',

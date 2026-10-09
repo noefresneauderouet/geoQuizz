@@ -21,7 +21,7 @@
   padding: var(--space-3) 0;
 }
 
-/* Zones et longueurs : des pastilles qui passent à la ligne sur un téléphone. */
+/* Zones : des pastilles qui passent à la ligne sur un téléphone. */
 .chips {
   display: flex;
   flex-wrap: wrap;
@@ -64,10 +64,7 @@
   text-underline-offset: 2px;
 }
 
-.list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+.board {
   overflow: hidden;
   background-color: var(--card);
   border: 1px solid var(--border);
@@ -75,21 +72,101 @@
   box-shadow: var(--shadow-card);
 }
 
-.row {
-  display: grid;
-  grid-template-columns: 44px 1fr auto;
-  align-items: center;
-  gap: var(--space-2);
-  padding: 10px var(--space-3);
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  /* Les largeurs viennent de l'en-tête : un long pseudo est coupé, il
+     n'élargit pas sa colonne. */
+  table-layout: fixed;
   font-weight: 700;
 }
+
+.table th,
+.table td {
+  height: 42px;
+  padding: 0 var(--space-1);
+}
+
+.table th:first-child,
+.table td:first-child {
+  padding-left: var(--space-2);
+}
+
+.table th:last-child,
+.table td:last-child {
+  padding-right: 12px;
+}
+
+@media (min-width: 1024px) {
+  .table th,
+  .table td {
+    height: 48px;
+  }
+}
+
+/* --------------------------------- En-tête -------------------------------- */
+
+.table thead th {
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.rankCol {
+  width: 40px;
+}
+
+.nameCol {
+  text-align: left;
+}
+
+.timeCol {
+  width: 60px;
+  text-align: right;
+}
+
+@media (min-width: 600px) {
+  .rankCol {
+    width: 52px;
+  }
+
+  .timeCol {
+    width: 96px;
+  }
+}
+
+/* Les longueurs : des pastilles, comme les zones au-dessus. */
+.sort {
+  padding: 3px var(--space-2);
+  border-radius: var(--radius-pill);
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  font-weight: 800;
+  font-size: 13px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.sort:hover {
+  background-color: var(--yellow-light);
+}
+
+.sortActive,
+.sortActive:hover {
+  background-color: var(--green);
+  border-color: var(--green);
+  color: var(--on-color);
+}
+
+/* --------------------------------- Lignes --------------------------------- */
 
 .row:nth-child(even) {
   background-color: var(--sand);
 }
 
 /* Le joueur classé au-delà du top, ajouté en bas de liste. */
-.row[data-outside] {
+.row[data-outside] > * {
   border-top: 2px dashed var(--border);
 }
 
@@ -111,18 +188,48 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-align: left;
+  font-weight: 700;
 }
 
 .time {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  font-weight: 800;
+  text-align: right;
+  font-size: 15px;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--ink-soft);
 }
 
-.pace {
-  font-size: 11px;
+/* La colonne qui classe. */
+.sorted,
+.me .time {
+  color: inherit;
+}
+
+.sorted {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.none {
+  opacity: 0.45;
+}
+
+.table td.message {
+  padding: var(--space-3);
+  text-align: center;
+  font-size: 15px;
   font-weight: 600;
   color: var(--ink-soft);
+}
+
+/* Lu par un lecteur d'écran, invisible à l'œil. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
