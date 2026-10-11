@@ -255,6 +255,7 @@ describe('ce qui est mal formé est ignoré', () => {
       status: 'lobby',
       game: 0,
       settings: { ...EUROPE, count: 500 },
+      avatar: 'https://ailleurs.example/photo.png',
     });
     await settle();
     const other = host.box.players.at(-1)?.find((p) => p.id === 'ffff');
@@ -267,6 +268,15 @@ describe('ce qui est mal formé est ignoré', () => {
       game: 0,
       settings: undefined,
     });
+  });
+
+  it('la photo d’un joueur passe, sous forme de référence seulement', async (t) => {
+    const host = await enter(t, HOST_ID, { host: true });
+    const avatar = '0f8fad5b-d9cb-469f-a165-70867728950e/mg2x1k7a';
+    await server.device(TOPIC, GUEST_ID).track(state(GUEST_ID, { avatar }));
+    await settle();
+    const guest = host.box.players.at(-1)?.find((p) => p.id === GUEST_ID);
+    assert.equal(guest?.avatar, avatar);
   });
 
   it('un joueur publié deux fois (reconnexion) compte une fois, à son dernier état', async (t) => {

@@ -222,7 +222,7 @@ function DeleteAccount() {
         {busy
           ? 'Un instant…'
           : confirming
-            ? 'Appuie encore : pseudo et temps seront effacés'
+            ? 'Appuie encore : pseudo, photo et temps seront effacés'
             : 'Supprimer mon compte'}
       </button>
     </>

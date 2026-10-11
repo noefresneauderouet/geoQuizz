@@ -150,6 +150,7 @@ describe('la lecture du classement', () => {
       achieved_at: '2026-10-01T10:00:00Z',
       is_me: false,
       bests: { '10': 30_000, '20': 70_000 },
+      avatar: '0f8fad5b-d9cb-469f-a165-70867728950e/mg2x1k7a',
     },
     {
       rank: '2',
@@ -176,6 +177,7 @@ describe('la lecture du classement', () => {
         achievedAt: '2026-10-01T10:00:00Z',
         isMe: false,
         bests: { 10: 30_000, 20: 70_000 },
+        avatar: '0f8fad5b-d9cb-469f-a165-70867728950e/mg2x1k7a',
       },
       {
         rank: 2,
@@ -184,6 +186,8 @@ describe('la lecture du classement', () => {
         achievedAt: '2026-10-02T10:00:00Z',
         isMe: true,
         bests: { 10: 41_000 },
+        // Sans photo, ou lu dans une base qui ne connaît pas encore les photos.
+        avatar: null,
       },
     ]);
     const [call] = database.callsTo('get_leaderboard_with_bests');

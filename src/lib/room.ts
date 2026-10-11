@@ -5,8 +5,8 @@
  * salle. Les joueurs se retrouvent donc sur un canal Supabase Realtime,
  * `room:<CODE>`, qui ne stocke rien et se contente de relayer :
  *
- * - **Presence** — qui est là (pseudo, hôte, statut, et les réglages pour le
- *   seul hôte). Le service retire tout
+ * - **Presence** — qui est là (pseudo, photo, hôte, statut, et les réglages
+ *   pour le seul hôte). Le service retire tout
  *   seul ceux qui ferment l'onglet ou perdent le réseau : c'est la salle
  *   d'attente. Supabase limite sévèrement la fréquence de ces mises à jour —
  *   au-delà, il ferme le canal du joueur — : on n'y publie donc que ce qui
@@ -24,6 +24,7 @@
 import type { RealtimeChannel, RealtimeClient } from '@supabase/realtime-js';
 
 import { MODES, type ModeId, type PlayId } from '@/constants/categories';
+import { isAvatarRef } from '@/lib/avatar';
 import { getItem, setItem } from '@/lib/storage';
 import { isSupabaseConfigured, supabaseKey, supabaseUrl } from '@/lib/supabase';
 import { parsePlay } from '@/lib/zones';
@@ -192,6 +193,11 @@ export type PlayerState = {
    * d'un changement : Presence est limité.
    */
   settings?: RoomSettings;
+  /**
+   * Sa photo de profil (src/lib/avatar.ts), s'il est connecté à son compte et
+   * en a une. Publiée en entrant, comme le pseudo.
+   */
+  avatar?: string;
 };
 
 /** Un joueur tel qu'on le connaît : son dernier état publié, et s'il est encore là. */
@@ -414,6 +420,9 @@ function parsePlayer(value: unknown): PlayerState | null {
     status: p.status as PlayerStatus,
     game: p.game,
     settings: isSettings(p.settings) ? p.settings : undefined,
+    // Une référence, jamais une adresse : celle-ci ne mène qu'aux photos du
+    // projet (`avatarUrl`).
+    ...(isAvatarRef(p.avatar) ? { avatar: p.avatar } : {}),
   };
 }
 

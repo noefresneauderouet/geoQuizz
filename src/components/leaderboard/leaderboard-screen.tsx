@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
 import { AppMenu } from '@/components/app-menu';
+import { Avatar } from '@/components/avatar';
 import { ModeSelector } from '@/components/mode-selector';
 import { useAccount } from '@/components/use-account';
 import { useInBrowser } from '@/components/use-in-browser';
@@ -242,7 +243,10 @@ function BoardTable({ board, lengths, length, onSort }: BoardTableProps) {
                   data-outside={row.rank > TOP_SIZE ? '' : undefined}>
                   <td className={styles.rank}>{medal(row.rank)}</td>
                   <th scope="row" className={styles.name}>
-                    {row.username}
+                    <span className={styles.player}>
+                      <Avatar avatar={row.avatar} name={row.username} size={28} />
+                      <span className={styles.playerName}>{row.username}</span>
+                    </span>
                   </th>
                   {lengths.map((l) => (
                     <td

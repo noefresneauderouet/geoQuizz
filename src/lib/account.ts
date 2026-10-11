@@ -11,6 +11,7 @@
  */
 import type { AuthError, Session, User } from '@supabase/auth-js';
 
+import { deleteAvatarFiles } from '@/lib/avatar';
 import { cleanName, MAX_NAME_LENGTH } from '@/lib/room';
 import { getAuth, getDb, hasStoredSession, isSupabaseConfigured } from '@/lib/supabase';
 
@@ -364,11 +365,16 @@ export async function signOut(): Promise<void> {
 }
 
 /**
- * Efface le compte, son pseudo et ses temps (fonction `delete_account` de la
- * base), puis déconnecte l'appareil.
+ * Efface le compte, son pseudo, sa photo et ses temps (fonction
+ * `delete_account` de la base), puis déconnecte l'appareil.
  */
 export async function deleteAccount(): Promise<Failure | null> {
   try {
+    // Les images de la photo d'abord : la base efface tout le reste, pas
+    // elles. Si elles risquent de rester, le compte reste aussi.
+    if ('id' in snapshot && !(await deleteAvatarFiles(snapshot.id))) {
+      return { error: NETWORK_ERROR };
+    }
     const db = await getDb();
     const { error } = await db.rpc('delete_account');
     if (error) return { error: NETWORK_ERROR };

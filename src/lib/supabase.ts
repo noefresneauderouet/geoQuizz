@@ -1,10 +1,11 @@
 /**
- * Le projet Supabase : salles à plusieurs (Realtime), comptes (Auth) et
- * classement (Postgres, via l'API REST).
+ * Le projet Supabase : salles à plusieurs (Realtime), comptes (Auth),
+ * classement (Postgres, via l'API REST) et photos de profil (Storage).
  *
  * Les trois clients sont des paquets séparés, chargés chacun par `import()`
  * au moment où l'on s'en sert : le jeu solo d'un invité n'en télécharge
- * aucun, et le classement n'embarque pas le client Realtime.
+ * aucun, et le classement n'embarque pas le client Realtime. Storage n'a
+ * pas de client : trois requêtes suffisent (`storageRequest`).
  */
 import type { GoTrueClient } from '@supabase/auth-js';
 import type { PostgrestClient } from '@supabase/postgrest-js';
@@ -66,6 +67,15 @@ export function getAuth(): Promise<GoTrueClient> {
   return auth;
 }
 
+/**
+ * Le jeton du joueur connecté, ou rien pour un invité. Un invité ne charge
+ * pas le client Auth pour le savoir.
+ */
+async function accessToken(): Promise<string | undefined> {
+  if (!hasStoredSession()) return undefined;
+  return (await (await getAuth()).getSession()).data.session?.access_token;
+}
+
 let db: Promise<PostgrestClient> | null = null;
 
 /**
@@ -80,13 +90,24 @@ export function getDb(): Promise<PostgrestClient> {
         headers: { apikey: supabaseKey() },
         fetch: async (input, init) => {
           const headers = new Headers(init?.headers);
-          const token = hasStoredSession()
-            ? (await (await getAuth()).getSession()).data.session?.access_token
-            : undefined;
-          headers.set('Authorization', `Bearer ${token ?? supabaseKey()}`);
+          headers.set('Authorization', `Bearer ${(await accessToken()) ?? supabaseKey()}`);
           return fetch(input, { ...init, headers });
         },
       }),
   );
   return db;
+}
+
+/**
+ * Une requête à l'API de Storage (`/storage/v1/…`), au nom du joueur
+ * connecté : ses règles d'accès ne laissent écrire que dans son dossier.
+ * Rejette hors ligne, comme `fetch`, et sans session.
+ */
+export async function storageRequest(path: string, init: RequestInit): Promise<Response> {
+  const token = await accessToken();
+  if (!token) throw new Error('Connexion requise');
+  const headers = new Headers(init.headers);
+  headers.set('apikey', supabaseKey());
+  headers.set('Authorization', `Bearer ${token}`);
+  return fetch(`${supabaseUrl()}/storage/v1/${path}`, { ...init, headers });
 }

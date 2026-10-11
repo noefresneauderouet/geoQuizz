@@ -43,7 +43,7 @@ export default function ConfidentialitePage() {
             reconnaît d’une partie à l’autre ;
           </li>
           <li>le dernier classement consulté, pour l’afficher hors ligne ;</li>
-          <li>si tu es connecté, ta session ;</li>
+          <li>si tu es connecté, ta session, et la référence de ta photo de profil ;</li>
           <li>une copie du site et des drapeaux, pour jouer sans réseau.</li>
         </ul>
         <p>
@@ -72,14 +72,20 @@ export default function ConfidentialitePage() {
             manche, son heure de départ, pour que le serveur la chronomètre lui-même ;
           </li>
           <li>
+            si tu en choisis une, ta <strong>photo de profil</strong>, publique : elle s’affiche sur
+            ton profil, au classement et dans les parties à plusieurs. Ton navigateur la recadre et
+            la réduit avant l’envoi : seules deux copies de 256 et 96 pixels partent, sans les
+            informations cachées du fichier d’origine (lieu de la prise de vue, appareil).
+          </li>
+          <li>
             les dates de création du compte et de tes connexions, ainsi que l’adresse IP et le
             navigateur utilisés pour te connecter, qui servent à la sécurité des comptes.
           </li>
         </ul>
         <p>
           Si tu utilises « Continuer avec Google », Google nous transmet ton adresse e-mail, ton nom
-          et ta photo de profil. Ils restent rangés avec ton compte, mais le site ne les affiche
-          jamais : seul le pseudo que tu choisis est public. GeoQuizz ne demande aucun autre accès à
+          et ta photo de profil Google. Ils restent rangés avec ton compte, mais le site ne les
+          affiche jamais : seuls le pseudo et la photo que tu choisis toi-même sont publics. GeoQuizz ne demande aucun autre accès à
           ton compte Google.
         </p>
         <p>
@@ -88,7 +94,7 @@ export default function ConfidentialitePage() {
         </p>
         <p>
           <strong>Pourquoi c’est permis</strong> : le compte, le pseudo et les temps sont le service
-          que tu demandes en t’inscrivant (exécution des{' '}
+          que tu demandes en t’inscrivant, et la photo celui que tu demandes en l’ajoutant (exécution des{' '}
           <Link href="/conditions">conditions d’utilisation</Link>, article 6.1.b du RGPD). Le
           chronométrage par le serveur, les journaux de connexion et l’exclusion des tricheurs
           répondent à un intérêt légitime : un classement honnête et des comptes protégés (article
@@ -98,8 +104,8 @@ export default function ConfidentialitePage() {
 
       <Section title="Les parties à plusieurs">
         <p>
-          Dans une salle, ton pseudo, ton statut (en attente, en jeu, fini) et ton avancée passent
-          aux autres joueurs de la salle par Supabase. Rien n’est enregistré dans une base : ces
+          Dans une salle, ton pseudo, ta photo de profil si tu es connecté, ton statut (en attente,
+          en jeu, fini) et ton avancée passent aux autres joueurs de la salle par Supabase. Rien n’est enregistré dans une base : ces
           messages disparaissent avec la salle. Une salle publique annonce son code et ses réglages
           à ceux qui cherchent une partie, sans les pseudos.
         </p>
@@ -121,7 +127,8 @@ export default function ConfidentialitePage() {
         </p>
         <p>
           Les images des drapeaux viennent de flagcdn.com, qui reçoit donc ton adresse IP, comme tout
-          site qui sert une image.
+          site qui sert une image. Les photos de profil sont servies par Supabase, à travers le
+          réseau de Cloudflare, qui la reçoit de la même façon.
         </p>
       </Section>
 
@@ -131,7 +138,8 @@ export default function ConfidentialitePage() {
             <strong>Vercel</strong> (États-Unis) : hébergement du site, mesure d’audience.
           </li>
           <li>
-            <strong>Supabase</strong> (Singapour) : comptes, classement, parties à plusieurs.
+            <strong>Supabase</strong> (Singapour) : comptes, classement, photos de profil, parties à
+            plusieurs.
           </li>
           <li>
             <strong>Resend</strong> (États-Unis) : envoi des e-mails de confirmation de compte.
@@ -141,8 +149,8 @@ export default function ConfidentialitePage() {
             propre <External href="https://policies.google.com/privacy">politique</External>.
           </li>
           <li>
-            <strong>Les autres joueurs</strong> : ton pseudo et tes temps au classement, ton pseudo
-            et ton avancée dans une salle.
+            <strong>Les autres joueurs</strong> : ton pseudo, ta photo et tes temps au classement, ton
+            pseudo, ta photo et ton avancée dans une salle.
           </li>
         </ul>
         <p>
@@ -157,16 +165,20 @@ export default function ConfidentialitePage() {
       <Section title="Combien de temps">
         <ul>
           <li>
-            Compte, pseudo et temps : jusqu’à ce que tu supprimes ton compte. La suppression efface
-            tout, tout de suite.
+            Compte, pseudo, photo et temps : jusqu’à ce que tu supprimes ton compte. La suppression
+            efface tout, tout de suite.
+          </li>
+          <li>
+            Une photo remplacée ou retirée : effacée aussitôt. Si l’effacement échoue (réseau
+            coupé), à ton prochain changement de photo ou à la suppression du compte.
           </li>
           <li>Un compte dont l’adresse n’a jamais été confirmée peut être effacé au bout d’un jour.</li>
           <li>
             Une manche en cours : effacée à sa fin, et au plus tard deux heures après son départ.
           </li>
           <li>
-            Un joueur exclu pour triche perd ses temps ; son compte garde la marque de l’exclusion
-            jusqu’à sa suppression.
+            Un joueur exclu pour triche perd ses temps et sa photo ; son compte garde la marque de
+            l’exclusion jusqu’à sa suppression.
           </li>
           <li>
             Les journaux techniques de Vercel et de Supabase : la durée courte que fixent ces
@@ -182,7 +194,8 @@ export default function ConfidentialitePage() {
           Tu peux consulter tes données, les corriger, les effacer, en limiter l’usage, t’opposer à
           leur traitement et les récupérer dans un format lisible. Pour effacer ton compte, sans
           rien demander à personne : écran Profil, « Mon compte », puis « Supprimer mon compte ».
-          Pour tout le reste, changer de pseudo compris, écris à <ContactEmail /> ; la réponse
+          Ta photo se change ou se retire sur l’écran Profil. Pour tout le reste, changer de pseudo
+          compris, écris à <ContactEmail /> ; la réponse
           arrive sous un mois.
         </p>
         <p>

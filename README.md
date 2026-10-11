@@ -112,6 +112,14 @@ Même projet Supabase que les salles, avec en plus une base :
    redirection `https://<projet>.supabase.co/auth/v1/callback`. Colle son ID
    et son secret dans *Authentication → Sign In / Providers → Google*.
    Sans cela, le bouton mène à une page d'erreur de Supabase.
+5. Les photos de profil (migration `20261011090000_photos_de_profil.sql`)
+   n'ont rien d'autre à régler : la migration crée elle-même le seau
+   `avatars` de *Storage* et ses règles d'accès.
+
+Connecté, chacun peut choisir une **photo de profil** sur l'écran Profil
+(PNG, JPEG ou WebP, 250 Ko au plus). Le navigateur la recadre au carré et en
+tire deux images, 256 px pour le profil et 96 px pour le classement et les
+salles : le fichier d'origine ne part jamais.
 
 Si Supabase ne répond pas, le jeu solo continue : un temps fait pendant la
 panne attend sur l'appareil et part au retour du réseau, et le dernier

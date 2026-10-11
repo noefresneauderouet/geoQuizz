@@ -1,0 +1,113 @@
+/* L'en-tête du profil d'un joueur connecté (profile-card.tsx). */
+
+.card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  column-gap: var(--space-3);
+  row-gap: var(--space-2);
+  padding: var(--space-3);
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+  box-shadow: var(--shadow-card);
+}
+
+.photo {
+  display: flex;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: opacity 150ms ease;
+}
+
+.photo:hover {
+  opacity: 0.85;
+}
+
+.photo[data-busy] {
+  cursor: progress;
+  opacity: 0.5;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.name {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.actions {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+/* Le vrai champ : invisible, mais atteint au clavier. Son contour passe au
+   bouton qu'il habille. */
+.file {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.file:focus-visible + .primary {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.file:disabled + .primary {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+.primary,
+.ghost {
+  padding: 6px var(--space-3);
+  border-radius: var(--radius-pill);
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.primary {
+  background-color: var(--green);
+  color: var(--on-color);
+}
+
+.ghost {
+  background-color: var(--sand);
+  border: 1px solid var(--border);
+  color: var(--ink);
+}
+
+.ghost:disabled {
+  opacity: 0.6;
+}
+
+.note,
+.error {
+  grid-column: 1 / -1;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.note {
+  color: var(--ink-soft);
+}
+
+.error {
+  color: var(--danger);
+}

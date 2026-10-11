@@ -120,6 +120,33 @@ passe, pseudo) et **Postgres**, appelés depuis le navigateur.
 - `vercel.json` porte les en-têtes de sécurité (CSP). Un nouveau domaine
   appelé par le navigateur doit y être ajouté.
 
+## Les photos de profil
+
+Seau public `avatars` de **Supabase Storage** (servi par le réseau de
+Cloudflare), créé par la migration 20261011090000. src/lib/avatar.ts porte
+tout ; src/components/avatar.tsx les affiche, avec l'initiale du pseudo à
+défaut.
+
+- Le fichier choisi (PNG, JPEG ou WebP, 250 Ko au plus, reconnu à ses
+  octets) ne part jamais : le navigateur le recadre au carré et en tire
+  **deux** images, 256 px (profil) et 96 px (listes, jusqu'à 48 px
+  affichés), en WebP, ou en JPEG là où Safari ne sait pas l'écrire.
+- Chaque photo a sa version, donc ses adresses
+  (`<compte>/<version>-256`), cachées un an : n'écris jamais par-dessus une
+  image. `profiles.avatar` porte la version affichée et ne change que par
+  `set_avatar`, qui vérifie que les deux images existent. Le seau refuse
+  une cinquième image par compte : `saveAvatar` fait la place avant d'envoyer.
+- Le classement et les salles se passent la référence `<compte>/<version>`,
+  jamais une adresse : `avatarUrl` ne mène qu'au seau du projet.
+- La base ne peut pas effacer une image (Storage la garde hors d'elle) :
+  `deleteAccount` efface les images avant le compte, et s'arrête si elles
+  risquent de rester.
+- Retirer une photo : `select public.remove_avatar('Pseudo');` dans le SQL
+  Editor ; `ban_player` la retire aussi.
+- Storage n'a pas de client : trois requêtes `fetch` (`storageRequest`,
+  src/lib/supabase.ts). Les tests mettent tests/fakes/storage-api.ts à la
+  place de `fetch`.
+
 ## Les pages légales
 
 `/mentions-legales`, `/confidentialite` et `/conditions` (src/app/), sur le
@@ -153,7 +180,8 @@ service worker (`npm run test:sw`, qui demande `npm run build` avant).
   sans dépendance de plus. scripts/test-loader.mjs apprend à Node à lire src/
   (TypeScript, alias `@/`, JSON) : n'y ajoute pas d'outil de test.
 - Ils ne touchent jamais au réseau : `@supabase/realtime-js`, `auth-js` et
-  `postgrest-js` y sont remplacés par les faux de `tests/fakes/`.
+  `postgrest-js` y sont remplacés par les faux de `tests/fakes/`, et `fetch`
+  (Storage) par `installStorageApi`, qui refuse toute autre adresse.
 - Une règle qui vit dans un composant React ne se teste pas : sors-la dans
   `src/lib/` (comme `seatOf` ou `contendersOf`, src/lib/room.ts), puis teste-la.
 - Un état gardé en mémoire par un module (progression, compte) se remet à zéro

@@ -22,4 +22,4 @@ export const LEGAL_PAGES = [
 ] as const;
 
 /** Date de la dernière modification du texte des pages légales. */
-export const LEGAL_UPDATED = '8 octobre 2026';
+export const LEGAL_UPDATED = '11 octobre 2026';
