@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 
 import { AppMenu } from '@/components/app-menu';
+import { ProfileCard } from '@/components/profile-card';
 import { useAccount } from '@/components/use-account';
 import { useMyBests } from '@/components/use-my-bests';
 import {
@@ -127,27 +128,26 @@ export function ProgressReport() {
   );
 }
 
-/** Le compte, qui ne sert qu'au classement : une ligne, qui mène à /compte. */
+/**
+ * Le compte, qui sert au classement et à la photo : connecté, l'en-tête du
+ * profil ; sinon, une ligne qui mène à /compte.
+ */
 function AccountLink() {
   const account = useAccount();
   if (account.status === 'loading' || account.status === 'unavailable') return null;
+  if (account.status === 'signed-in') {
+    return <ProfileCard id={account.id} username={account.username} />;
+  }
   return (
     <Link href="/compte" className={styles.account}>
-      {account.status === 'signed-in' ? (
-        <>
-          <span>
-            Connecté : <strong>{account.username}</strong>
-          </span>
-          <span className={styles.accountAction}>Mon compte</span>
-        </>
-      ) : account.status === 'needs-username' ? (
+      {account.status === 'needs-username' ? (
         <>
           <span>Choisis ton pseudo pour entrer au classement.</span>
           <span className={styles.accountAction}>Choisir</span>
         </>
       ) : (
         <>
-          <span>Crée un compte pour entrer au classement.</span>
+          <span>Crée un compte pour entrer au classement et choisir ta photo.</span>
           <span className={styles.accountAction}>Se connecter</span>
         </>
       )}

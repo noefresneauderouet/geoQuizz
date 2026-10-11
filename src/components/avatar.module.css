@@ -1,0 +1,41 @@
+/* Une photo de profil, ou l'initiale qui la remplace (avatar.tsx). */
+
+.avatar {
+  flex-shrink: 0;
+  width: var(--avatar-size);
+  height: var(--avatar-size);
+  border-radius: 50%;
+  object-fit: cover;
+  background-color: var(--sand);
+  box-shadow: 0 0 0 1px var(--border);
+}
+
+.initial {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(var(--avatar-size) * 0.45);
+  font-weight: 800;
+  line-height: 1;
+  user-select: none;
+}
+
+.green {
+  background-color: var(--green-light);
+  color: var(--green-dark);
+}
+
+.blue {
+  background-color: var(--blue-light);
+  color: var(--blue-dark);
+}
+
+.yellow {
+  background-color: var(--yellow-light);
+  color: var(--yellow-dark);
+}
+
+.brown {
+  background-color: var(--brown-light);
+  color: var(--brown-dark);
+}

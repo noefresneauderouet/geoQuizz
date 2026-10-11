@@ -31,6 +31,11 @@ export type BoardRow = {
    * classement comprise. Une longueur qu'il n'a jamais jouée manque.
    */
   bests: Partial<Record<number, number>>;
+  /**
+   * Sa photo de profil (src/lib/avatar.ts), ou `null`. Absente des
+   * classements gardés avant les photos : l'écran la lit comme `null`.
+   */
+  avatar: string | null;
 };
 
 /** Le début commun aux classements d'une zone et d'un mode, toutes longueurs. */
@@ -90,6 +95,8 @@ type RawRow = {
   achieved_at: string;
   is_me: boolean;
   bests: Record<string, number>;
+  /** Manque tant que la base n'a pas reçu 20261011090000_photos_de_profil.sql. */
+  avatar?: string | null;
 };
 
 /**
@@ -112,6 +119,7 @@ export async function fetchBoard(key: BoardKey, viewer: string | null): Promise<
     achievedAt: row.achieved_at,
     isMe: row.is_me,
     bests: row.bests,
+    avatar: row.avatar ?? null,
   }));
   writeCache(boardId(key), rows, viewer);
   return rows;

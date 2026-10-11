@@ -3,11 +3,13 @@
 import Link from 'next/link';
 import { useEffect, useReducer, useRef, useState } from 'react';
 
+import { Avatar } from '@/components/avatar';
 import { CategoryBackground } from '@/components/category-background';
 import { QrDialog } from '@/components/multi/qr-dialog';
 import { describeSettings, draftOf, SettingsEditor } from '@/components/multi/room-settings';
 import { usePublicListing, useRoom } from '@/components/multi/use-room';
 import { QuizBoard } from '@/components/quiz/quiz-board';
+import { useMyAvatar } from '@/components/use-my-avatar';
 import { getMode, type Category, type Mode } from '@/constants/categories';
 import { vibrateSuccess } from '@/lib/feedback';
 import { buildRound } from '@/lib/quiz';
@@ -102,6 +104,14 @@ export function MultiRoom({ code, name, settings: fromLink, isPublic: publicLink
 
   const update = (patch: Partial<typeof me>) => setMe((s) => ({ ...s, ...patch }));
   const clearRound = () => dispatch({ type: 'restart', round: [], now: clock() });
+
+  /*
+   * La photo du compte connecté, s'il en a une. Elle est d'ordinaire déjà sur
+   * l'appareil et part avec la première présence ; lue plus tard, elle coûte
+   * une publication de plus, une fois.
+   */
+  const avatar = useMyAvatar() ?? undefined;
+  if (avatar !== me.avatar) update({ avatar });
 
   /*
    * Les trois moments partagés. Chacun est appliqué ici tout de suite par
@@ -463,6 +473,7 @@ function Lobby({
           <ul className={styles.players}>
             {waiting.map((p) => (
               <li key={p.id} className={styles.player}>
+                <Avatar avatar={p.avatar} name={p.name} size={32} />
                 <span className={styles.playerName}>
                   {p.name}
                   {p.id === self.id ? <span className={styles.you}> (toi)</span> : null}
@@ -578,6 +589,7 @@ function Ranking({ category, players, selfId, winnerId, total, isHost, onReplay 
                 key={p.id}
                 className={p.id === selfId ? `${styles.rankRow} ${styles.rankSelf}` : styles.rankRow}>
                 <span className={styles.rank}>{MEDALS[i] ?? `${i + 1}`}</span>
+                <Avatar avatar={p.avatar} name={p.name} size={32} />
                 <span className={styles.playerName}>
                   {p.name}
                   {p.id === selfId ? <span className={styles.you}> (toi)</span> : null}

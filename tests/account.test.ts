@@ -10,6 +10,7 @@ import type * as AccountModule from '@/lib/account';
 
 import { auth, sessionOf } from './fakes/auth';
 import { database } from './fakes/postgrest';
+import { installStorageApi, storageApi } from './fakes/storage-api';
 import { freshImport, installStorage, type MemoryStorage } from './helpers';
 
 const PROJECT = 'https://demo.supabase.co';
@@ -22,6 +23,8 @@ beforeEach(() => {
   process.env.NEXT_PUBLIC_SUPABASE_URL = PROJECT;
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'cle-publique';
   local = installStorage().local;
+  installStorageApi();
+  storageApi.reset();
   auth.reset();
   database.reset();
   Object.defineProperty(globalThis, 'location', {
@@ -217,6 +220,28 @@ describe('la suppression du compte', () => {
     assert.equal(await deleteAccount(), null);
     assert.equal(database.callsTo('delete_account').length, 1);
     assert.deepEqual(getAccount(), { status: 'guest' });
+  });
+
+  it('efface d’abord les images de la photo, que la base ne peut pas effacer', async () => {
+    storeSession('u1');
+    for (const path of ['u1/abc-256', 'u1/abc-96', 'u2/xyz-96']) {
+      storageApi.files.set(path, { type: 'image/webp', size: 1, cacheControl: null });
+    }
+    const { readAccount, deleteAccount } = await openAccount();
+    await readAccount();
+    assert.equal(await deleteAccount(), null);
+    assert.deepEqual(storageApi.paths(), ['u2/xyz-96']);
+    assert.equal(database.callsTo('delete_account').length, 1);
+  });
+
+  it('garde le compte si les images risquent de rester', async () => {
+    storeSession();
+    storageApi.fail = () => 'network';
+    const { readAccount, deleteAccount, getAccount } = await openAccount();
+    await readAccount();
+    assert.deepEqual(await deleteAccount(), { error: NETWORK_ERROR });
+    assert.equal(database.callsTo('delete_account').length, 0);
+    assert.equal(getAccount().status, 'signed-in');
   });
 
   it('garde le joueur connecté si la base refuse', async () => {

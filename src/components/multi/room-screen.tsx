@@ -12,6 +12,7 @@ import {
   type SettingsDraft,
 } from '@/components/multi/room-settings';
 import { useInBrowser } from '@/components/use-in-browser';
+import { useMyAvatar } from '@/components/use-my-avatar';
 import { CATEGORIES, getCategory, getMode } from '@/constants/categories';
 import { DEFAULT_QUESTION_COUNT, getQuestionCount, poolSize, QUESTION_COUNTS } from '@/lib/quiz';
 import {
@@ -81,6 +82,9 @@ function RoomRouter() {
   const settings = urlSettings(params);
   /** Pseudo confirmé pour cette visite ; le dernier utilisé ne sert qu'à préremplir. */
   const [name, setName] = useState<string | null>(null);
+  // La photo du compte se lit pendant qu'on choisit son pseudo : elle part
+  // ainsi avec la première présence dans la salle, sans publication de plus.
+  useMyAvatar();
 
   if (!isMultiplayerConfigured()) {
     return (

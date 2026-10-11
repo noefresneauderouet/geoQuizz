@@ -5,7 +5,7 @@ import { ContactEmail, LegalPage, Section } from '@/components/legal/legal-page'
 
 export const metadata: Metadata = {
   title: 'Conditions d’utilisation',
-  description: 'Les règles du jeu GeoQuizz : compte, pseudo, classement et fair-play.',
+  description: 'Les règles du jeu GeoQuizz : compte, pseudo, photo, classement et fair-play.',
 };
 
 export default function ConditionsPage() {
@@ -32,8 +32,8 @@ export default function ConditionsPage() {
           <li>Ton mot de passe est personnel : ne le donne à personne.</li>
           <li>Si tu as moins de 15 ans, demande l’accord d’un parent avant de créer un compte.</li>
           <li>
-            Tu peux supprimer ton compte quand tu veux, depuis l’écran « Mon compte » : ton pseudo et
-            tes temps disparaissent avec lui.
+            Tu peux supprimer ton compte quand tu veux, depuis l’écran « Mon compte » : ton pseudo, ta
+            photo et tes temps disparaissent avec lui.
           </li>
         </ul>
       </Section>
@@ -44,6 +44,16 @@ export default function ConditionsPage() {
           injurieux, haineux, sexuel ou publicitaire, ni reprendre le nom de quelqu’un d’autre. Un
           pseudo qui ne respecte pas ces règles peut être retiré du classement, avec le compte qui le
           porte.
+        </p>
+      </Section>
+
+      <Section title="Ta photo de profil">
+        <p>
+          Une photo de profil est facultative, et visible de tous, comme ton pseudo : sur ton profil,
+          au classement et dans les salles. Les mêmes règles s’y appliquent. Elle ne doit montrer ni
+          nudité, ni violence, ni symbole haineux, ni publicité, ni une autre personne sans son
+          accord. Une photo qui ne respecte pas ces règles peut être retirée, et le compte qui la
+          porte exclu.
         </p>
       </Section>
 
@@ -62,7 +72,8 @@ export default function ConditionsPage() {
       <Section title="Les parties à plusieurs">
         <p>
           Une salle réunit les joueurs qui en ont le code ou le lien ; une salle publique, n’importe
-          qui. Reste correct avec les autres joueurs : les règles du pseudo s’y appliquent aussi.
+          qui. Reste correct avec les autres joueurs : les règles du pseudo et de la photo s’y
+          appliquent aussi.
         </p>
       </Section>
 
